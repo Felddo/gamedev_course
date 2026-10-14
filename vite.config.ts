@@ -6,5 +6,9 @@ export default defineConfig({
   base: './',
   server: {
     host: true,
+    // Облачные превью (Codespaces, e2b, …) открывают dev-сервер по своему домену.
+    // Без этой строки Vite отвечает 403 «Blocked request. This host is not allowed».
+    // Локальный localhost разрешён и так, проверка остальных хостов сохраняется.
+    allowedHosts: ['.e2b.app'],
   },
 });
