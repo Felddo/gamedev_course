@@ -1,15 +1,582 @@
 <!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#111827" />
-    <title>Game Dev Starter</title>
-  </head>
-  <body>
-    <main id="app">
-      <div id="game"></div>
-    </main>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#02140e" />
+  <title>Iron Resolve: Survivor Protocol</title>
+
+  <!-- Четкие типографические шрифты для тактического HUD и голограмм -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+  <main id="app">
+    <!-- Игровой холст Phaser (активируется при нажатии "Начать игру") -->
+    <div id="game" class="game-container hidden"></div>
+
+    <!-- Голографическое оповещение о боевой фазе по центру экрана -->
+    <div id="phase-banner" class="phase-banner hidden" aria-live="assertive">
+      <div class="phase-holo-card">
+        <div class="phase-scanlines"></div>
+        <div class="phase-glow-sweep"></div>
+        <span class="corner-bracket corner-tl"></span>
+        <span class="corner-bracket corner-tr"></span>
+        <span class="corner-bracket corner-bl"></span>
+        <span class="corner-bracket corner-br"></span>
+
+        <div class="phase-header-badge">
+          <span class="phase-pulse-dot"></span>
+          <span class="phase-header-code" id="phase-header-code">SYS_TACTICAL // ОБНОВЛЕНИЕ СЕКТОРА</span>
+        </div>
+
+        <h2 class="phase-main-title" id="phase-main-title">Фаза 1</h2>
+
+        <div class="phase-divider">
+          <span class="phase-divider-line"></span>
+          <span class="phase-divider-notch">◆</span>
+          <span class="phase-divider-line"></span>
+        </div>
+
+        <div class="phase-sub-wrap">
+          <span class="phase-subtitle" id="phase-subtitle">ПРОТОКОЛ: ЗАЧИСТКА ПЕРИМЕТРА // СЛЕДУЮЩАЯ ФАЗА: 1000
+            ОЧКОВ</span>
+        </div>
+
+        <!-- СНИЗУ: 3 блока улучшений башни и гусениц (для всех фаз кроме первой) -->
+        <div id="phase-upgrades-section" class="phase-upgrades-section hidden">
+          <div class="phase-upgrades-prompt">
+            <span class="phase-prompt-line"></span>
+            <span class="phase-prompt-text">ВЫБЕРИТЕ МОДЕРНИЗАЦИЮ ТАНКА</span>
+            <span class="phase-prompt-line"></span>
+          </div>
+          <div id="phase-upgrades-grid" class="phase-upgrades-grid" role="group"
+            aria-label="Тактические улучшения танка">
+            <!-- 3 блока тактических улучшений генерируются динамически из пула -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Тактический виджет ракетного рывка (Rocket Dash HUD в нижней части экрана) -->
+    <aside id="dash-hud" class="dash-hud hidden" aria-label="Тактический ракетный ускоритель">
+      <div class="dash-hud-card" id="dash-trigger-card">
+        <div class="dash-hud-scanlines"></div>
+        <span class="corner-bracket corner-tl"></span>
+        <span class="corner-bracket corner-br"></span>
+
+        <!-- Клавиша SHIFT -->
+        <div class="dash-key-wrap">
+          <kbd class="dash-key-btn" id="dash-key-btn">
+            <span class="dash-key-label">SHIFT</span>
+            <span class="dash-key-led"></span>
+          </kbd>
+        </div>
+
+        <!-- Разделитель модулей -->
+        <div class="dash-divider"></div>
+
+        <!-- Значок двигателя ракеты -->
+        <div class="dash-engine-wrap" id="dash-engine-icon" title="Ракетный ускоритель танка">
+          <svg class="dash-engine-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Верхний крепеж и гидравлика двигателя -->
+            <rect x="13" y="2" width="10" height="4" rx="1.5" fill="#34d399" fill-opacity="0.9" />
+            <line x1="18" y1="2" x2="18" y2="6" stroke="#022c22" stroke-width="1.5" />
+
+            <!-- Камера сгорания -->
+            <path d="M12 6 H24 L22 13 H14 L12 6 Z" fill="#042f2e" stroke="#10b981" stroke-width="1.5"
+              stroke-linejoin="round" />
+            <line x1="13.5" y1="9.5" x2="22.5" y2="9.5" stroke="#34d399" stroke-width="1.2" />
+
+            <!-- Кольцо охлаждения сопла -->
+            <rect x="11.5" y="13" width="13" height="3" rx="1" fill="#065f46" stroke="#34d399" stroke-width="1.2" />
+
+            <!-- Расширяющееся сопло Лаваля (раструб ракетного двигателя) -->
+            <path d="M14 16 L8 24 H28 L22 16 Z" fill="#064e3b" stroke="#34d399" stroke-width="1.6"
+              stroke-linejoin="round" />
+            <line x1="11" y1="20" x2="25" y2="20" stroke="#10b981" stroke-width="1.2" />
+
+            <!-- Реактивное пламя форсажа (анимируется при рывке и готовности) -->
+            <g class="dash-flame-group">
+              <!-- Внешнее пламя -->
+              <path class="flame-outer" d="M10 24.5 L18 35 L26 24.5 Q18 28 10 24.5 Z" fill="#f97316" />
+              <!-- Среднее пламя -->
+              <path class="flame-mid" d="M12.5 24.5 L18 32 L23.5 24.5 Q18 27 12.5 24.5 Z" fill="#facc15" />
+              <!-- Ядро пламени -->
+              <path class="flame-core" d="M15 24.5 L18 29 L21 24.5 Q18 26 15 24.5 Z" fill="#ffffff" />
+            </g>
+          </svg>
+        </div>
+
+        <!-- Информационный блок: статус и таймер перезарядки -->
+        <div class="dash-details">
+          <div class="dash-status-row">
+            <span class="dash-sys-tag">BOOST // ФОРСАЖ</span>
+            <span class="dash-status-badge ready" id="dash-status-text">ГОТОВ</span>
+          </div>
+
+          <!-- Голографический индикатор шкалы охлаждения (5 сек) -->
+          <div class="dash-progress-track">
+            <div class="dash-progress-fill" id="dash-cooldown-bar"></div>
+          </div>
+
+          <div class="dash-timer-row">
+            <span class="dash-cooldown-label">ПЕРЕЗАРЯДКА:</span>
+            <span class="dash-timer-val" id="dash-timer-text">5.0s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Тактический виджет овердрайва супертанка (ПКМ / Правая кнопка мыши) -->
+      <div class="dash-hud-card super-hud-card" id="super-trigger-card" title="Овердрайв ракетного супертанка [ПКМ]">
+        <div class="dash-hud-scanlines"></div>
+        <span class="corner-bracket corner-tl"></span>
+        <span class="corner-bracket corner-br"></span>
+
+        <!-- Тактический значок компьютерной мыши с подсвеченной правой кнопкой (ПКМ) -->
+        <div class="dash-key-wrap mouse-key-wrap">
+          <div class="mouse-key-box" id="super-mouse-btn">
+            <svg class="mouse-svg" viewBox="0 0 28 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Контур корпуса мыши -->
+              <rect x="2" y="2" width="24" height="34" rx="12" stroke="#10b981" stroke-width="1.8" fill="#022c22" />
+              <!-- Разделительные линии кнопок мыши -->
+              <line x1="14" y1="2" x2="14" y2="15" stroke="#10b981" stroke-width="1.4" />
+              <line x1="2" y1="15" x2="26" y2="15" stroke="#10b981" stroke-width="1.4" />
+              <!-- Левая кнопка (затемнена) -->
+              <path d="M3.5 13 C3.5 7 8 3.5 13 3 V14 H3.5 Z" fill="#042f2e" opacity="0.6" />
+              <!-- Правая кнопка мыши (АКТИВНАЯ, ПОДСВЕЧЕННАЯ) -->
+              <path class="rmb-highlight" d="M15 3 C20 3.5 24.5 7 24.5 13 V14 H15 Z" fill="#34d399" />
+              <!-- Колесико мыши -->
+              <rect x="12.5" y="5.5" width="3" height="6" rx="1.5" fill="#02140e" stroke="#34d399" stroke-width="0.9" />
+            </svg>
+            <span class="mouse-label">ПКМ</span>
+            <span class="dash-key-led" id="super-key-led"></span>
+          </div>
+        </div>
+
+        <!-- Разделитель модулей -->
+        <div class="dash-divider"></div>
+
+        <!-- Значок тяжелого ракетного танка с пламенем сопел -->
+        <div class="super-tank-icon-wrap" id="super-tank-icon" title="Ракетный овердрайв супертанка">
+          <svg class="super-tank-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Корпус танка -->
+            <rect x="9" y="8" width="18" height="20" rx="3" fill="#064e3b" stroke="#34d399" stroke-width="1.4" />
+            <!-- Левая и правая ракетные установки с боеголовками -->
+            <rect x="4" y="6" width="4" height="18" rx="1.5" fill="#042f2e" stroke="#10b981" stroke-width="1.2" />
+            <polygon points="4,6 6,2 8,6" fill="#ef4444" />
+            <rect x="28" y="6" width="4" height="18" rx="1.5" fill="#042f2e" stroke="#10b981" stroke-width="1.2" />
+            <polygon points="28,6 30,2 32,6" fill="#ef4444" />
+            <!-- Орудийная башня и главное орудие -->
+            <circle cx="18" cy="18" r="5" fill="#0f766e" stroke="#34d399" stroke-width="1.2" />
+            <rect x="16.5" y="2" width="3" height="11" fill="#34d399" />
+            <!-- Двойные реактивные сопла кормы -->
+            <polygon points="10,28 8,33 13,33 12,28" fill="#065f46" stroke="#34d399" stroke-width="1" />
+            <polygon points="24,28 23,33 28,33 26,28" fill="#065f46" stroke="#34d399" stroke-width="1" />
+            <!-- Реактивное пламя из сопел кормы супертанка -->
+            <g class="super-flame-group">
+              <path d="M9 33 L10.5 36.5 L12 33 Z" fill="#f97316" />
+              <path d="M24 33 L25.5 36.5 L27 33 Z" fill="#f97316" />
+              <path d="M9.8 33 L10.5 35.5 L11.2 33 Z" fill="#facc15" />
+              <path d="M24.8 33 L25.5 35.5 L26.2 33 Z" fill="#facc15" />
+            </g>
+          </svg>
+        </div>
+
+        <!-- Информационный блок: статус, шкала и таймер овердрайва -->
+        <div class="dash-details">
+          <div class="dash-status-row">
+            <span class="dash-sys-tag">SIEGE // ОВЕРДРАЙВ</span>
+            <span class="dash-status-badge ready" id="super-status-text">ГОТОВ</span>
+          </div>
+
+          <!-- Голографический индикатор шкалы овердрайва / охлаждения (5 сек) -->
+          <div class="dash-progress-track">
+            <div class="dash-progress-fill" id="super-cooldown-bar"></div>
+          </div>
+
+          <div class="dash-timer-row">
+            <span class="dash-cooldown-label" id="super-label-text">ПЕРЕЗАРЯДКА:</span>
+            <span class="dash-timer-val" id="super-timer-text">5.0s</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Главный экран в HTML с максимальной четкостью шрифтов и кнопок поверх живого космоса -->
+    <section id="main-menu" class="main-menu">
+      <div class="menu-layout">
+        <!-- Левая панель интерфейса -->
+        <div class="menu-left-panel">
+          <!-- Тактический заголовок игры над кнопками -->
+          <header class="hud-header">
+            <div class="hud-status-badge">
+              <span class="hud-status-dot"></span>
+              <span class="hud-status-code">SYS_STATUS: COMBAT READY // PROTOCOL ACTIVE</span>
+            </div>
+            <h1 class="hud-game-title">IRON RESOLVE</h1>
+            <div class="hud-game-subtitle">SURVIVOR PROTOCOL</div>
+            <div class="hud-divider">
+              <span class="hud-divider-notch"></span>
+              <span class="hud-divider-line"></span>
+              <span class="hud-divider-end"></span>
+            </div>
+          </header>
+
+          <!-- 3 вертикальные кнопки под углом в спокойном зеленом голографическом стиле -->
+          <nav class="holo-nav" aria-label="Главное меню игры">
+            <!-- 1. Начать игру -->
+            <button id="btn-start" class="holo-btn" type="button" data-action="start">
+              <div class="holo-plate">
+                <div class="holo-scanlines"></div>
+                <div class="holo-glow-sweep"></div>
+                <div class="holo-edge-notch"></div>
+                <div class="holo-content">
+                  <span class="holo-index">01</span>
+                  <div class="holo-titles">
+                    <span class="holo-title">НАЧАТЬ ИГРУ</span>
+                    <span class="holo-sub">SYS_LAUNCH // БОЕВОЙ ВЫХОД</span>
+                  </div>
+                </div>
+                <span class="corner-bracket corner-tl"></span>
+                <span class="corner-bracket corner-br"></span>
+              </div>
+            </button>
+
+            <!-- 2. Настройки -->
+            <button id="btn-settings" class="holo-btn" type="button" data-action="settings">
+              <div class="holo-plate">
+                <div class="holo-scanlines"></div>
+                <div class="holo-glow-sweep"></div>
+                <div class="holo-edge-notch"></div>
+                <div class="holo-content">
+                  <span class="holo-index">02</span>
+                  <div class="holo-titles">
+                    <span class="holo-title">НАСТРОЙКИ</span>
+                    <span class="holo-sub">SYS_CONFIG // ПАРАМЕТРЫ</span>
+                  </div>
+                </div>
+                <span class="corner-bracket corner-tl"></span>
+                <span class="corner-bracket corner-br"></span>
+              </div>
+            </button>
+
+            <!-- 3. Выход -->
+            <button id="btn-exit" class="holo-btn" type="button" data-action="exit">
+              <div class="holo-plate">
+                <div class="holo-scanlines"></div>
+                <div class="holo-glow-sweep"></div>
+                <div class="holo-edge-notch"></div>
+                <div class="holo-content">
+                  <span class="holo-index">03</span>
+                  <div class="holo-titles">
+                    <span class="holo-title">ВЫХОД</span>
+                    <span class="holo-sub">SYS_ABORT // ЗАВЕРШЕНИЕ</span>
+                  </div>
+                </div>
+                <span class="corner-bracket corner-tl"></span>
+                <span class="corner-bracket corner-br"></span>
+              </div>
+            </button>
+          </nav>
+
+          <!-- Нижняя строка состояния -->
+          <footer class="hud-footer">
+            <span class="footer-dot"></span>
+            <span class="footer-text">TACTICAL HUD V2.4 // ONLINE // SECTOR 07</span>
+          </footer>
+        </div>
+      </div>
+    </section>
+
+    <!-- Голографическое модальное окно: Тактическая пауза (Escape) -->
+    <div id="modal-pause" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true"
+      aria-label="Тактическая пауза игры">
+      <div class="holo-modal-window modal-pause-window">
+        <div class="modal-card-scanlines"></div>
+        <span class="corner-bracket corner-tl"></span>
+        <span class="corner-bracket corner-tr"></span>
+        <span class="corner-bracket corner-bl"></span>
+        <span class="corner-bracket corner-br"></span>
+
+        <header class="modal-card-header">
+          <div class="modal-card-title-wrap">
+            <span class="modal-badge pause-badge">PAUSE</span>
+            <h2>ТАКТИЧЕСКАЯ ПАУЗА // PAUSED</h2>
+          </div>
+          <div class="pause-status-code">SYS: STANDBY</div>
+        </header>
+
+        <div class="modal-card-body">
+          <!-- Тактический блок регулировки громкости -->
+          <div class="pause-volume-card">
+            <div class="pause-volume-header">
+              <div class="pause-volume-info">
+                <div class="pause-volume-icon-box">
+                  <svg class="pause-volume-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="rgba(16, 185, 129, 0.3)"></polygon>
+                    <path class="vol-wave vol-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    <path class="vol-wave vol-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                  </svg>
+                </div>
+                <div class="pause-volume-labels">
+                  <span class="pause-volume-label">ГРОМКОСТЬ ЗВУКА</span>
+                  <span class="pause-volume-sub">MASTER AUDIO LEVEL</span>
+                </div>
+              </div>
+              <span id="pause-volume-val" class="pause-volume-badge">100%</span>
+            </div>
+
+            <div class="pause-slider-wrap">
+              <input type="range" id="pause-volume-slider" class="holo-volume-slider" min="0" max="100" value="100"
+                step="1" aria-label="Регулировка громкости" />
+            </div>
+
+            <div class="pause-slider-ticks">
+              <span class="tick-label">0%</span>
+              <span class="tick-label">25%</span>
+              <span class="tick-label">50%</span>
+              <span class="tick-label">75%</span>
+              <span class="tick-label">100%</span>
+            </div>
+          </div>
+
+          <!-- 4 Кнопки меню паузы: Продолжить, Настройки, Главное Меню, Выход -->
+          <nav class="pause-btn-group" aria-label="Управление паузой">
+            <!-- 1. Продолжить -->
+            <button id="btn-pause-resume" class="pause-menu-btn btn-resume" type="button">
+              <div class="pause-btn-plate">
+                <div class="holo-scanlines"></div>
+                <div class="holo-glow-sweep"></div>
+                <div class="holo-edge-notch"></div>
+                <div class="pause-btn-content">
+                  <span class="pause-btn-num">01</span>
+                  <div class="pause-btn-text">
+                    <span class="pause-btn-title">ПРОДОЛЖИТЬ</span>
+                    <span class="pause-btn-hint">SYS_RESUME // ВОЗВРАТ В БОЙ [ESC]</span>
+                  </div>
+                </div>
+                <span class="corner-bracket corner-tl"></span>
+                <span class="corner-bracket corner-br"></span>
+              </div>
+            </button>
+
+            <!-- 2. Настройки -->
+            <button id="btn-pause-settings" class="pause-menu-btn" type="button">
+              <div class="pause-btn-plate">
+                <div class="holo-scanlines"></div>
+                <div class="holo-glow-sweep"></div>
+                <div class="holo-edge-notch"></div>
+                <div class="pause-btn-content">
+                  <span class="pause-btn-num">02</span>
+                  <div class="pause-btn-text">
+                    <span class="pause-btn-title">НАСТРОЙКИ</span>
+                    <span class="pause-btn-hint">SYS_CONFIG // ПАРАМЕТРЫ СИСТЕМЫ</span>
+                  </div>
+                </div>
+                <span class="corner-bracket corner-tl"></span>
+                <span class="corner-bracket corner-br"></span>
+              </div>
+            </button>
+
+            <!-- 3. Главное Меню -->
+            <button id="btn-pause-menu" class="pause-menu-btn" type="button">
+              <div class="pause-btn-plate">
+                <div class="holo-scanlines"></div>
+                <div class="holo-glow-sweep"></div>
+                <div class="holo-edge-notch"></div>
+                <div class="pause-btn-content">
+                  <span class="pause-btn-num">03</span>
+                  <div class="pause-btn-text">
+                    <span class="pause-btn-title">ГЛАВНОЕ МЕНЮ</span>
+                    <span class="pause-btn-hint">SYS_ABORT // ВЫХОД В БАЗУ</span>
+                  </div>
+                </div>
+                <span class="corner-bracket corner-tl"></span>
+                <span class="corner-bracket corner-br"></span>
+              </div>
+            </button>
+
+            <!-- 4. Выход -->
+            <button id="btn-pause-exit" class="pause-menu-btn btn-exit" type="button">
+              <div class="pause-btn-plate">
+                <div class="holo-scanlines"></div>
+                <div class="holo-glow-sweep"></div>
+                <div class="holo-edge-notch"></div>
+                <div class="pause-btn-content">
+                  <span class="pause-btn-num">04</span>
+                  <div class="pause-btn-text">
+                    <span class="pause-btn-title">ВЫХОД</span>
+                    <span class="pause-btn-hint">SYS_TERMINATE // ЗАВЕРШЕНИЕ СЕССИИ</span>
+                  </div>
+                </div>
+                <span class="corner-bracket corner-tl"></span>
+                <span class="corner-bracket corner-br"></span>
+              </div>
+            </button>
+          </nav>
+        </div>
+
+        <footer class="modal-card-footer pause-footer">
+          <span class="pause-hint-badge">[ESC] — ВОЗВРАТ В БОЙ</span>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Голографическое модальное окно: Настройки -->
+    <div id="modal-settings" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div class="holo-modal-window">
+        <div class="modal-card-scanlines"></div>
+        <header class="modal-card-header">
+          <div class="modal-card-title-wrap">
+            <span class="modal-badge">CFG</span>
+            <h2>НАСТРОЙКИ СИСТЕМЫ // CONFIG</h2>
+          </div>
+          <button id="modal-settings-x" class="modal-btn-close-icon" type="button" aria-label="Закрыть">✕</button>
+        </header>
+
+        <div class="modal-card-body">
+          <div class="modal-row">
+            <div class="modal-row-info">
+              <span class="modal-row-label">ЗВУКОВЫЕ ЭФФЕКТЫ (AUDIO)</span>
+              <span class="modal-row-hint">Звуки стрельбы, взрывов и тактического интерфейса</span>
+            </div>
+            <button id="toggle-audio-btn" class="modal-toggle-btn active" type="button">
+              <span class="toggle-indicator"></span>
+              <span class="toggle-text">ВКЛ [ON]</span>
+            </button>
+          </div>
+
+          <div class="modal-row">
+            <div class="modal-row-info">
+              <span class="modal-row-label">ПОЛНОЭКРАННЫЙ РЕЖИМ</span>
+              <span class="modal-row-hint">Переключение режима отображения во весь экран</span>
+            </div>
+            <button id="toggle-fullscreen-btn" class="modal-toggle-btn" type="button">
+              <span class="toggle-indicator"></span>
+              <span class="toggle-text">ЭКРАН</span>
+            </button>
+          </div>
+
+          <div class="modal-row">
+            <div class="modal-row-info">
+              <span class="modal-row-label">КОЛИЧЕСТВО МЕТЕОРИТОВ В ФАЗАХ</span>
+              <span id="meteor-density-hint" class="modal-row-hint">Настройка количества активных метеоров (Фаза 1: 10,
+                Фаза 2: 22)</span>
+            </div>
+            <button id="toggle-meteor-density-btn" class="modal-toggle-btn active" type="button">
+              <span class="toggle-indicator"></span>
+              <span id="meteor-density-text" class="toggle-text">НОРМА [10 / 22]</span>
+            </button>
+          </div>
+
+          <!-- Памятка по управлению -->
+          <div class="modal-hud-box">
+            <div class="modal-hud-box-header">УПРАВЛЕНИЕ В БОЮ (COMBAT CONTROLS):</div>
+            <ul class="modal-controls-list">
+              <li><strong>[ESC]</strong> — тактическая пауза игры (громкость и навигация)</li>
+              <li><strong>[W][A][S][D] / Стрелки</strong> — управление гусеницами (поворот по ходу движения)</li>
+              <li><strong>[SHIFT]</strong> — ракетный рывок в заносе (неуязвимость, огонь из сопла и огненный след)</li>
+              <li><strong>[ПКМ] / Правая кнопка</strong> — боевой овердрайв (смена модели, огонь из сопел, ускоренный
+                крупнокалиберный залп на 5 сек)</li>
+              <li><strong>Орудие</strong> — автоматический радарный захват и прицеливание по ближайшему роботу</li>
+              <li><strong>Огонь</strong> — стрельба из пушки на поражение</li>
+            </ul>
+          </div>
+        </div>
+
+        <footer class="modal-card-footer">
+          <button id="modal-settings-close-btn" class="modal-action-btn" type="button">
+            ЗАКРЫТЬ [ESC]
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Голографическое модальное окно: Выход -->
+    <div id="modal-exit" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div class="holo-modal-window modal-sm">
+        <div class="modal-card-scanlines"></div>
+        <header class="modal-card-header">
+          <div class="modal-card-title-wrap">
+            <span class="modal-badge alert-badge">SYS</span>
+            <h2>ЗАВЕРШИТЬ СЕССИЮ?</h2>
+          </div>
+        </header>
+
+        <div class="modal-card-body text-center">
+          <p class="modal-desc-text">Боевой протокол будет приостановлен.</p>
+        </div>
+
+        <footer class="modal-card-footer row-buttons">
+          <button id="modal-exit-cancel-btn" class="modal-action-btn btn-secondary" type="button">
+            ОТМЕНА
+          </button>
+          <button id="modal-exit-confirm-btn" class="modal-action-btn btn-danger" type="button">
+            ЗАВЕРШИТЬ
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Голографическое окно поражения: Конец боя (Game Over) -->
+    <div id="modal-gameover" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div class="holo-modal-window">
+        <div class="modal-card-scanlines"></div>
+        <span class="corner-bracket corner-tl"></span>
+        <span class="corner-bracket corner-tr"></span>
+        <span class="corner-bracket corner-bl"></span>
+        <span class="corner-bracket corner-br"></span>
+
+        <header class="modal-card-header">
+          <div class="modal-card-title-wrap">
+            <span class="modal-badge alert-badge"
+              style="border-color: #34d399; background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">СБОЙ // FAILURE</span>
+            <h2>КРИТИЧЕСКИЙ СБОЙ БРОНИ</h2>
+          </div>
+        </header>
+
+        <div class="modal-card-body">
+          <p id="go-desc" class="modal-desc-text"
+            style="color: #a7f3d0; margin: 0 0 6px 0; font-family: 'Rajdhani', sans-serif; font-size: 15px;">
+            Космический корабль уничтожен в глубоком космосе. Протокол прерван.
+          </p>
+
+          <div class="modal-debrief-grid">
+            <div class="debrief-card">
+              <span class="debrief-label">ВРЕМЯ БОЯ</span>
+              <span id="go-time" class="debrief-value">00:00</span>
+            </div>
+            <div class="debrief-card">
+              <span class="debrief-label">ЛИКВИДИРОВАНО</span>
+              <span id="go-kills" class="debrief-value">0</span>
+            </div>
+            <div class="debrief-card">
+              <span class="debrief-label">БОЕВОЙ СЧЕТ</span>
+              <span id="go-score" class="debrief-value score-val">0</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="modal-card-footer row-buttons" style="margin-top: 24px;">
+          <button id="modal-go-menu-btn" class="modal-action-btn btn-secondary" type="button">
+            В ГЛАВНОЕ МЕНЮ
+          </button>
+          <button id="modal-go-restart-btn" class="modal-action-btn btn-holo-restart" type="button">
+            ПЕРЕЗАПУСК [SPACE]
+          </button>
+        </footer>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
