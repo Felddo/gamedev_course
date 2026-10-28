@@ -1640,6 +1640,104 @@ canvas {
   justify-content: center;
 }
 
+/* Кнопка тактической паузы [ESC] в верхнем левом углу */
+.top-esc-btn {
+  position: fixed;
+  top: 7px;
+  left: 14px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.12s ease, opacity 0.2s ease, filter 0.2s ease;
+}
+
+.top-esc-btn.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.top-esc-keycap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 9px;
+  background: linear-gradient(180deg, #064e3b 0%, #022c22 100%);
+  border: 1.5px solid #10b981;
+  border-bottom: 3.5px solid #047857;
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(110, 231, 183, 0.35);
+  transition: all 0.12s ease;
+}
+
+.top-esc-btn:hover .top-esc-keycap {
+  border-color: #34d399;
+  border-bottom-color: #10b981;
+  background: linear-gradient(180deg, #047857 0%, #064e3b 100%);
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.65), 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.top-esc-btn:active .top-esc-keycap {
+  transform: translateY(2px);
+  border-bottom-width: 1.5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.top-esc-text {
+  font-family: var(--font-display, 'Orbitron', monospace);
+  font-size: 11px;
+  font-weight: 800;
+  color: #ecfdf5;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 6px rgba(52, 211, 153, 0.8);
+}
+
+.top-esc-pause-bars {
+  display: inline-flex;
+  gap: 2.5px;
+  align-items: center;
+  height: 11px;
+}
+
+.top-esc-pause-bars .pause-bar {
+  width: 2.5px;
+  height: 11px;
+  background: #34d399;
+  border-radius: 1px;
+  box-shadow: 0 0 4px #34d399;
+  transition: background 0.2s;
+}
+
+.top-esc-btn:hover .top-esc-pause-bars .pause-bar {
+  background: #6ee7b7;
+  box-shadow: 0 0 8px #6ee7b7;
+}
+
+/* Клавиша Q для боевого овердрайва */
+.super-key-btn {
+  min-width: 48px;
+}
+
+.super-key-label {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: #ecfdf5;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+}
+
 .mouse-key-box {
   position: relative;
   display: inline-flex;
@@ -1726,6 +1824,19 @@ canvas {
   }
 }
 
+.super-hud-card.active .super-key-btn {
+  transform: translateY(2px);
+  border-bottom-width: 1.5px;
+  background: linear-gradient(180deg, #9a3412 0%, #431407 100%);
+  border-color: #fb923c;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 16px rgba(249, 115, 22, 0.85);
+}
+
+.super-hud-card.active .super-key-label {
+  color: #fed7aa;
+  text-shadow: 0 0 8px #f97316;
+}
+
 .super-hud-card.active .mouse-key-box {
   background: linear-gradient(180deg, #9a3412 0%, #431407 100%);
   border-color: #fb923c;
@@ -1762,6 +1873,18 @@ canvas {
 }
 
 /* Охлаждение / перезарядка супертанка */
+.super-hud-card.cooling .super-key-btn {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-color: rgba(148, 163, 184, 0.4);
+  border-bottom-color: #334155;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.super-hud-card.cooling .super-key-label {
+  color: #94a3b8;
+  text-shadow: none;
+}
+
 .super-hud-card.cooling .mouse-key-box {
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   border-color: rgba(148, 163, 184, 0.4);

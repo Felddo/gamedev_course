@@ -51,7 +51,7 @@ export class PlayerShip {
 
   // Тактические апгрейды (Двигатели и Орудия)
   public appliedUpgrades = new Set<string>();
-  public speedMultiplier = 1.0;
+  public speedMultiplier = 2.0;
   public dashCooldownMultiplier = 1.0;
   public hasFireTrail = false;
   public hasRamSpikes = false;
@@ -87,11 +87,13 @@ export class PlayerShip {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
   private shiftKey!: Phaser.Input.Keyboard.Key;
+  private qKey!: Phaser.Input.Keyboard.Key;
 
   // Слушатели событий
   private dashRequestListener!: () => void;
   private superRequestListener!: () => void;
   private onWindowShiftListener!: (e: KeyboardEvent) => void;
+  private onWindowCombatModeListener!: (e: KeyboardEvent) => void;
   private onWindowMouseDownListener!: (e: MouseEvent) => void;
   private onContextMenuListener!: (e: MouseEvent) => void;
   private onWindowMouseMove!: (e: MouseEvent) => void;
@@ -150,6 +152,7 @@ export class PlayerShip {
     }) as Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
 
     this.shiftKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+    this.qKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
 
     // 5. Регистрация событий управления форсажем и овердрайвом
     this.setupListeners();
@@ -173,6 +176,17 @@ export class PlayerShip {
       }
     };
     window.addEventListener('keydown', this.onWindowShiftListener);
+
+    this.onWindowCombatModeListener = (e: KeyboardEvent) => {
+      if (this.isAutopilot) return;
+      if (
+        (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.key === 'й' || e.key === 'Й') &&
+        !e.repeat
+      ) {
+        this.tryTriggerSuperMode();
+      }
+    };
+    window.addEventListener('keydown', this.onWindowCombatModeListener);
 
     this.superRequestListener = () => {
       if (this.isAutopilot) return;
@@ -437,6 +451,10 @@ export class PlayerShip {
     } else {
       if (Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
         this.tryTriggerDash(particleManager);
+      }
+
+      if (Phaser.Input.Keyboard.JustDown(this.qKey)) {
+        this.tryTriggerSuperMode(particleManager);
       }
 
       if (this.isDashing) {
@@ -724,6 +742,7 @@ export class PlayerShip {
   public destroy(): void {
     window.removeEventListener('request-tank-dash', this.dashRequestListener);
     window.removeEventListener('keydown', this.onWindowShiftListener);
+    window.removeEventListener('keydown', this.onWindowCombatModeListener);
     window.removeEventListener('request-tank-super', this.superRequestListener);
     window.removeEventListener('mousedown', this.onWindowMouseDownListener);
     window.removeEventListener('contextmenu', this.onContextMenuListener);

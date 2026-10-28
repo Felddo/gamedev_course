@@ -15,16 +15,16 @@ export const DASH_SPEED = 820; // скорость форсажа звездол
 // Механика овердрайва реактора (ПКМ)
 export const SUPER_DURATION = 5.0; // длительность режима перегрузки в секундах
 export const SUPER_COOLDOWN = 5.0; // перезарядка после возврата в норму: 5 секунд
-export const SUPER_BLASTER_COOLDOWN = 0.11; // увеличенная скорострельность (выстрелы в 3.3 раза чаще)
+export const SUPER_BLASTER_COOLDOWN = 0.1; // увеличенная скорострельность (выстрелы в 3.3 раза чаще)
 export const SUPER_BLASTER_SPEED = 880;
-export const SUPER_BLASTER_DAMAGE = 3.5; // увеличенный урон тяжелых ракет
+export const SUPER_BLASTER_DAMAGE = 5.5; // увеличенный урон тяжелых ракет
 
 // Параметры модели корабля игрока
 export const SHIP_SCALE = 0.62;
 export const TANK_SCALE = SHIP_SCALE; // Алиас для совместимости
 
 // Параметры носового бластера
-export const BLASTER_COOLDOWN = 0.36; // интервал между выстрелами
+export const BLASTER_COOLDOWN = 0.2; // интервал между выстрелами
 export const BLASTER_SPEED = 740;
 export const BLASTER_RANGE = 620;
 export const BLASTER_DAMAGE = 1.5;
@@ -110,7 +110,7 @@ export const GAME_PHASES: PhaseInfo[] = [
   {
     number: 2,
     title: 'Фаза 2',
-    scoreThreshold: PHASE_2_SCORE_THRESHOLD,
+    scoreThreshold: 200,
     subtitle: 'ВНИМАНИЕ: МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
     allowTerminator: true,
     spawnIntensity: 1.4,
@@ -122,7 +122,7 @@ export const GAME_PHASES: PhaseInfo[] = [
   {
     number: 3,
     title: 'Фаза 3',
-    scoreThreshold: 2000,
+    scoreThreshold: 700,
     subtitle: 'ВНИМАНИЕ: сильный МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
     allowTerminator: true,
     spawnIntensity: 1.4,
@@ -134,7 +134,7 @@ export const GAME_PHASES: PhaseInfo[] = [
   {
     number: 4,
     title: 'Фаза 4',
-    scoreThreshold: 3000,
+    scoreThreshold: 1200,
     subtitle: 'ВНИМАНИЕ: сильный МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
     allowTerminator: true,
     spawnIntensity: 1.6,
@@ -146,7 +146,7 @@ export const GAME_PHASES: PhaseInfo[] = [
   {
     number: 5,
     title: 'Фаза 5',
-    scoreThreshold: 4000,
+    scoreThreshold: 1800,
     subtitle: 'ВНИМАНИЕ: сильный МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
     allowTerminator: true,
     spawnIntensity: 1.6,

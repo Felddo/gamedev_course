@@ -72,13 +72,16 @@ const dashStatusText = document.getElementById('dash-status-text') as HTMLElemen
 const dashCooldownBar = document.getElementById('dash-cooldown-bar') as HTMLElement;
 const dashTimerText = document.getElementById('dash-timer-text') as HTMLElement;
 
-// Super Tank Overdrive HUD Elements (ПКМ)
+// Super Tank Overdrive HUD Elements (ПКМ / Клавиша Q)
 const superTriggerCard = document.getElementById('super-trigger-card') as HTMLElement;
-const superMouseBtn = document.getElementById('super-mouse-btn') as HTMLElement;
+const superKeyBtn = document.getElementById('super-key-btn') as HTMLElement;
 const superStatusText = document.getElementById('super-status-text') as HTMLElement;
 const superCooldownBar = document.getElementById('super-cooldown-bar') as HTMLElement;
 const superTimerText = document.getElementById('super-timer-text') as HTMLElement;
 const superLabelText = document.getElementById('super-label-text') as HTMLElement;
+
+// Top-left Esc Pause Button Element
+const topEscBtn = document.getElementById('btn-top-esc') as HTMLButtonElement;
 
 // Phase Banner & Upgrades Elements (Голограмма фаз боя и выбор тактических апгрейдов)
 const phaseBanner = document.getElementById('phase-banner') as HTMLElement;
@@ -328,6 +331,7 @@ function launchGame(): void {
   mainMenu.classList.add('hidden');
   gameContainer?.classList.remove('hidden');
   dashHud?.classList.remove('hidden');
+  topEscBtn?.classList.remove('hidden');
   modalPause?.classList.add('hidden');
   isGamePaused = false;
   isGameStarted = true;
@@ -369,6 +373,7 @@ function returnToMainMenu(): void {
   isGameStarted = false;
 
   dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
   gameContainer?.classList.add('hidden');
   mainMenu.classList.remove('hidden');
 
@@ -578,6 +583,7 @@ modalExitConfirmBtn?.addEventListener('click', () => {
   isGamePaused = false;
   gameContainer.classList.add('hidden');
   dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
 
   if (phaserGame) {
     const scene = phaserGame.scene.getScene('GameScene');
@@ -632,6 +638,7 @@ function showGameOver(time: string, kills: number, score: number, reason?: strin
     }
   }
   dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
   modalPause?.classList.add('hidden');
   isGamePaused = false;
   modalGameOver?.classList.remove('hidden');
@@ -650,6 +657,7 @@ function restartFromGameOver(): void {
   appliedUpgradeIds.clear();
   gameContainer?.classList.remove('hidden');
   dashHud?.classList.remove('hidden');
+  topEscBtn?.classList.remove('hidden');
   isGameStarted = true;
   showPhaseAnnouncement(1);
   if (phaserGame) {
@@ -701,6 +709,16 @@ dashTriggerCard?.addEventListener('click', () => {
 superTriggerCard?.addEventListener('click', (e) => {
   e.preventDefault();
   window.dispatchEvent(new CustomEvent('request-tank-super'));
+});
+
+// Клик по кнопке паузы [ESC] в левом верхнем углу
+topEscBtn?.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (!modalPause.classList.contains('hidden')) {
+    resumeGame();
+  } else if (isGameStarted && mainMenu.classList.contains('hidden')) {
+    pauseGame();
+  }
 });
 
 // Отключение контекстного меню правой кнопки мыши

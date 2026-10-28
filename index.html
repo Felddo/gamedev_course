@@ -20,6 +20,17 @@
     <!-- Игровой холст Phaser (активируется при нажатии "Начать игру") -->
     <div id="game" class="game-container hidden"></div>
 
+    <!-- Кнопка тактической паузы [ESC] в верхнем левом углу экрана -->
+    <button id="btn-top-esc" class="top-esc-btn hidden" type="button" aria-label="Пауза игры [ESC]" title="Пауза игры [ESC]">
+      <kbd class="top-esc-keycap">
+        <span class="top-esc-text">ESC</span>
+        <span class="top-esc-pause-bars" aria-hidden="true">
+          <span class="pause-bar"></span>
+          <span class="pause-bar"></span>
+        </span>
+      </kbd>
+    </button>
+
     <!-- Голографическое оповещение о боевой фазе по центру экрана -->
     <div id="phase-banner" class="phase-banner hidden" aria-live="assertive">
       <div class="phase-holo-card">
@@ -132,31 +143,18 @@
         </div>
       </div>
 
-      <!-- Тактический виджет овердрайва супертанка (ПКМ / Правая кнопка мыши) -->
-      <div class="dash-hud-card super-hud-card" id="super-trigger-card" title="Овердрайв ракетного супертанка [ПКМ]">
+      <!-- Тактический виджет боевого овердрайва (Клавиша Q) -->
+      <div class="dash-hud-card super-hud-card" id="super-trigger-card" title="Боевой режим овердрайва [Q]">
         <div class="dash-hud-scanlines"></div>
         <span class="corner-bracket corner-tl"></span>
         <span class="corner-bracket corner-br"></span>
 
-        <!-- Тактический значок компьютерной мыши с подсвеченной правой кнопкой (ПКМ) -->
-        <div class="dash-key-wrap mouse-key-wrap">
-          <div class="mouse-key-box" id="super-mouse-btn">
-            <svg class="mouse-svg" viewBox="0 0 28 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- Контур корпуса мыши -->
-              <rect x="2" y="2" width="24" height="34" rx="12" stroke="#10b981" stroke-width="1.8" fill="#022c22" />
-              <!-- Разделительные линии кнопок мыши -->
-              <line x1="14" y1="2" x2="14" y2="15" stroke="#10b981" stroke-width="1.4" />
-              <line x1="2" y1="15" x2="26" y2="15" stroke="#10b981" stroke-width="1.4" />
-              <!-- Левая кнопка (затемнена) -->
-              <path d="M3.5 13 C3.5 7 8 3.5 13 3 V14 H3.5 Z" fill="#042f2e" opacity="0.6" />
-              <!-- Правая кнопка мыши (АКТИВНАЯ, ПОДСВЕЧЕННАЯ) -->
-              <path class="rmb-highlight" d="M15 3 C20 3.5 24.5 7 24.5 13 V14 H15 Z" fill="#34d399" />
-              <!-- Колесико мыши -->
-              <rect x="12.5" y="5.5" width="3" height="6" rx="1.5" fill="#02140e" stroke="#34d399" stroke-width="0.9" />
-            </svg>
-            <span class="mouse-label">ПКМ</span>
+        <!-- Клавиша Q для активации боевого режима -->
+        <div class="dash-key-wrap">
+          <kbd class="dash-key-btn super-key-btn" id="super-key-btn">
+            <span class="dash-key-label super-key-label">Q</span>
             <span class="dash-key-led" id="super-key-led"></span>
-          </div>
+          </kbd>
         </div>
 
         <!-- Разделитель модулей -->
@@ -483,8 +481,7 @@
               <li><strong>[ESC]</strong> — тактическая пауза игры (громкость и навигация)</li>
               <li><strong>[W][A][S][D] / Стрелки</strong> — управление гусеницами (поворот по ходу движения)</li>
               <li><strong>[SHIFT]</strong> — ракетный рывок в заносе (неуязвимость, огонь из сопла и огненный след)</li>
-              <li><strong>[ПКМ] / Правая кнопка</strong> — боевой овердрайв (смена модели, огонь из сопел, ускоренный
-                крупнокалиберный залп на 5 сек)</li>
+              <li><strong>[Q] / Клавиша Q</strong> — боевой режим овердрайва (смена модели, огонь из сопел, ускоренный крупнокалиберный залп на 5 сек)</li>
               <li><strong>Орудие</strong> — автоматический радарный захват и прицеливание по ближайшему роботу</li>
               <li><strong>Огонь</strong> — стрельба из пушки на поражение</li>
             </ul>

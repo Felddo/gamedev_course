@@ -220,10 +220,11 @@ export class HudManager {
     this.hudGraphics.lineStyle(1, 0x059669, 0.35);
     this.hudGraphics.strokeRect(padX - 4, 6, width - padX * 2 + 8, topBarHeight - 12);
 
-    this.hpLabel.setPosition(padX + 4, 8);
-    this.hpBg.setPosition(padX + 4, 28);
-    this.hpBarFill.setPosition(padX + 4, 28);
-    this.hpText.setPosition(padX + 152, 28);
+    const hpOffset = 58;
+    this.hpLabel.setPosition(padX + 4 + hpOffset, 8);
+    this.hpBg.setPosition(padX + 4 + hpOffset, 28);
+    this.hpBarFill.setPosition(padX + 4 + hpOffset, 28);
+    this.hpText.setPosition(padX + 152 + hpOffset, 28);
 
     const centerX = width / 2;
     this.timerLabel.setPosition(centerX, 12);
