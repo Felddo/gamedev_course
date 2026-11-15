@@ -1,0 +1,1580 @@
+/* ==========================================================
+   SHIP BUILDER (ВЕРФЬ / ГОЛОГРАФИЧЕСКИЙ КОНСТРУКТОР КОРАБЛЯ)
+   Tactical Holographic Emerald Theme & Rock-Solid Responsive Design
+   ========================================================== */
+
+.shipyard-backdrop {
+  z-index: 120;
+  background: rgba(2, 14, 10, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+  transition: opacity 0.25s ease, visibility 0.25s;
+}
+
+.shipyard-backdrop.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Расширенное окно конструктора */
+.shipyard-window {
+  width: min(96vw, 1420px);
+  height: min(94vh, 880px);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px;
+  background: radial-gradient(circle at 50% 20%, rgba(6, 44, 32, 0.98) 0%, rgba(2, 16, 11, 0.99) 100%);
+  border: 1.5px solid var(--holo-border);
+  box-shadow: 0 0 45px rgba(16, 185, 129, 0.35), inset 0 0 25px rgba(16, 185, 129, 0.08);
+  position: relative;
+  box-sizing: border-box;
+  animation: modalEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+/* ==========================================================
+   ВСПЛЫВАЮЩЕЕ ПРЕДУПРЕЖДЕНИЕ О ЛИМИТАХ
+   ========================================================== */
+.shipyard-alert-toast {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  background: rgba(28, 6, 8, 0.96);
+  border: 1.5px solid #ef4444;
+  border-radius: 4px;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.75);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fee2e2;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  max-width: 90%;
+  text-align: center;
+}
+
+.shipyard-alert-toast.hidden {
+  opacity: 0;
+  transform: translate(-50%, -14px);
+}
+
+.shipyard-alert-toast.pulse {
+  animation: alertShake 0.3s ease-in-out;
+}
+
+@keyframes alertShake {
+
+  0%,
+  100% {
+    transform: translateX(-50%);
+  }
+
+  25% {
+    transform: translateX(calc(-50% - 6px));
+  }
+
+  75% {
+    transform: translateX(calc(-50% + 6px));
+  }
+}
+
+/* ==========================================================
+   ШАПКА КОНСТРУКТОРА
+   ========================================================== */
+.shipyard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.shipyard-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shipyard-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--holo-accent-light);
+}
+
+.shipyard-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--holo-accent-light);
+  box-shadow: 0 0 8px var(--holo-accent-light);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.shipyard-title {
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.8vw, 22px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.shipyard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Кнопки действий */
+.shipyard-action-btn {
+  all: unset;
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  border-radius: 4px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.shipyard-action-btn.btn-launch {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.45) 0%, rgba(5, 150, 105, 0.65) 100%);
+  border: 1.5px solid var(--holo-accent-light);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+}
+
+.shipyard-action-btn.btn-launch:hover {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.6) 0%, rgba(16, 185, 129, 0.8) 100%);
+  box-shadow: 0 0 22px rgba(52, 211, 153, 0.65);
+  transform: translateY(-1px);
+}
+
+.shipyard-action-btn.btn-launch-big {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.45) 0%, rgba(5, 150, 105, 0.65) 100%);
+  border: 1.5px solid var(--holo-accent-light);
+  color: #ffffff;
+  padding: 9px 22px;
+  font-size: 13px;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+.shipyard-action-btn.btn-launch-big:hover {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.65) 0%, rgba(16, 185, 129, 0.85) 100%);
+  box-shadow: 0 0 30px rgba(52, 211, 153, 0.8);
+  transform: translateY(-2px);
+}
+
+.shipyard-action-btn.btn-menu,
+.shipyard-action-btn.btn-secondary {
+  background: rgba(4, 30, 22, 0.7);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--holo-text-muted);
+}
+
+.shipyard-action-btn.btn-menu:hover,
+.shipyard-action-btn.btn-secondary:hover {
+  background: rgba(8, 48, 35, 0.9);
+  border-color: var(--holo-accent);
+  color: #ffffff;
+}
+
+/* ==========================================================
+   ГЛАВНОЕ РАБОЧЕЕ ПРОСТРАНСТВО (ДЕСКТОП)
+   ========================================================== */
+.shipyard-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+  overflow: hidden;
+  align-items: stretch;
+}
+
+/* ПОТОК ДИНАМИЧЕСКИХ КОЛОНОК НАВИГАЦИИ (СЛЕВА) - БЕЗ ГОРИЗОНТАЛЬНОЙ ПРОКРУТКИ */
+.shipyard-columns-flow {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 8px;
+  overflow-x: hidden !important;
+  /* ЗАПРЕЩАЕМ ГОРИЗОНТАЛЬНУЮ ПОЛОСУ ПРОКРУТКИ! */
+  overflow-y: hidden;
+  padding-bottom: 0;
+  align-items: stretch;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.shipyard-columns-flow::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Общий стиль для каждой из 3 колонок */
+.flow-col {
+  display: flex;
+  flex-direction: column;
+  background: rgba(2, 20, 14, 0.85);
+  border: 1.2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.col-head {
+  padding: 7px 8px;
+  background: rgba(4, 32, 22, 0.95);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+  flex-shrink: 0;
+}
+
+.col-head-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--holo-accent-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* Элегантная вертикальная прокрутка внутри колонок */
+.col-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.45) rgba(2, 16, 11, 0.4);
+}
+
+.col-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.col-scroll::-webkit-scrollbar-track {
+  background: rgba(2, 16, 11, 0.4);
+}
+
+.col-scroll::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.45);
+  border-radius: 2px;
+}
+
+.col-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(52, 211, 153, 0.75);
+}
+
+/* КОЛОНКА 1: МОДУЛИ (Кабина, Тело, Крылья, Двигатели, Пушки) */
+.col-categories {
+  width: 130px;
+  flex: 0 0 130px;
+  min-width: 120px;
+}
+
+.categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-col-btn {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  box-sizing: border-box;
+}
+
+.col-btn-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 8px;
+  background: rgba(3, 24, 18, 0.7);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  transition: all 0.16s ease;
+}
+
+.category-col-btn:hover .col-btn-inner {
+  background: rgba(6, 42, 30, 0.9);
+  border-color: var(--holo-accent-light);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+  transform: translateX(2px);
+}
+
+.category-col-btn.active .col-btn-inner {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.3) 0%, rgba(6, 38, 28, 0.85) 100%);
+  border-color: var(--holo-accent-light);
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.5), inset 0 0 8px rgba(52, 211, 153, 0.2);
+}
+
+.cat-icon-box {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--holo-accent-light);
+  flex-shrink: 0;
+}
+
+.cat-icon-box svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cat-text-box {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cat-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--holo-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-col-btn.active .cat-title {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+}
+
+.cat-count-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--holo-accent-sub);
+}
+
+.cat-count-badge.badge-full {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.active-chevron {
+  font-size: 9px;
+  color: var(--holo-accent-light);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+.category-col-btn.active .active-chevron {
+  opacity: 1;
+}
+
+/* КОЛОНКА 2: РАЗДЕЛЕНИЕ */
+.col-subfolders {
+  width: 140px;
+  flex: 0 0 140px;
+  min-width: 125px;
+}
+
+.subfolders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subfolder-col-btn {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  box-sizing: border-box;
+}
+
+.subfolder-btn-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 8px;
+  background: rgba(3, 24, 18, 0.7);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  transition: all 0.16s ease;
+}
+
+.subfolder-col-btn:hover .subfolder-btn-inner {
+  background: rgba(6, 42, 30, 0.9);
+  border-color: var(--holo-accent-light);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+  transform: translateX(2px);
+}
+
+.subfolder-col-btn.active .subfolder-btn-inner {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.28) 0%, rgba(6, 38, 28, 0.85) 100%);
+  border-color: var(--holo-accent-light);
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.5);
+}
+
+.subfolder-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.subfolder-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.subfolder-name {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--holo-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subfolder-col-btn.active .subfolder-name {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+}
+
+.subfolder-count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--holo-accent-sub);
+}
+
+.subfolder-col-btn.active .active-chevron {
+  opacity: 1;
+}
+
+/* КОЛОНКА 3: ДЕТАЛИ */
+.col-parts {
+  flex: 1 1 0;
+  min-width: 180px;
+}
+
+.parts-scroll {
+  padding: 6px;
+}
+
+.parts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+  gap: 6px;
+}
+
+.part-card {
+  position: relative;
+  cursor: grab;
+  background: rgba(3, 24, 18, 0.7);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 4px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.16s ease;
+  box-sizing: border-box;
+}
+
+.part-card:hover {
+  background: rgba(6, 44, 32, 0.95);
+  border-color: var(--holo-accent-light);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.5);
+  transform: translateY(-2px);
+}
+
+.part-card:active {
+  cursor: grabbing;
+}
+
+.part-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+}
+
+.part-preview-wrap {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.part-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+  pointer-events: none;
+}
+
+.part-meta {
+  width: 100%;
+  text-align: center;
+}
+
+.part-name-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--holo-accent-sub);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.part-drag-badge {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: rgba(52, 211, 153, 0.75);
+  background: rgba(16, 185, 129, 0.15);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.parts-col-footer-hint {
+  padding: 5px;
+  background: rgba(3, 20, 14, 0.9);
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--holo-text-muted);
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* ==========================================================
+   ЦЕНТРАЛЬНАЯ СЕКЦИЯ: АНГАР СБОРКИ КОРАБЛЯ (СПРАВА)
+   ========================================================== */
+.shipyard-center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 390px;
+  width: 390px;
+  max-width: 430px;
+  min-width: 290px;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid rgba(16, 185, 129, 0.2);
+  padding-left: 14px;
+}
+
+.hangar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 440px;
+  min-height: 0;
+}
+
+/* ИНДИКАТОРЫ ЛИМИТОВ */
+.hangar-limits-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.limit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  background: rgba(3, 24, 18, 0.75);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--holo-text-muted);
+  transition: all 0.2s ease;
+}
+
+.limit-chip.full {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--holo-accent-light);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+.limit-val {
+  font-weight: 700;
+  color: var(--holo-accent-light);
+}
+
+.limit-val.full-val {
+  color: #34d399;
+}
+
+.limit-check {
+  color: #34d399;
+  font-weight: bold;
+}
+
+/* ПАНЕЛЬ УПРАВЛЕНИЯ ВЫБРАННЫМ МОДУЛЕМ */
+.selected-module-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 5px 8px;
+  background: rgba(3, 24, 18, 0.85);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.selected-module-toolbar.has-selection {
+  border-color: var(--holo-accent-light);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+}
+
+.sel-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sel-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--holo-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.active-tag-accent {
+  color: var(--holo-accent-light);
+}
+
+.active-tag-props {
+  font-size: 9px;
+  color: var(--holo-accent-sub);
+}
+
+.sel-tools {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.sel-tool-btn {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  background: rgba(6, 42, 30, 0.8);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sel-tool-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.4);
+  border-color: var(--holo-accent-light);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+}
+
+.sel-tool-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: rgba(16, 185, 129, 0.15);
+}
+
+.sel-tool-btn.btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.4);
+  border-color: #ef4444;
+}
+
+.tool-icon {
+  font-size: 10px;
+  color: var(--holo-accent-light);
+}
+
+/* ДИНАМИЧЕСКИ МАСШТАБИРУЕМЫЙ АНГАР СБОРКИ (без вылезания за пределы экрана!) */
+.shipyard-center-bay {
+  position: relative;
+  width: min(100%, 410px);
+  height: min(410px, calc(80vh - 240px));
+  aspect-ratio: 1 / 1;
+  background: radial-gradient(circle at 50% 50%, rgba(4, 32, 23, 0.88) 0%, rgba(1, 14, 9, 0.97) 100%);
+  border: 1.8px solid var(--holo-border);
+  border-radius: 6px;
+  box-shadow: inset 0 0 35px rgba(16, 185, 129, 0.18), 0 0 25px rgba(16, 185, 129, 0.22);
+  overflow: hidden;
+  user-select: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+
+.shipyard-center-bay.drag-active {
+  border-color: #34d399;
+  box-shadow: inset 0 0 45px rgba(52, 211, 153, 0.45), 0 0 35px rgba(52, 211, 153, 0.65);
+  border-style: dashed;
+}
+
+/* Сетка чертежа (blueprint grid) */
+.hangar-grid-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 22px 22px;
+  background-image:
+    linear-gradient(to right, rgba(16, 185, 129, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(16, 185, 129, 0.12) 1px, transparent 1px);
+}
+
+/* Прицельная сетка */
+.hangar-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70px;
+  height: 70px;
+  transform: translate(-50%, -50%);
+  border: 1px dashed rgba(52, 211, 153, 0.35);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hangar-reticle::before,
+.hangar-reticle::after {
+  content: '';
+  position: absolute;
+  background: rgba(52, 211, 153, 0.4);
+}
+
+.hangar-reticle::before {
+  top: 50%;
+  left: -10px;
+  right: -10px;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.hangar-reticle::after {
+  left: 50%;
+  top: -10px;
+  bottom: -10px;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+/* Плейсхолдер пустого отсека */
+.hangar-empty-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  padding: 16px;
+  text-align: center;
+}
+
+.hangar-ghost-silhouette {
+  width: 76px;
+  height: 76px;
+  opacity: 0.75;
+  animation: pulseGhost 3s infinite ease-in-out;
+}
+
+@keyframes pulseGhost {
+
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+.ghost-ship-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hangar-hint-text {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--holo-accent-light);
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.hangar-hint-sub {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--holo-text-muted);
+  max-width: 250px;
+  line-height: 1.2;
+}
+
+/* Поверхность для размещения сброшенных деталей */
+.hangar-drop-surface {
+  position: absolute;
+  inset: 0;
+}
+
+/* Отдельная сброшенная деталь в ангаре */
+.dropped-part-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  touch-action: none;
+}
+
+.dropped-part-item:active {
+  cursor: grabbing;
+}
+
+.dropped-part-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropped-part-wrap img {
+  max-width: 66px;
+  max-height: 66px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.85));
+  pointer-events: none;
+}
+
+/* Рамка выделения выбранной детали */
+.dropped-part-item.selected .dropped-part-wrap {
+  outline: 1.5px solid var(--holo-accent-light);
+  outline-offset: 3px;
+  border-radius: 4px;
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.65);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+/* Кнопка быстрого удаления детали */
+.part-remove-btn {
+  all: unset;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  background: #ef4444;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+  z-index: 20;
+}
+
+.dropped-part-item:hover .part-remove-btn,
+.dropped-part-item.selected .part-remove-btn {
+  opacity: 1;
+}
+
+.part-remove-btn:hover {
+  transform: scale(1.2);
+}
+
+/* Панель инструментов под окном ангара */
+.hangar-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 410px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.hangar-tool-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--holo-text-muted);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 3px;
+  background: rgba(3, 24, 18, 0.6);
+  transition: all 0.15s ease;
+}
+
+.hangar-tool-btn:hover {
+  color: #ffffff;
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.hangar-parts-counter {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #ffffff;
+  background: rgba(16, 185, 129, 0.2);
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Плавающий призрак при перетаскивании */
+.shipyard-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 44, 32, 0.9);
+  border: 1.5px dashed #34d399;
+  border-radius: 6px;
+  box-shadow: 0 0 24px rgba(52, 211, 153, 0.8);
+}
+
+.shipyard-drag-ghost img {
+  max-width: 52px;
+  max-height: 52px;
+  object-fit: contain;
+}
+
+/* ==========================================================
+   ПОДВАЛ КОНСТРУКТОРА
+   ========================================================== */
+.shipyard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid rgba(16, 185, 129, 0.25);
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================
+   ПРОФЕССИОНАЛЬНАЯ АДАПТИВНОСТЬ ДЛЯ ТЕЛЕФОНОВ В ВЕРТИКАЛЬНОМ РЕЖИМЕ
+   (MOBILE PORTRAIT: max-width 840px OR orientation: portrait)
+   ========================================================== */
+
+/* ==========================================================
+   RESPONSIVE LAYOUT
+   Средние экраны: ангар сверху, каталог ниже.
+   Телефоны: вертикальная прокрутка без сжатия колонок.
+   ========================================================== */
+
+/* Ноутбуки с небольшой шириной и планшеты */
+@media screen and (max-width: 1100px) {
+  .shipyard-backdrop {
+    padding: 8px;
+    align-items: stretch;
+  }
+
+  .shipyard-window {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .shipyard-workspace {
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+  }
+
+  .shipyard-center-col {
+    order: 0;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: 0;
+    border-left: 0;
+  }
+
+  .hangar-container {
+    width: 100%;
+    max-width: 100%;
+    gap: 8px;
+  }
+
+  .shipyard-center-bay {
+    width: min(100%, 430px);
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-height: min(52vh, 430px);
+  }
+
+  .hangar-controls-bar {
+    max-width: min(100%, 430px);
+  }
+
+  .shipyard-columns-flow {
+    order: 1;
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 250px;
+    height: min(34vh, 330px);
+    overflow: hidden;
+  }
+
+  .col-categories {
+    flex-basis: 112px;
+    width: 112px;
+    min-width: 112px;
+  }
+
+  .col-subfolders {
+    flex-basis: 132px;
+    width: 132px;
+    min-width: 132px;
+  }
+
+  .col-parts {
+    flex: 1 1 0;
+    min-width: 150px;
+  }
+
+  .shipyard-footer {
+    gap: 10px;
+  }
+}
+
+/* Телефоны */
+@media screen and (max-width: 640px) {
+  .shipyard-backdrop {
+    padding: 0;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .shipyard-window {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    min-height: 0;
+    padding: 10px;
+    border: 0;
+    border-radius: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .shipyard-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 9px;
+    margin-bottom: 8px;
+  }
+
+  .shipyard-title-wrap {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .shipyard-badge {
+    font-size: 8px;
+    letter-spacing: 1px;
+    line-height: 1.4;
+  }
+
+  .shipyard-title {
+    font-size: clamp(17px, 5vw, 22px);
+    line-height: 1.08;
+    letter-spacing: 1px;
+  }
+
+  .shipyard-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    flex-shrink: 1;
+  }
+
+  .shipyard-header-actions .shipyard-action-btn {
+    flex: 1 1 auto;
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 10px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .shipyard-workspace {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-height: 0;
+    gap: 12px;
+    overflow: visible;
+  }
+
+  /* Ангар */
+  .shipyard-center-col {
+    order: 0;
+    width: 100%;
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: none;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+  }
+
+  .hangar-container {
+    width: 100%;
+    max-width: none;
+    gap: 8px;
+  }
+
+  .hangar-limits-grid {
+    justify-content: flex-start;
+    gap: 5px;
+  }
+
+  .limit-chip {
+    padding: 4px 6px;
+    font-size: 9px;
+  }
+
+  .selected-module-toolbar {
+    padding: 7px;
+    gap: 7px;
+  }
+
+  .sel-meta {
+    min-width: 0;
+  }
+
+  .sel-tag {
+    white-space: normal;
+    line-height: 1.35;
+    font-size: 9px;
+  }
+
+  .sel-tools {
+    justify-content: flex-start;
+    gap: 5px;
+  }
+
+  .sel-tool-btn {
+    padding: 7px 8px;
+    min-height: 32px;
+    font-size: 10px;
+  }
+
+  .shipyard-center-bay {
+    width: min(100%, 430px);
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-height: none;
+    margin: 0 auto;
+  }
+
+  .hangar-ghost-silhouette {
+    width: 58px;
+    height: 58px;
+  }
+
+  .hangar-hint-text {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  .hangar-hint-sub {
+    font-size: 10px;
+  }
+
+  .dropped-part-wrap img {
+    max-width: 54px;
+    max-height: 54px;
+  }
+
+  .hangar-controls-bar {
+    max-width: 100%;
+    gap: 8px;
+  }
+
+  .hangar-tool-btn,
+  .hangar-parts-counter {
+    min-height: 32px;
+    padding: 7px 9px;
+    font-size: 9px;
+  }
+
+  /* Каталог превращается в последовательные компактные секции.
+     Категории и подкатегории прокручиваются горизонтально,
+     карточки деталей остаются обычной сеткой. */
+  .shipyard-columns-flow {
+    order: 1;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    gap: 9px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .flow-col {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    flex: 0 0 auto;
+    overflow: hidden;
+  }
+
+  .col-head {
+    padding: 7px 9px;
+  }
+
+  .col-head-tag {
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-align: left;
+  }
+
+  .col-scroll {
+    flex: 0 0 auto;
+    min-height: 0;
+    padding: 7px;
+    overflow: visible;
+  }
+
+  .col-categories,
+  .col-subfolders {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .categories-list,
+  .subfolders-list {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 7px;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .col-categories .category-col-btn,
+  .col-subfolders .subfolder-col-btn {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 145px;
+  }
+
+  .col-categories .col-btn-inner,
+  .col-subfolders .subfolder-btn-inner {
+    min-width: 82px;
+    min-height: 62px;
+    height: 100%;
+    padding: 8px;
+    gap: 5px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .col-categories .cat-icon-box {
+    width: 20px;
+    height: 20px;
+  }
+
+  .col-categories .cat-icon-box svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .col-categories .cat-text-box,
+  .col-subfolders .subfolder-text-wrap {
+    align-items: flex-start;
+    width: auto;
+    min-width: 0;
+  }
+
+  .col-categories .cat-title,
+  .col-subfolders .subfolder-name {
+    max-width: 100px;
+    font-size: 10px;
+    text-align: left;
+  }
+
+  .col-categories .cat-count-badge,
+  .col-subfolders .subfolder-count {
+    font-size: 9px;
+  }
+
+  .col-categories .active-chevron,
+  .col-subfolders .active-chevron {
+    display: none;
+  }
+
+  .col-subfolders .subfolder-icon {
+    font-size: 15px;
+  }
+
+  .col-parts {
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .col-parts .col-scroll {
+    max-height: 36vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .col-parts .parts-grid {
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: 7px;
+  }
+
+  .col-parts .part-card {
+    min-width: 0;
+    min-height: 82px;
+    padding: 7px 4px;
+  }
+
+  .col-parts .part-preview-wrap {
+    width: 46px;
+    height: 46px;
+  }
+
+  .col-parts .part-preview-img {
+    max-width: 42px;
+    max-height: 42px;
+  }
+
+  .col-parts .part-name-tag {
+    max-width: 100%;
+    font-size: 8px;
+  }
+
+  .parts-col-footer-hint {
+    display: none;
+  }
+
+  /* Нижние действия не конкурируют за одну строку */
+  .shipyard-footer {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 10px;
+    margin-top: 12px;
+  }
+
+  .footer-left,
+  .footer-right {
+    width: 100%;
+  }
+
+  .footer-left .shipyard-action-btn,
+  .footer-right .shipyard-action-btn {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .shipyard-action-btn.btn-launch-big {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+
+  .shipyard-action-btn.btn-secondary {
+    padding: 9px 12px;
+    font-size: 10px;
+  }
+
+  .shipyard-alert-toast {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    width: calc(100% - 24px);
+    max-width: 420px;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    font-size: 10px;
+    z-index: 300;
+  }
+}
+
+/* Очень узкие телефоны */
+@media screen and (max-width: 380px) {
+  .shipyard-window {
+    padding: 8px;
+  }
+
+  .shipyard-title {
+    font-size: 17px;
+  }
+
+  .limit-chip {
+    font-size: 8px;
+    gap: 3px;
+  }
+
+  .sel-tool-btn {
+    font-size: 9px;
+    padding: 6px;
+  }
+
+  .col-parts .parts-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Невысокие окна ноутбуков: уменьшаем ангар, но сохраняем две зоны */
+@media screen and (min-width: 641px) and (max-width: 1100px) and (max-height: 720px) {
+  .shipyard-window {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .shipyard-center-bay {
+    width: min(34vw, 300px);
+    max-height: 38vh;
+  }
+
+  .shipyard-columns-flow {
+    height: min(30vh, 250px);
+  }
+}
+
+
+/* Перекрываем общие ограничения базового модального окна игры */
+.holo-modal-window.shipyard-window {
+  width: min(96vw, 1420px);
+  max-width: 1420px;
+}
+
+@media screen and (max-width: 1100px) {
+  .holo-modal-window.shipyard-window {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .holo-modal-window.shipyard-window {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+  }
+}

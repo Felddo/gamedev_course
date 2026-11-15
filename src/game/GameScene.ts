@@ -47,12 +47,12 @@ import { ExperienceManager } from './ExperienceManager';
  * - Фотонно-плазменное вооружение, волны противников, овердрайв и тактический радар
  */
 export class GameScene extends Phaser.Scene {
-  private playerShip!: PlayerShip;
+  public playerShip!: PlayerShip;
   private weaponSystem!: WeaponSystem;
   private enemyManager!: EnemyManager;
   private particleManager!: ParticleManager;
   private atmosphereManager!: AtmosphereManager;
-  private hudManager!: HudManager;
+  public hudManager!: HudManager;
   private meteorManager!: MeteorManager;
   private spaceStationManager!: SpaceStationManager;
   private experienceManager!: ExperienceManager;
@@ -292,6 +292,29 @@ export class GameScene extends Phaser.Scene {
     this.notifyPhaseChange(1);
     this.playerShip.emitDashState();
     this.playerShip.emitSuperState();
+  }
+
+  /**
+   * Подготовка боевой сессии для голографического конструктора:
+   * Игра замирает, корабль игрока и HUD скрываются, сцена на паузе
+   */
+  public pauseCombatSessionForBuilder(): void {
+    this.startCombatSession();
+    this.playerShip.setVisible(false);
+    this.hudManager.setVisible(false);
+    this.scene.pause();
+  }
+
+  /**
+   * Возобновление боевой сессии после сборки корабля в конструкторе:
+   * Корабль игрока появляется, HUD активируется, игра снимается с паузы
+   */
+  public resumeCombatSessionFromBuilder(): void {
+    this.playerShip.setVisible(true);
+    this.hudManager.setVisible(true);
+    if (this.scene.isPaused()) {
+      this.scene.resume();
+    }
   }
 
   update(_time: number, delta: number): void {

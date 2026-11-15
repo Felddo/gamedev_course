@@ -4,11 +4,15 @@ import { soundFx } from './game/audio';
 import { getRandomUpgrades, TankUpgrade } from './game/upgrades';
 import { GAME_PHASES } from './game/constants';
 import { GameScene } from './game/GameScene';
+import { ShipBuilderModal } from './game/shipBuilder/ShipBuilderModal';
 import menuBgUrl from './assets/menu_bg.jpg';
 
 let phaserGame: Phaser.Game | null = null;
 let isGameStarted = false;
 let isGamePaused = false;
+
+// Голографический конструктор корабля (Ship Builder)
+const shipBuilderModal = new ShipBuilderModal();
 
 // DOM Elements
 const mainMenu = document.getElementById('main-menu') as HTMLElement;
@@ -39,6 +43,7 @@ const btnExit = document.getElementById('btn-exit') as HTMLButtonElement;
 // Pause Modal Elements
 const modalPause = document.getElementById('modal-pause') as HTMLElement;
 const btnPauseResume = document.getElementById('btn-pause-resume') as HTMLButtonElement;
+const btnPauseShipyard = document.getElementById('btn-pause-shipyard') as HTMLButtonElement;
 const btnPauseSettings = document.getElementById('btn-pause-settings') as HTMLButtonElement;
 const btnPauseMenu = document.getElementById('btn-pause-menu') as HTMLButtonElement;
 const btnPauseExit = document.getElementById('btn-pause-exit') as HTMLButtonElement;
@@ -266,6 +271,7 @@ function attachAudioHover(button: HTMLElement): void {
   btnSettings,
   btnExit,
   btnPauseResume,
+  btnPauseShipyard,
   btnPauseSettings,
   btnPauseMenu,
   btnPauseExit,
@@ -322,7 +328,8 @@ function resumeGame(): void {
 }
 
 /**
- * Запуск боевой игры из главного меню (переход в боевой режим с нормальной камерой)
+ * Запуск игры: игра замирает, корабль исчезает и появляется зеленое
+ * голографическое окно с возможностью сделать свой корабль
  */
 function launchGame(): void {
   soundFx.playUiClick();
@@ -330,28 +337,26 @@ function launchGame(): void {
   // Плавное скрытие главного меню и отображение игрового холста
   mainMenu.classList.add('hidden');
   gameContainer?.classList.remove('hidden');
-  dashHud?.classList.remove('hidden');
-  topEscBtn?.classList.remove('hidden');
+  dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
   modalPause?.classList.add('hidden');
-  isGamePaused = false;
+  isGamePaused = true;
   isGameStarted = true;
 
   // Сброс установленных улучшений
   appliedUpgradeIds.clear();
-
-  // Отображение зеленой голограммы "Фаза 1" при старте игры
-  showPhaseAnnouncement(1);
+  hidePhaseAnnouncement();
 
   if (phaserGame) {
     phaserGame.scale.refresh();
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
     if (scene) {
-      if (scene.scene.isPaused()) {
-        scene.scene.resume();
-      }
-      scene.startCombatSession();
+      scene.pauseCombatSessionForBuilder();
     }
   }
+
+  // Появление голографического зеленого окна конструктора корабля
+  shipBuilderModal.open();
 
   // Обновление размеров полноэкранного холста
   window.requestAnimationFrame(() => {
@@ -360,9 +365,46 @@ function launchGame(): void {
 }
 
 /**
+ * Переход из конструктора в боевой режим при нажатии "В БОЙ // ЗАПУСК":
+ * Появляется корабль игрока, игра снимается с паузы, отображается HUD и Фаза 1
+ */
+function startCombatFromBuilder(): void {
+  soundFx.playUiClick();
+  shipBuilderModal.close();
+
+  isGamePaused = false;
+  dashHud?.classList.remove('hidden');
+  topEscBtn?.classList.remove('hidden');
+
+  if (phaserGame) {
+    const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+    if (scene) {
+      scene.resumeCombatSessionFromBuilder();
+    }
+  }
+
+  // Отображение зеленой голограммы "Фаза 1"
+  showPhaseAnnouncement(1);
+
+  window.requestAnimationFrame(() => {
+    phaserGame?.scale.refresh();
+  });
+}
+
+// Привязка коллбэков конструктора корабля
+shipBuilderModal.onLaunch = () => {
+  startCombatFromBuilder();
+};
+
+shipBuilderModal.onReturnToMenu = () => {
+  returnToMainMenu();
+};
+
+/**
  * Возврат в главное меню с отображением menu_bg.jpg и кнопок управления
  */
 function returnToMainMenu(): void {
+  shipBuilderModal.close();
   appliedUpgradeIds.clear();
   hideGameOver();
   hidePhaseAnnouncement();
@@ -465,6 +507,24 @@ updateVolumeSliderUI(100);
 
 // Кнопки меню паузы
 btnPauseResume?.addEventListener('click', resumeGame);
+
+btnPauseShipyard?.addEventListener('click', () => {
+  soundFx.playUiClick();
+  modalPause.classList.add('hidden');
+  dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
+  if (phaserGame) {
+    const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+    if (scene) {
+      scene.playerShip.setVisible(false);
+      scene.hudManager.setVisible(false);
+      if (!scene.scene.isPaused()) {
+        scene.scene.pause();
+      }
+    }
+  }
+  shipBuilderModal.open();
+});
 
 btnPauseSettings?.addEventListener('click', openSettings);
 
@@ -656,19 +716,25 @@ function restartFromGameOver(): void {
   hidePhaseAnnouncement();
   appliedUpgradeIds.clear();
   gameContainer?.classList.remove('hidden');
-  dashHud?.classList.remove('hidden');
-  topEscBtn?.classList.remove('hidden');
+  dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
   isGameStarted = true;
-  showPhaseAnnouncement(1);
+  isGamePaused = true;
+
   if (phaserGame) {
+    phaserGame.scale.refresh();
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
     if (scene) {
-      if (scene.scene.isPaused()) {
-        scene.scene.resume();
-      }
-      scene.startCombatSession();
+      scene.pauseCombatSessionForBuilder();
     }
   }
+
+  // Появление голографического зеленого окна конструктора корабля
+  shipBuilderModal.open();
+
+  window.requestAnimationFrame(() => {
+    phaserGame?.scale.refresh();
+  });
 }
 
 function returnToMenuFromGameOver(): void {
@@ -846,6 +912,19 @@ window.addEventListener('tank-super-state', ((e: CustomEvent<{
 
 // Горячие клавиши
 window.addEventListener('keydown', (e) => {
+  // Если открыт конструктор корабля
+  if (shipBuilderModal && shipBuilderModal.isOpen()) {
+    if (e.key === 'Escape') {
+      returnToMainMenu();
+      return;
+    }
+    if ((e.key === 'Enter' || e.code === 'Space') && document.activeElement?.tagName !== 'BUTTON') {
+      startCombatFromBuilder();
+      return;
+    }
+    return;
+  }
+
   // Если открыто окно поражения
   if (modalGameOver && !modalGameOver.classList.contains('hidden')) {
     if (e.key === 'Escape') {
@@ -890,7 +969,8 @@ window.addEventListener('keydown', (e) => {
     !mainMenu.classList.contains('hidden') &&
     modalSettings.classList.contains('hidden') &&
     modalExit.classList.contains('hidden') &&
-    modalPause.classList.contains('hidden')
+    modalPause.classList.contains('hidden') &&
+    !shipBuilderModal.isOpen()
   ) {
     // Игнорируем если фокус на кнопке, чтобы не дублировать клик
     if (document.activeElement?.tagName !== 'BUTTON') {
