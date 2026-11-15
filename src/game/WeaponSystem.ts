@@ -85,11 +85,17 @@ export class WeaponSystem {
     player: PlayerShip,
     nearestEnemy: EnemyShip | null,
     particleManager: ParticleManager,
+    hasTarget = true,
   ): void {
     const baseCooldown = player.isSuperMode ? SUPER_BLASTER_COOLDOWN : BLASTER_COOLDOWN;
     const currentCooldown = baseCooldown * this.cooldownMultiplier;
     this.blasterTimer += seconds;
     if (this.blasterTimer < currentCooldown) return;
+
+    if (!hasTarget) {
+      this.blasterTimer = currentCooldown;
+      return;
+    }
 
     this.blasterTimer = 0;
 

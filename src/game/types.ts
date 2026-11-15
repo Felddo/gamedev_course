@@ -124,6 +124,8 @@ export interface SpaceStation {
   sprite: Phaser.GameObjects.Sprite;
   hpBarBg: Phaser.GameObjects.Rectangle;
   hpBarFill: Phaser.GameObjects.Rectangle;
+  hologramRing?: Phaser.GameObjects.Graphics;
+  hologramPhase?: number;
   typeIndex: 0 | 1 | 2; // 0: station_020, 1: station_021, 2: station_024
   vx: number;
   vy: number;

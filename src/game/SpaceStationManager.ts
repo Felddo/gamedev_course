@@ -28,6 +28,10 @@ export class SpaceStationManager {
   private maxStations = 4;
   private spawnInterval = 14.0;
 
+  // Выбранная база для фокусированного огня корабля (Target Lock)
+  private targetedStation: SpaceStation | null = null;
+  private hoveredStation: SpaceStation | null = null;
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
   }
@@ -36,15 +40,74 @@ export class SpaceStationManager {
     return this.stations;
   }
 
+  public getTargetedStation(): SpaceStation | null {
+    return this.targetedStation;
+  }
+
+  public setTargetedStation(station: SpaceStation | null): void {
+    this.targetedStation = station;
+  }
+
+  public getHoveredStation(): SpaceStation | null {
+    return this.hoveredStation;
+  }
+
+  public updateHover(worldX: number, worldY: number): void {
+    let found: SpaceStation | null = null;
+    for (const station of this.stations) {
+      if (this.isPointInsideStation(worldX, worldY, station, 35)) {
+        found = station;
+        break;
+      }
+    }
+    this.hoveredStation = found;
+
+    const canvas = this.scene.game.canvas;
+    if (canvas) {
+      if (found) {
+        canvas.style.cursor = 'crosshair';
+      } else if (canvas.style.cursor === 'crosshair' || canvas.style.cursor === 'pointer') {
+        canvas.style.cursor = 'default';
+      }
+    }
+  }
+
+  public toggleTargetStationAt(worldX: number, worldY: number): boolean {
+    for (const station of this.stations) {
+      if (this.isPointInsideStation(worldX, worldY, station, 35)) {
+        if (this.targetedStation === station) {
+          // Отмена стрельбы по базе при повторном нажатии
+          this.targetedStation = null;
+          soundFx.playUiHover();
+        } else {
+          // Захват базы: корабль стреляет исключительно в нее
+          this.targetedStation = station;
+          soundFx.playUiClick();
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
   public reset(): void {
     for (const station of this.stations) {
       this.destroyStationSprites(station);
     }
     this.stations = [];
     this.spawnTimer = 3.0;
+    this.targetedStation = null;
+    this.hoveredStation = null;
+    const canvas = this.scene.game.canvas;
+    if (canvas && (canvas.style.cursor === 'crosshair' || canvas.style.cursor === 'pointer')) {
+      canvas.style.cursor = 'default';
+    }
   }
 
   private destroyStationSprites(station: SpaceStation): void {
+    if (station.hologramRing) {
+      station.hologramRing.destroy();
+    }
     station.sprite.destroy();
     station.hpBarBg.destroy();
     station.hpBarFill.destroy();
@@ -114,6 +177,108 @@ export class SpaceStationManager {
       station.hpBarFill.setSize(currentFillW, barHeight);
       station.hpBarFill.setVisible(currentFillW > 0);
 
+      // Отрисовка тактической голограммы вокруг станции (обычная, при наведении, при активном захвате)
+      if (station.hologramRing) {
+        station.hologramPhase = (station.hologramPhase || 0) + seconds * 2.2;
+        const g = station.hologramRing;
+        g.clear();
+
+        const isTargeted = this.targetedStation === station;
+        const isHovered = this.hoveredStation === station;
+        const baseR = station.boundingRadius + 18;
+        const pulse = Math.sin(station.hologramPhase) * (isTargeted ? 10 : 6);
+        const holoR = baseR + pulse;
+
+        if (isTargeted) {
+          // Яркий неоновый режим захвата цели (Target Lock)
+          const targetColor = 0xef4444; // Красный неон
+          const pulseAlpha = 0.8 + Math.sin(station.hologramPhase * 2.5) * 0.2;
+
+          // 4 сегментарные дуги вращающегося прицела
+          g.lineStyle(2.5, targetColor, pulseAlpha);
+          const segments = 4;
+          const segAngle = Math.PI / 2.6;
+          const rotOffset = station.hologramPhase * 0.8;
+
+          for (let s = 0; s < segments; s++) {
+            const startA = rotOffset + (s * Math.PI * 2) / segments;
+            g.beginPath();
+            g.arc(station.sprite.x, station.sprite.y, holoR + 10, startA, startA + segAngle);
+            g.strokePath();
+
+            // Тактические маркеры захвата на углах
+            const markerX = station.sprite.x + Math.cos(startA) * (holoR + 10);
+            const markerY = station.sprite.y + Math.sin(startA) * (holoR + 10);
+            g.fillStyle(0xfca5a5, 1.0);
+            g.fillCircle(markerX, markerY, 3.5);
+          }
+
+          // Внутреннее мерцающее кольцо прицела
+          g.lineStyle(1.8, 0xf87171, pulseAlpha * 0.7);
+          g.strokeCircle(station.sprite.x, station.sprite.y, holoR - 8);
+
+          // 4 перекрестных лазерных маркера прицеливания (Crosshair)
+          const crossDist = holoR + 26;
+          const innerDist = holoR + 4;
+          g.lineStyle(2.2, 0xef4444, pulseAlpha);
+          g.lineBetween(station.sprite.x - crossDist, station.sprite.y, station.sprite.x - innerDist, station.sprite.y);
+          g.lineBetween(station.sprite.x + innerDist, station.sprite.y, station.sprite.x + crossDist, station.sprite.y);
+          g.lineBetween(station.sprite.x, station.sprite.y - crossDist, station.sprite.x, station.sprite.y - innerDist);
+          g.lineBetween(station.sprite.x, station.sprite.y + innerDist, station.sprite.x, station.sprite.y + crossDist);
+
+          // Подсветка полоски HP базы красной рамкой
+          station.hpBarBg.setStrokeStyle(2.5, 0xef4444, 1.0);
+        } else if (isHovered) {
+          // Режим наведения курсора: яркая неоновая подсветка, показывающая интерактивность
+          const alpha = 0.65 + Math.sin(station.hologramPhase * 2) * 0.2;
+          g.lineStyle(2, 0x38bdf8, alpha);
+
+          const segments = 4;
+          const segAngle = Math.PI / 3.0;
+          const rotOffset = station.hologramPhase * 0.5;
+
+          for (let s = 0; s < segments; s++) {
+            const startA = rotOffset + (s * Math.PI * 2) / segments;
+            g.beginPath();
+            g.arc(station.sprite.x, station.sprite.y, holoR + 4, startA, startA + segAngle);
+            g.strokePath();
+
+            const dotX = station.sprite.x + Math.cos(startA) * (holoR + 4);
+            const dotY = station.sprite.y + Math.sin(startA) * (holoR + 4);
+            g.fillStyle(0xbae6fd, 1.0);
+            g.fillCircle(dotX, dotY, 2.5);
+          }
+
+          g.lineStyle(1.2, 0x0284c7, alpha * 0.6);
+          g.strokeCircle(station.sprite.x, station.sprite.y, holoR - 10);
+          station.hpBarBg.setStrokeStyle(1.8, 0x38bdf8, 0.95);
+        } else {
+          // Стандартное фоновое свечение базы
+          const alpha = 0.22 + Math.sin(station.hologramPhase) * 0.08;
+          g.lineStyle(1.5, 0x38bdf8, alpha);
+
+          const segments = 4;
+          const segAngle = Math.PI / 3.2;
+          const rotOffset = station.hologramPhase * 0.35;
+
+          for (let s = 0; s < segments; s++) {
+            const startA = rotOffset + (s * Math.PI * 2) / segments;
+            g.beginPath();
+            g.arc(station.sprite.x, station.sprite.y, holoR, startA, startA + segAngle);
+            g.strokePath();
+
+            const dotX = station.sprite.x + Math.cos(startA) * holoR;
+            const dotY = station.sprite.y + Math.sin(startA) * holoR;
+            g.fillStyle(0x67e8f9, alpha * 1.3);
+            g.fillCircle(dotX, dotY, 2);
+          }
+
+          g.lineStyle(1, 0x0ea5e9, alpha * 0.45);
+          g.strokeCircle(station.sprite.x, station.sprite.y, holoR - 14);
+          station.hpBarBg.setStrokeStyle(1.5, 0x475569, 0.95);
+        }
+      }
+
       // Очистка баз, оставшихся далеко позади при исследовании бесконечного космоса
       const distToCamera = Phaser.Math.Distance.Between(
         station.sprite.x,
@@ -122,6 +287,12 @@ export class SpaceStationManager {
         camCenterY,
       );
       if (distToCamera > 3600) {
+        if (this.targetedStation === station) {
+          this.targetedStation = null;
+        }
+        if (this.hoveredStation === station) {
+          this.hoveredStation = null;
+        }
         this.destroyStationSprites(station);
         this.stations.splice(i, 1);
       }
@@ -250,10 +421,16 @@ export class SpaceStationManager {
     hpBarFill.setOrigin(0, 0.5);
     hpBarFill.setDepth(15.1);
 
+    // Малозаметная тактическая голограмма вокруг базы для индикации интерактивности (нажатия)
+    const hologramRing = this.scene.add.graphics();
+    hologramRing.setDepth(6.2);
+
     this.stations.push({
       sprite,
       hpBarBg,
       hpBarFill,
+      hologramRing,
+      hologramPhase: Math.random() * Math.PI * 2,
       typeIndex,
       vx: Math.cos(moveAngle) * speed,
       vy: Math.sin(moveAngle) * speed,
@@ -285,15 +462,22 @@ export class SpaceStationManager {
     x: number,
     y: number,
     station: SpaceStation,
-    padding = 16,
+    padding = 24,
   ): boolean {
     const dx = x - station.sprite.x;
     const dy = y - station.sprite.y;
+    const distSq = dx * dx + dy * dy;
 
     // Быстрый отсев по радиусу описанной окружности
     const maxBound = station.boundingRadius + padding;
-    if (dx * dx + dy * dy > maxBound * maxBound) {
+    if (distSq > maxBound * maxBound) {
       return false;
+    }
+
+    // Попадание в основной круговой габарит станции
+    const innerBound = station.boundingRadius * 0.85 + padding;
+    if (distSq <= innerBound * innerBound) {
+      return true;
     }
 
     // Перевод координат в локальную систему станции с учетом угла поворота
@@ -511,6 +695,13 @@ export class SpaceStationManager {
       soundFx.playHit();
       this.scene.cameras.main.shake(200, 0.012);
       particleManager.spawnHitSparks(playerShip.x, playerShip.y);
+    }
+
+    if (this.targetedStation === station) {
+      this.targetedStation = null;
+    }
+    if (this.hoveredStation === station) {
+      this.hoveredStation = null;
     }
 
     this.destroyStationSprites(station);

@@ -103,11 +103,14 @@ export class EnemyManager {
     enemy.sprite.destroy();
   }
 
-  public findNearestEnemy(playerX: number, playerY: number, maxRange = BLASTER_RANGE): EnemyShip | null {
+  public findNearestEnemy(playerX: number, playerY: number, maxRange = 850): EnemyShip | null {
     let nearest: EnemyShip | null = null;
     let minDist = maxRange;
 
     for (const enemy of this.enemies) {
+      if (!enemy.sprite || !enemy.sprite.active || enemy.hp <= 0) {
+        continue;
+      }
       const dist = Phaser.Math.Distance.Between(
         playerX,
         playerY,

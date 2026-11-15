@@ -289,6 +289,7 @@ export class HudManager {
     currentPhase = 1,
     meteors: Meteor[] = [],
     stations: SpaceStation[] = [],
+    targetedStation: SpaceStation | null = null,
   ): void {
     if (!this.isVisible) return;
 
@@ -314,7 +315,7 @@ export class HudManager {
     this.phaseText.setText(`ФАЗА ${currentPhase}`);
 
     // 4. Тактический радар
-    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations);
+    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation);
   }
 
   private updateRadar(
@@ -325,6 +326,7 @@ export class HudManager {
     enemies: EnemyShip[],
     meteors: Meteor[] = [],
     stations: SpaceStation[] = [],
+    targetedStation: SpaceStation | null = null,
   ): void {
     this.radarGraphics.clear();
     const half = RADAR_SIZE / 2;
@@ -348,8 +350,6 @@ export class HudManager {
     }
 
     // Космические станции на радаре
-    this.radarGraphics.fillStyle(0x38bdf8, 1.0);
-    this.radarGraphics.lineStyle(1.5, 0x818cf8, 0.9);
     for (const station of stations) {
       const dx = station.sprite.x - playerX;
       const dy = station.sprite.y - playerY;
@@ -357,8 +357,17 @@ export class HudManager {
       if (dist <= scanRadius) {
         const sx = (dx / scanRadius) * radarRadius;
         const sy = (dy / scanRadius) * radarRadius;
-        this.radarGraphics.strokeCircle(sx, sy, 4.5);
-        this.radarGraphics.fillCircle(sx, sy, 2.5);
+        if (targetedStation === station) {
+          this.radarGraphics.lineStyle(2, 0xef4444, 1.0);
+          this.radarGraphics.strokeCircle(sx, sy, 6.5);
+          this.radarGraphics.fillStyle(0xf87171, 1.0);
+          this.radarGraphics.fillCircle(sx, sy, 3.5);
+        } else {
+          this.radarGraphics.fillStyle(0x38bdf8, 1.0);
+          this.radarGraphics.lineStyle(1.5, 0x818cf8, 0.9);
+          this.radarGraphics.strokeCircle(sx, sy, 4.5);
+          this.radarGraphics.fillCircle(sx, sy, 2.5);
+        }
       }
     }
 

@@ -44,6 +44,11 @@ export class PlayerShip {
     return this.aimAngle;
   }
 
+  // Физическое направление носа корабля (не зависит от угла автонаводки орудий)
+  public get shipFacingAngle(): number {
+    return this.shipSprite ? this.shipSprite.rotation + Math.PI / 2 : this.lastMoveAngle;
+  }
+
   // Показатели корабля
   public hp = PLAYER_MAX_HP;
   public invulnTimer = 0;
@@ -121,7 +126,7 @@ export class PlayerShip {
     this.shipSprite.setOrigin(0.5, 0.5);
     this.shipSprite.setScale(SHIP_SCALE);
     this.shipSprite.setDepth(10);
-    this.shipSprite.rotation = this.aimAngle - Math.PI / 2;
+    this.shipSprite.rotation = this.lastMoveAngle - Math.PI / 2;
 
     // 2. Двойное пламя сопел маршевых двигателей
     this.leftFlameSprite = this.scene.add.sprite(startX, startY, 'space_effect_001');
@@ -281,7 +286,7 @@ export class PlayerShip {
 
     // Вспышка сопел двигателей
     if (particleManager) {
-      const rearAngle = this.aimAngle + Math.PI;
+      const rearAngle = this.shipFacingAngle + Math.PI;
       particleManager.spawnDashBurstFire(this.shipSprite.x, this.shipSprite.y, rearAngle);
       particleManager.spawnShipDashTrail(this.shipSprite.x, this.shipSprite.y, rearAngle);
     }
@@ -300,7 +305,7 @@ export class PlayerShip {
     this.scene.cameras.main.shake(200, 0.008);
 
     if (particleManager) {
-      const rearAngle = this.aimAngle + Math.PI;
+      const rearAngle = this.shipFacingAngle + Math.PI;
       particleManager.spawnSuperActivationBurst(this.shipSprite.x, this.shipSprite.y, rearAngle);
       particleManager.spawnShipDashTrail(this.shipSprite.x, this.shipSprite.y, rearAngle);
     }
@@ -365,7 +370,7 @@ export class PlayerShip {
     this.shieldSprite.setAlpha(0.95);
 
     if (particleManager) {
-      const rearAngle = this.aimAngle + Math.PI;
+      const rearAngle = this.shipFacingAngle + Math.PI;
       particleManager.spawnDashBurstFire(this.shipSprite.x, this.shipSprite.y, rearAngle);
       particleManager.spawnShipDashTrail(this.shipSprite.x, this.shipSprite.y, rearAngle);
     }
@@ -447,6 +452,10 @@ export class PlayerShip {
         this.shipSprite.x += Math.cos(this.lastMoveAngle) * currentSpeed * seconds;
         this.shipSprite.y += Math.sin(this.lastMoveAngle) * currentSpeed * seconds;
         isMoving = true;
+
+        const targetShipRotation = this.lastMoveAngle - Math.PI / 2;
+        const rotDiff = Phaser.Math.Angle.Wrap(targetShipRotation - this.shipSprite.rotation);
+        this.shipSprite.rotation += rotDiff * Math.min(1, 10 * seconds);
       }
     } else {
       if (Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
@@ -473,6 +482,10 @@ export class PlayerShip {
 
         this.lastMoveAngle = this.dashMoveAngle;
         isMoving = true;
+
+        const targetRotation = this.dashMoveAngle - Math.PI / 2;
+        const diff = Phaser.Math.Angle.Wrap(targetRotation - this.shipSprite.rotation);
+        this.shipSprite.rotation += diff * Math.min(1, 16 * seconds);
 
         this.shieldSprite.setPosition(this.shipSprite.x, this.shipSprite.y);
         this.shieldSprite.rotation += 9 * seconds;
@@ -505,12 +518,17 @@ export class PlayerShip {
           const moveAngle = Math.atan2(dy, dx);
           this.lastMoveAngle = moveAngle;
 
+          // Корпус плавно ориентируется по вектору движения, не поворачиваясь к врагам при автонаводке
+          const targetRotation = moveAngle - Math.PI / 2;
+          const diff = Phaser.Math.Angle.Wrap(targetRotation - this.shipSprite.rotation);
+          this.shipSprite.rotation += diff * Math.min(1, 14 * seconds);
+
           // Плазменный след двигателей при тактическом улучшении
           if (this.hasFireTrail) {
             this.normalFireTrailTimer += seconds;
             if (this.normalFireTrailTimer >= 0.12) {
               this.normalFireTrailTimer = 0;
-              const rearAngle = this.aimAngle + Math.PI;
+              const rearAngle = this.shipFacingAngle + Math.PI;
               particleManager.spawnDashFireTrail(
                 this.shipSprite.x,
                 this.shipSprite.y,
@@ -524,37 +542,7 @@ export class PlayerShip {
           }
         }
       }
-
-      // 1. Прицеливание носовых орудий космолета: всегда смотрит в сторону курсора игрока
-      const pointer = this.scene.input.activePointer;
-      let targetX = this.cursorWorldX;
-      let targetY = this.cursorWorldY;
-
-      if (pointer && (pointer.x !== 0 || pointer.y !== 0)) {
-        const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
-        targetX = worldPoint.x;
-        targetY = worldPoint.y;
-      }
-
-      const distToCursor = Phaser.Math.Distance.Between(
-        this.shipSprite.x,
-        this.shipSprite.y,
-        targetX,
-        targetY,
-      );
-      if (distToCursor > 4) {
-        this.aimAngle = Phaser.Math.Angle.Between(
-          this.shipSprite.x,
-          this.shipSprite.y,
-          targetX,
-          targetY,
-        );
-      }
     }
-
-    // Спрайт spaceShips_001.png ориентирован носом вниз (+PI/2), поворачиваем к курсору (aimAngle - PI/2)
-    const targetShipRotation = this.aimAngle - Math.PI / 2;
-    this.shipSprite.rotation = targetShipRotation;
 
     // 2. Расчет позиций сопел двигателей на корме космолета (корпус 106x80, сопла сверху: Y = -34, X = ±16)
     const rot = this.shipSprite.rotation;
@@ -574,6 +562,8 @@ export class PlayerShip {
     this.rightFlameSprite.setPosition(rightNozzleX, rightNozzleY);
     this.rightFlameSprite.setRotation(flameRot);
 
+    const rearAngle = this.shipFacingAngle + Math.PI;
+
     // 3. Эффекты пламени сопел в зависимости от режима движения
     if (this.isDashing) {
       this.leftFlameSprite.setTexture('space_effect_017');
@@ -586,7 +576,6 @@ export class PlayerShip {
       this.dashFlameTimer += seconds;
       if (this.dashFlameTimer >= 0.02) {
         this.dashFlameTimer = 0;
-        const rearAngle = this.aimAngle + Math.PI;
         particleManager.spawnShipDashTrail(leftNozzleX, leftNozzleY, rearAngle);
         particleManager.spawnShipDashTrail(rightNozzleX, rightNozzleY, rearAngle);
       }
@@ -601,7 +590,6 @@ export class PlayerShip {
       this.superFlameTimer += seconds;
       if (this.superFlameTimer >= 0.03) {
         this.superFlameTimer = 0;
-        const rearAngle = this.aimAngle + Math.PI;
         particleManager.spawnShipExhaust(leftNozzleX, leftNozzleY, rearAngle, true);
         particleManager.spawnShipExhaust(rightNozzleX, rightNozzleY, rearAngle, true);
       }
@@ -614,7 +602,6 @@ export class PlayerShip {
       this.rightFlameSprite.setScale(sx, sy).setAlpha(0.95);
 
       if (Math.random() < 0.35) {
-        const rearAngle = this.aimAngle + Math.PI;
         particleManager.spawnShipExhaust(leftNozzleX, leftNozzleY, rearAngle, false);
         particleManager.spawnShipExhaust(rightNozzleX, rightNozzleY, rearAngle, false);
       }
@@ -722,6 +709,9 @@ export class PlayerShip {
     this.superDurationTimer = 0;
     this.superCooldownTimer = 0;
     this.isAutopilot = false;
+    this.lastMoveAngle = -Math.PI / 2;
+    this.aimAngle = -Math.PI / 2;
+    this.shipSprite.rotation = -Math.PI;
     this.setVisible(true);
     this.resetUpgrades();
     this.emitDashState();

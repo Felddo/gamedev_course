@@ -149,6 +149,15 @@ export class GameScene extends Phaser.Scene {
         if (!this.isMenuMode && !this.isGameOver && !this.scene.isPaused()) {
           this.weaponSystem.fireRightClickSalvo(this.playerShip, this.particleManager);
         }
+        return;
+      }
+
+      // ЛКМ / тап: выбор базы для фокусированной стрельбы или отмена выбора
+      if (pointer.button === 0 || pointer.button === -1 || pointer.leftButtonDown()) {
+        if (!this.isMenuMode && !this.isGameOver && !this.scene.isPaused()) {
+          const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+          this.spaceStationManager.toggleTargetStationAt(worldPoint.x, worldPoint.y);
+        }
       }
     });
 
@@ -238,6 +247,7 @@ export class GameScene extends Phaser.Scene {
     this.playerShip.setVisible(false);
     this.playerShip.setAutopilot(false);
     this.playerShip.resetUpgrades();
+    this.spaceStationManager.setTargetedStation(null);
     this.tweens.killTweensOf(this.cameras.main);
     this.cameras.main.setZoom(1.0);
     this.cameras.main.setFollowOffset(0, 0);
@@ -254,6 +264,7 @@ export class GameScene extends Phaser.Scene {
     this.score = 0;
     this.currentPhase = 1;
     this.fireHazards = [];
+    this.spaceStationManager.setTargetedStation(null);
     this.enemyManager.reset();
     this.weaponSystem.reset();
     this.weaponSystem.resetUpgrades();
@@ -306,10 +317,67 @@ export class GameScene extends Phaser.Scene {
       this.triggerGameOver('meteor');
     });
 
-    // 2. Поиск ближайшей цели для наведения носовых орудий
-    const nearestEnemy = this.enemyManager.findNearestEnemy(this.playerShip.x, this.playerShip.y);
+    // 2. Обновление подсветки базы при наведении курсора
+    const pointer = this.input.activePointer;
+    if (pointer && (pointer.x !== 0 || pointer.y !== 0)) {
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      this.spaceStationManager.updateHover(worldPoint.x, worldPoint.y);
+    }
 
-    // 3. Перемещение корабля игрока (ручное или автопилот в меню)
+    // 2.1. Автонаводка орудий: выбор приоритетной цели (захваченная база или ближайший враг)
+    const targetedStation = this.spaceStationManager.getTargetedStation();
+    let hasTarget = false;
+    let nearestEnemy: import('./types').EnemyShip | null = null;
+
+    if (targetedStation) {
+      const activeStations = this.spaceStationManager.getStations();
+      if (
+        targetedStation.sprite?.active &&
+        targetedStation.hp > 0 &&
+        activeStations.includes(targetedStation)
+      ) {
+        const distToStation = Phaser.Math.Distance.Between(
+          this.playerShip.x,
+          this.playerShip.y,
+          targetedStation.sprite.x,
+          targetedStation.sprite.y,
+        );
+        const effectiveDist = Math.max(0, distToStation - targetedStation.boundingRadius);
+        // Стреляем по захваченной базе, когда она в радиусе досягаемости орудий
+        if (effectiveDist <= 850) {
+          hasTarget = true;
+        }
+        // Орудия направлены строго в центр базы
+        this.playerShip.aimAngle = Phaser.Math.Angle.Between(
+          this.playerShip.x,
+          this.playerShip.y,
+          targetedStation.sprite.x,
+          targetedStation.sprite.y,
+        );
+      } else {
+        // База уничтожена или ушла за пределы зоны — сброс захвата
+        this.spaceStationManager.setTargetedStation(null);
+      }
+    }
+
+    // Если база НЕ захвачена, автонаводка стреляет по ближайшему противнику
+    if (!this.spaceStationManager.getTargetedStation()) {
+      nearestEnemy = this.enemyManager.findNearestEnemy(this.playerShip.x, this.playerShip.y, 850);
+      if (nearestEnemy && nearestEnemy.sprite?.active && nearestEnemy.hp > 0) {
+        hasTarget = true;
+        this.playerShip.aimAngle = Phaser.Math.Angle.Between(
+          this.playerShip.x,
+          this.playerShip.y,
+          nearestEnemy.sprite.x,
+          nearestEnemy.sprite.y,
+        );
+      } else {
+        // Если врагов в радиусе нет — орудия смотрят вперед по курсу корабля
+        this.playerShip.aimAngle = this.playerShip.shipFacingAngle;
+      }
+    }
+
+    // 3. Перемещение корабля игрока (при автонаводке корпус НЕ поворачивается к врагам)
     this.playerShip.update(
       seconds,
       nearestEnemy,
@@ -318,12 +386,13 @@ export class GameScene extends Phaser.Scene {
       this.survivalTime,
     );
 
-    // 4. Наведение и огонь носовых орудий
+    // 4. Автоматический огонь носовых орудий по цели
     this.weaponSystem.handleBlasterFire(
       seconds,
       this.playerShip,
       nearestEnemy,
       this.particleManager,
+      hasTarget,
     );
 
     // Периодический ракетный залп в режиме меню
@@ -450,6 +519,7 @@ export class GameScene extends Phaser.Scene {
       this.currentPhase,
       this.meteorManager.getMeteors(),
       this.spaceStationManager.getStations(),
+      this.spaceStationManager.getTargetedStation(),
     );
   }
 
