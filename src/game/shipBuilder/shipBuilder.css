@@ -936,6 +936,20 @@
   background: rgba(16, 185, 129, 0.12);
 }
 
+/* Подсветка отсоединенных / разорванных модулей при проверке цельности */
+.dropped-part-item.disconnected .dropped-part-wrap {
+  outline: 2px dashed #ef4444 !important;
+  outline-offset: 4px;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.95), inset 0 0 14px rgba(239, 68, 68, 0.45) !important;
+  background: rgba(239, 68, 68, 0.25) !important;
+  animation: disconnectedPulse 0.7s infinite alternate ease-in-out;
+}
+
+@keyframes disconnectedPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 4px #ef4444); }
+  100% { transform: scale(1.08); filter: drop-shadow(0 0 14px #ef4444); }
+}
+
 /* Кнопка быстрого удаления детали */
 .part-remove-btn {
   all: unset;
@@ -998,6 +1012,17 @@
   color: #ffffff;
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.2);
+}
+
+.hangar-tool-btn.btn-preset {
+  border-color: rgba(52, 211, 153, 0.45);
+  color: var(--holo-accent-light);
+}
+
+.hangar-tool-btn.btn-preset:hover {
+  border-color: #34d399;
+  background: rgba(16, 185, 129, 0.25);
+  color: #ffffff;
 }
 
 .hangar-parts-counter {

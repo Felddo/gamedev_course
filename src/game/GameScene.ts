@@ -38,6 +38,8 @@ import { HudManager } from './HudManager';
 import { MeteorManager } from './MeteorManager';
 import { SpaceStationManager } from './SpaceStationManager';
 import { ExperienceManager } from './ExperienceManager';
+import { buildPartsCatalog } from './shipBuilder/partsCatalog';
+import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
 
 /**
  * Основная боевая сцена космического выживания:
@@ -48,6 +50,7 @@ import { ExperienceManager } from './ExperienceManager';
  */
 export class GameScene extends Phaser.Scene {
   public playerShip!: PlayerShip;
+  public activeShipAssembly: CustomShipAssembly | null = null;
   private weaponSystem!: WeaponSystem;
   private enemyManager!: EnemyManager;
   private particleManager!: ParticleManager;
@@ -101,6 +104,23 @@ export class GameScene extends Phaser.Scene {
     this.load.image('space_station_020', station020Url);
     this.load.image('space_station_021', station021Url);
     this.load.image('space_station_024', station024Url);
+
+    // Предзагрузка всех 101 модульных деталей для конструктора корабля
+    const catalog = buildPartsCatalog();
+    catalog.forEach((cat) => {
+      cat.directItems.forEach((item) => {
+        if (!this.textures.exists(item.id)) {
+          this.load.image(item.id, item.url);
+        }
+      });
+      cat.folders.forEach((folder) => {
+        folder.items.forEach((item) => {
+          if (!this.textures.exists(item.id)) {
+            this.load.image(item.id, item.url);
+          }
+        });
+      });
+    });
   }
 
   create(): void {
@@ -280,6 +300,9 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.setPhase(1);
     this.meteorManager.setPhase(1);
     this.playerShip.reset(MAP_WIDTH / 2, MAP_HEIGHT / 2);
+    if (this.activeShipAssembly) {
+      this.playerShip.setCustomAssembly(this.activeShipAssembly);
+    }
     this.playerShip.resetUpgrades();
     this.playerShip.setVisible(true);
     this.playerShip.setAutopilot(false);
@@ -307,10 +330,17 @@ export class GameScene extends Phaser.Scene {
 
   /**
    * Возобновление боевой сессии после сборки корабля в конструкторе:
-   * Корабль игрока появляется, HUD активируется, игра снимается с паузы
+   * Корабль игрока появляется в собранном виде, HUD активируется, игра снимается с паузы
    */
-  public resumeCombatSessionFromBuilder(): void {
+  public resumeCombatSessionFromBuilder(assembly?: CustomShipAssembly): void {
+    if (assembly) {
+      this.activeShipAssembly = assembly;
+      this.playerShip.setCustomAssembly(assembly);
+    } else if (this.activeShipAssembly) {
+      this.playerShip.setCustomAssembly(this.activeShipAssembly);
+    }
     this.playerShip.setVisible(true);
+    this.cameras.main.centerOn(this.playerShip.x, this.playerShip.y);
     this.hudManager.setVisible(true);
     if (this.scene.isPaused()) {
       this.scene.resume();

@@ -4,7 +4,7 @@ import { soundFx } from './game/audio';
 import { getRandomUpgrades, TankUpgrade } from './game/upgrades';
 import { GAME_PHASES } from './game/constants';
 import { GameScene } from './game/GameScene';
-import { ShipBuilderModal } from './game/shipBuilder/ShipBuilderModal';
+import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
 import menuBgUrl from './assets/menu_bg.jpg';
 
 let phaserGame: Phaser.Game | null = null;
@@ -368,7 +368,7 @@ function launchGame(): void {
  * Переход из конструктора в боевой режим при нажатии "В БОЙ // ЗАПУСК":
  * Появляется корабль игрока, игра снимается с паузы, отображается HUD и Фаза 1
  */
-function startCombatFromBuilder(): void {
+function startCombatFromBuilder(assembly?: CustomShipAssembly): void {
   soundFx.playUiClick();
   shipBuilderModal.close();
 
@@ -379,7 +379,7 @@ function startCombatFromBuilder(): void {
   if (phaserGame) {
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
     if (scene) {
-      scene.resumeCombatSessionFromBuilder();
+      scene.resumeCombatSessionFromBuilder(assembly);
     }
   }
 
@@ -392,8 +392,8 @@ function startCombatFromBuilder(): void {
 }
 
 // Привязка коллбэков конструктора корабля
-shipBuilderModal.onLaunch = () => {
-  startCombatFromBuilder();
+shipBuilderModal.onLaunch = (assembly: CustomShipAssembly) => {
+  startCombatFromBuilder(assembly);
 };
 
 shipBuilderModal.onReturnToMenu = () => {
@@ -919,7 +919,7 @@ window.addEventListener('keydown', (e) => {
       return;
     }
     if ((e.key === 'Enter' || e.code === 'Space') && document.activeElement?.tagName !== 'BUTTON') {
-      startCombatFromBuilder();
+      shipBuilderModal.tryLaunch();
       return;
     }
     return;

@@ -106,15 +106,43 @@ export class WeaponSystem {
       soundFx.playCannon();
       player.recoilOffset = 6.0;
 
-      const muzzleDist = 26;
-      const muzzleX = player.x + Math.cos(fireAngle) * muzzleDist;
-      const muzzleY = player.y + Math.sin(fireAngle) * muzzleDist;
-      const sideAngle = fireAngle + Math.PI / 2;
+      let x1: number;
+      let y1: number;
+      let x2: number;
+      let y2: number;
 
-      const x1 = muzzleX + Math.cos(sideAngle) * 11;
-      const y1 = muzzleY + Math.sin(sideAngle) * 11;
-      const x2 = muzzleX - Math.cos(sideAngle) * 11;
-      const y2 = muzzleY - Math.sin(sideAngle) * 11;
+      if (player.customAssembly && player.customAssembly.gunOffsets.length >= 2) {
+        const gun1 = player.customAssembly.gunOffsets[0];
+        const gun2 = player.customAssembly.gunOffsets[1];
+        const rot = player.shipFacingAngle + Math.PI / 2;
+        const cR = Math.cos(rot);
+        const sR = Math.sin(rot);
+        x1 = player.x + cR * gun1.x - sR * gun1.y;
+        y1 = player.y + sR * gun1.x + cR * gun1.y;
+        x2 = player.x + cR * gun2.x - sR * gun2.y;
+        y2 = player.y + sR * gun2.x + cR * gun2.y;
+      } else if (player.customAssembly && player.customAssembly.gunOffsets.length === 1) {
+        const gun = player.customAssembly.gunOffsets[0];
+        const rot = player.shipFacingAngle + Math.PI / 2;
+        const cR = Math.cos(rot);
+        const sR = Math.sin(rot);
+        const gx = player.x + cR * gun.x - sR * gun.y;
+        const gy = player.y + sR * gun.x + cR * gun.y;
+        const sideAngle = fireAngle + Math.PI / 2;
+        x1 = gx + Math.cos(sideAngle) * 9;
+        y1 = gy + Math.sin(sideAngle) * 9;
+        x2 = gx - Math.cos(sideAngle) * 9;
+        y2 = gy - Math.sin(sideAngle) * 9;
+      } else {
+        const muzzleDist = 26;
+        const muzzleX = player.x + Math.cos(fireAngle) * muzzleDist;
+        const muzzleY = player.y + Math.sin(fireAngle) * muzzleDist;
+        const sideAngle = fireAngle + Math.PI / 2;
+        x1 = muzzleX + Math.cos(sideAngle) * 11;
+        y1 = muzzleY + Math.sin(sideAngle) * 11;
+        x2 = muzzleX - Math.cos(sideAngle) * 11;
+        y2 = muzzleY - Math.sin(sideAngle) * 11;
+      }
 
       this.fireSingleBolt(x1, y1, fireAngle);
       this.fireSingleBolt(x2, y2, fireAngle);
@@ -126,9 +154,19 @@ export class WeaponSystem {
       soundFx.playCannon();
       player.recoilOffset = 6.0;
 
-      const muzzleDist = 28;
-      const muzzleX = player.x + Math.cos(fireAngle) * muzzleDist;
-      const muzzleY = player.y + Math.sin(fireAngle) * muzzleDist;
+      let muzzleX: number;
+      let muzzleY: number;
+
+      if (player.customAssembly && player.customAssembly.gunOffsets.length > 0) {
+        const gun = player.customAssembly.gunOffsets[0];
+        const rot = player.shipFacingAngle + Math.PI / 2;
+        muzzleX = player.x + Math.cos(rot) * gun.x - Math.sin(rot) * gun.y;
+        muzzleY = player.y + Math.sin(rot) * gun.x + Math.cos(rot) * gun.y;
+      } else {
+        const muzzleDist = 28;
+        muzzleX = player.x + Math.cos(fireAngle) * muzzleDist;
+        muzzleY = player.y + Math.sin(fireAngle) * muzzleDist;
+      }
 
       this.fireSingleBolt(muzzleX, muzzleY, fireAngle);
       particleManager.spawnMuzzleFlash(muzzleX, muzzleY, fireAngle);

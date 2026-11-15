@@ -13,6 +13,31 @@ export interface DroppedPartInstance {
   height: number;
 }
 
+export interface CustomShipModule {
+  id: string;
+  category: string;
+  textureKey: string;
+  url: string;
+  offsetX: number;
+  offsetY: number;
+  rotationDeg: number;
+  flipX: boolean;
+  zIndex: number;
+}
+
+export interface CustomShipAssembly {
+  modules: CustomShipModule[];
+  bounds: { width: number; height: number };
+  engineOffsets: Array<{ x: number; y: number; angleOffset: number }>;
+  gunOffsets: Array<{ x: number; y: number; angleOffset: number }>;
+}
+
+export interface CohesionValidationResult {
+  isValid: boolean;
+  errorMessage?: string;
+  disconnectedUids?: string[];
+}
+
 // Лимиты на установку модулей по категориям
 export const CATEGORY_LIMITS: Record<string, { max: number; title: string; icon: string }> = {
   pilot: { max: 1, title: 'Кабина', icon: '👤' },
@@ -73,7 +98,7 @@ export class ShipBuilderModal {
   private alertTimer: number | null = null;
 
   // Callbacks
-  public onLaunch: (() => void) | null = null;
+  public onLaunch: ((assembly: CustomShipAssembly) => void) | null = null;
   public onReturnToMenu: (() => void) | null = null;
 
   constructor() {
@@ -88,6 +113,7 @@ export class ShipBuilderModal {
 
     this.createDom();
     this.bindEvents();
+    this.loadDefaultShipPreset();
     this.render();
   }
 
@@ -239,6 +265,9 @@ export class ShipBuilderModal {
 
               <!-- Панель управления отсеком -->
               <div class="hangar-controls-bar">
+                <button id="shipyard-btn-preset" class="hangar-tool-btn btn-preset" type="button" title="Загрузить готовую сбалансированную сборку корабля">
+                  ⚡ БАЗОВЫЙ СБОР
+                </button>
                 <button id="shipyard-btn-clear" class="hangar-tool-btn" type="button" title="Очистить все детали из отсека сборки">
                   ✕ ОЧИСТИТЬ ВСЕ
                 </button>
@@ -295,16 +324,14 @@ export class ShipBuilderModal {
   }
 
   private bindEvents(): void {
-    // 1. Кнопки запуска боя ("В БОЙ")
+    // 1. Кнопки запуска боя ("В БОЙ") с валидацией связности деталей
     const launchBtns = [
       this.modalEl.querySelector('#shipyard-btn-launch-top'),
       this.modalEl.querySelector('#shipyard-btn-launch-bottom'),
     ];
     launchBtns.forEach((btn) => {
       btn?.addEventListener('click', () => {
-        soundFx.playUiClick();
-        this.close();
-        if (this.onLaunch) this.onLaunch();
+        this.tryLaunch();
       });
     });
 
@@ -321,7 +348,14 @@ export class ShipBuilderModal {
       });
     });
 
-    // 3. Кнопка очистки всех деталей
+    // 3. Кнопка загрузки базовой готовой сборки корабля
+    const presetBtn = this.modalEl.querySelector('#shipyard-btn-preset');
+    presetBtn?.addEventListener('click', () => {
+      soundFx.playUpgradeSelect();
+      this.loadDefaultShipPreset();
+    });
+
+    // 4. Кнопка очистки всех деталей
     const clearBtn = this.modalEl.querySelector('#shipyard-btn-clear');
     clearBtn?.addEventListener('click', () => {
       soundFx.playUiClick();
@@ -470,6 +504,377 @@ export class ShipBuilderModal {
       this.alertToastEl?.classList.remove('pulse');
       this.alertTimer = null;
     }, 2800);
+  }
+
+  /**
+   * Загрузка стандартной сбалансированной сборки корабля:
+   * 1 Корпус, 1 Кабина, 2 Крыла, 1 Двигатель, 1 Пушка
+   */
+  public loadDefaultShipPreset(): void {
+    this.clearAllDroppedParts();
+
+    const findPart = (catId: string, preferredSub = 'blue'): PartItem | null => {
+      const cat = this.catalog.find((c) => c.id === catId);
+      if (!cat) return null;
+      if (cat.hasSubfolders && cat.folders.length > 0) {
+        const folder = cat.folders.find((f) => f.name.includes(preferredSub)) || cat.folders[0];
+        return folder?.items[0] || null;
+      }
+      return cat.directItems[0] || null;
+    };
+
+    const bodyPart = findPart('body', 'blue') || findPart('body', 'black');
+    const pilotPart = findPart('pilot', 'blue') || findPart('pilot', 'black');
+    const wingsPart = findPart('wings', 'blue') || findPart('wings', 'black');
+    const enginesPart = findPart('engines');
+    const gunsPart = findPart('guns');
+
+    const bayRect = this.centerBayEl ? this.centerBayEl.getBoundingClientRect() : null;
+    const cx = bayRect && bayRect.width > 0 ? bayRect.width / 2 : 200;
+    const cy = bayRect && bayRect.height > 0 ? bayRect.height / 2 : 200;
+
+    // 1. Корпус (центр)
+    if (bodyPart) {
+      this.droppedParts.push({
+        uid: 'preset_body_' + Math.random().toString(36).substr(2, 6),
+        part: bodyPart,
+        x: cx,
+        y: cy,
+        zIndex: 1,
+        rotation: 0,
+        flipX: false,
+        width: 70,
+        height: 70,
+      });
+    }
+
+    // 2. Двигатель (снизу)
+    if (enginesPart) {
+      this.droppedParts.push({
+        uid: 'preset_engine_' + Math.random().toString(36).substr(2, 6),
+        part: enginesPart,
+        x: cx,
+        y: cy + 38,
+        zIndex: 2,
+        rotation: 0,
+        flipX: false,
+        width: 70,
+        height: 70,
+      });
+    }
+
+    // 3. Крылья левое и правое
+    if (wingsPart) {
+      this.droppedParts.push({
+        uid: 'preset_wing_l_' + Math.random().toString(36).substr(2, 6),
+        part: wingsPart,
+        x: cx - 44,
+        y: cy + 4,
+        zIndex: 2,
+        rotation: 0,
+        flipX: false,
+        width: 70,
+        height: 70,
+      });
+      this.droppedParts.push({
+        uid: 'preset_wing_r_' + Math.random().toString(36).substr(2, 6),
+        part: wingsPart,
+        x: cx + 44,
+        y: cy + 4,
+        zIndex: 2,
+        rotation: 0,
+        flipX: true,
+        width: 70,
+        height: 70,
+      });
+    }
+
+    // 4. Кабина (сверху корпуса)
+    if (pilotPart) {
+      this.droppedParts.push({
+        uid: 'preset_pilot_' + Math.random().toString(36).substr(2, 6),
+        part: pilotPart,
+        x: cx,
+        y: cy - 36,
+        zIndex: 3,
+        rotation: 0,
+        flipX: false,
+        width: 70,
+        height: 70,
+      });
+    }
+
+    // 5. Пушка (на носу)
+    if (gunsPart) {
+      this.droppedParts.push({
+        uid: 'preset_gun_' + Math.random().toString(36).substr(2, 6),
+        part: gunsPart,
+        x: cx,
+        y: cy - 64,
+        zIndex: 4,
+        rotation: 0,
+        flipX: false,
+        width: 70,
+        height: 70,
+      });
+    }
+
+    const first = this.droppedParts[0];
+    if (first) {
+      this.selectedPartUid = first.uid;
+    }
+    this.renderLimitsGrid();
+    this.renderCategoriesColumn();
+    this.renderDroppedParts();
+    this.updateSelectedToolbar();
+  }
+
+  /**
+   * Проверка связности/цельности корабля:
+   * Все детали должны пересекаться или соприкасаться между собой, образуя единое целое.
+   */
+  public validateShipCohesion(): CohesionValidationResult {
+    const parts = this.droppedParts;
+    if (parts.length === 0) {
+      return {
+        isValid: false,
+        errorMessage: 'АНГАР ПУСТ! Установите модули для сборки корабля перед вылетом в бой.',
+        disconnectedUids: [],
+      };
+    }
+
+    // 1. Проверяем наличие хотя бы одного базового несущего модуля (корпус или кабина)
+    const hasCore = parts.some(
+      (p) => p.part.category === 'body' || p.part.category === 'pilot'
+    );
+    if (!hasCore && parts.length > 1) {
+      return {
+        isValid: false,
+        errorMessage: 'КОРАБЛЮ НУЖЕН КОРПУС ИЛИ КАБИНА! Установите центральный несущий модуль.',
+        disconnectedUids: [],
+      };
+    }
+
+    if (parts.length === 1) {
+      return { isValid: true };
+    }
+
+    // 2. Функция проверки пересечения или касания двух деталей
+    const doPartsIntersect = (a: DroppedPartInstance, b: DroppedPartInstance): boolean => {
+      const margin = 12; // Допуск в пикселях для мягкого касания
+      const getHalfBounds = (p: DroppedPartInstance) => {
+        const rad = (p.rotation * Math.PI) / 180;
+        const cos = Math.abs(Math.cos(rad));
+        const sin = Math.abs(Math.sin(rad));
+        const baseW = 60;
+        const baseH = 60;
+        return {
+          hw: (baseW * cos + baseH * sin) / 2 + margin,
+          hh: (baseW * sin + baseH * cos) / 2 + margin,
+        };
+      };
+
+      const bA = getHalfBounds(a);
+      const bB = getHalfBounds(b);
+
+      const overlapX = Math.abs(a.x - b.x) <= bA.hw + bB.hw;
+      const overlapY = Math.abs(a.y - b.y) <= bA.hh + bB.hh;
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const radialTouch = dist <= 74;
+
+      return (overlapX && overlapY) || radialTouch;
+    };
+
+    // 3. Построение графа связности
+    const n = parts.length;
+    const adj: number[][] = Array.from({ length: n }, () => []);
+
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        if (doPartsIntersect(parts[i], parts[j])) {
+          adj[i].push(j);
+          adj[j].push(i);
+        }
+      }
+    }
+
+    // 4. Поиск центрального узла для старта обхода (предпочтительно корпус, затем кабина)
+    let startIndex = parts.findIndex((p) => p.part.category === 'body');
+    if (startIndex === -1) {
+      startIndex = parts.findIndex((p) => p.part.category === 'pilot');
+    }
+    if (startIndex === -1) {
+      startIndex = 0;
+    }
+
+    // 5. BFS обход графа связности
+    const visited = new Set<number>();
+    const queue: number[] = [startIndex];
+    visited.add(startIndex);
+
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      for (const neighbor of adj[curr]) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    // 6. Если все детали соединены в единую конструкцию
+    if (visited.size === n) {
+      return { isValid: true };
+    }
+
+    // 7. Если есть изолированные части
+    const disconnectedUids = parts
+      .filter((_, idx) => !visited.has(idx))
+      .map((p) => p.uid);
+
+    return {
+      isValid: false,
+      errorMessage:
+        'КОНСТРУКЦИЯ НЕ ЦЕЛЬНА! Все детали корабля должны соприкасаться между собой (обнаружены оторванные модули).',
+      disconnectedUids,
+    };
+  }
+
+  /**
+   * Подсветка отсоединенных модулей красным контуром
+   */
+  public markDisconnectedParts(uids: string[]): void {
+    this.clearDisconnectedMarks();
+    uids.forEach((uid) => {
+      const el = this.modalEl.querySelector(`#dropped-${uid}`);
+      if (el) {
+        el.classList.add('disconnected');
+      }
+    });
+  }
+
+  /**
+   * Снятие красной подсветки отсоединенных модулей
+   */
+  public clearDisconnectedMarks(): void {
+    const els = this.modalEl.querySelectorAll('.dropped-part-item.disconnected');
+    els.forEach((el) => el.classList.remove('disconnected'));
+  }
+
+  /**
+   * Получение экспортируемой модели сборки для передачи в Phaser
+   */
+  public getShipAssembly(): CustomShipAssembly {
+    const parts = this.droppedParts;
+    if (parts.length === 0) {
+      return {
+        modules: [],
+        bounds: { width: 70, height: 70 },
+        engineOffsets: [],
+        gunOffsets: [],
+      };
+    }
+
+    // Якорная точка (центр сборки)
+    let anchorX = 0;
+    let anchorY = 0;
+    const bodyPart = parts.find((p) => p.part.category === 'body');
+    const pilotPart = parts.find((p) => p.part.category === 'pilot');
+
+    if (bodyPart) {
+      anchorX = bodyPart.x;
+      anchorY = bodyPart.y;
+    } else if (pilotPart) {
+      anchorX = pilotPart.x;
+      anchorY = pilotPart.y;
+    } else {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      parts.forEach((p) => {
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y);
+        maxY = Math.max(maxY, p.y);
+      });
+      anchorX = (minX + maxX) / 2;
+      anchorY = (minY + maxY) / 2;
+    }
+
+    const scale = 0.5;
+    const modules: CustomShipModule[] = [];
+    const engineOffsets: Array<{ x: number; y: number; angleOffset: number }> = [];
+    const gunOffsets: Array<{ x: number; y: number; angleOffset: number }> = [];
+
+    parts.forEach((p) => {
+      const offsetX = (p.x - anchorX) * scale;
+      const offsetY = (p.y - anchorY) * scale;
+
+      modules.push({
+        id: p.uid,
+        category: p.part.category,
+        textureKey: p.part.id,
+        url: p.part.url,
+        offsetX,
+        offsetY,
+        rotationDeg: p.rotation,
+        flipX: p.flipX,
+        zIndex: p.zIndex,
+      });
+
+      if (p.part.category === 'engines') {
+        const rad = (p.rotation * Math.PI) / 180;
+        const nozzleLocalY = 18 * scale;
+        const nozzleRelX = -Math.sin(rad) * nozzleLocalY;
+        const nozzleRelY = Math.cos(rad) * nozzleLocalY;
+        engineOffsets.push({
+          x: offsetX + nozzleRelX,
+          y: offsetY + nozzleRelY,
+          angleOffset: p.rotation,
+        });
+      }
+
+      if (p.part.category === 'guns') {
+        const rad = (p.rotation * Math.PI) / 180;
+        const muzzleLocalY = -20 * scale;
+        const muzzleRelX = -Math.sin(rad) * muzzleLocalY;
+        const muzzleRelY = Math.cos(rad) * muzzleLocalY;
+        gunOffsets.push({
+          x: offsetX + muzzleRelX,
+          y: offsetY + muzzleRelY,
+          angleOffset: p.rotation,
+        });
+      }
+    });
+
+    return {
+      modules,
+      bounds: { width: 100, height: 100 },
+      engineOffsets,
+      gunOffsets,
+    };
+  }
+
+  /**
+   * Запуск боевого вылета с валидацией связности/цельности корабля
+   */
+  public tryLaunch(): boolean {
+    const check = this.validateShipCohesion();
+    if (!check.isValid) {
+      soundFx.playHit();
+      this.showAlert(check.errorMessage || 'КОРАБЛЬ НЕ ЦЕЛЬНЫЙ!');
+      if (check.disconnectedUids && check.disconnectedUids.length > 0) {
+        this.markDisconnectedParts(check.disconnectedUids);
+      }
+      return false;
+    }
+
+    this.clearDisconnectedMarks();
+    soundFx.playUiClick();
+    const assembly = this.getShipAssembly();
+    this.close();
+    if (this.onLaunch) {
+      this.onLaunch(assembly);
+    }
+    return true;
   }
 
   /**
@@ -784,6 +1189,7 @@ export class ShipBuilderModal {
 
     // 2. Если перемещаем уже сброшенную деталь внутри ангара
     if (this.isMovingDroppedPart && this.movingPartUid) {
+      this.clearDisconnectedMarks();
       const bayRect = this.centerBayEl.getBoundingClientRect();
       const dropInstance = this.droppedParts.find((p) => p.uid === this.movingPartUid);
       if (dropInstance) {
@@ -849,6 +1255,7 @@ export class ShipBuilderModal {
    * Добавление сброшенной детали в центральный отсек
    */
   public addDroppedPart(part: PartItem, x: number, y: number): void {
+    this.clearDisconnectedMarks();
     const uid = 'part_' + Math.random().toString(36).substr(2, 9);
     const nextZ = this.droppedParts.length + 1;
 
@@ -948,6 +1355,7 @@ export class ShipBuilderModal {
     const part = this.droppedParts.find((p) => p.uid === this.selectedPartUid);
     if (!part) return;
 
+    this.clearDisconnectedMarks();
     part.rotation = (part.rotation + degrees) % 360;
     this.updateDroppedPartElement(part);
     this.updateSelectedToolbar();
@@ -962,6 +1370,7 @@ export class ShipBuilderModal {
     const part = this.droppedParts.find((p) => p.uid === this.selectedPartUid);
     if (!part) return;
 
+    this.clearDisconnectedMarks();
     part.flipX = !part.flipX;
     this.updateDroppedPartElement(part);
     this.updateSelectedToolbar();
@@ -971,6 +1380,7 @@ export class ShipBuilderModal {
    * Очистить все детали
    */
   public clearAllDroppedParts(): void {
+    this.clearDisconnectedMarks();
     this.droppedParts = [];
     this.selectedPartUid = null;
     this.renderLimitsGrid();
@@ -983,6 +1393,7 @@ export class ShipBuilderModal {
    * Удалить конкретную деталь
    */
   public removeDroppedPart(uid: string): void {
+    this.clearDisconnectedMarks();
     this.droppedParts = this.droppedParts.filter((p) => p.uid !== uid);
     if (this.selectedPartUid === uid) {
       this.selectedPartUid = null;

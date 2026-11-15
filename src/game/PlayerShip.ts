@@ -14,9 +14,11 @@ import {
 import { EnemyShip } from './types';
 import { AtmosphereManager } from './AtmosphereManager';
 import { ParticleManager } from './ParticleManager';
+import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
 
 /**
  * Боевой космический корабль игрока:
+ * - Модульная система сборки из конструктора верфи
  * - Маневровые и маршевые двигатели со световыми соплами
  * - Наведение носовых орудий по направлению курсора
  * - Форсаж / ракетный рывок (Shift)
@@ -26,6 +28,10 @@ export class PlayerShip {
   private scene: Phaser.Scene;
 
   public shipSprite!: Phaser.GameObjects.Sprite;
+  public customShipContainer!: Phaser.GameObjects.Container;
+  private customPartSprites: Phaser.GameObjects.Sprite[] = [];
+  public customAssembly: CustomShipAssembly | null = null;
+  private isShipVisible = true;
   private shieldSprite!: Phaser.GameObjects.Sprite;
   public leftFlameSprite!: Phaser.GameObjects.Sprite;
   public rightFlameSprite!: Phaser.GameObjects.Sprite;
@@ -127,6 +133,11 @@ export class PlayerShip {
     this.shipSprite.setScale(SHIP_SCALE);
     this.shipSprite.setDepth(10);
     this.shipSprite.rotation = this.lastMoveAngle - Math.PI / 2;
+
+    // 1.1 Контейнер модульного корабля из конструктора верфи
+    this.customShipContainer = this.scene.add.container(startX, startY);
+    this.customShipContainer.setDepth(10);
+    this.customShipContainer.setVisible(false);
 
     // 2. Двойное пламя сопел маршевых двигателей
     this.leftFlameSprite = this.scene.add.sprite(startX, startY, 'space_effect_001');
@@ -245,6 +256,86 @@ export class PlayerShip {
     window.addEventListener('mousemove', this.onWindowMouseMove);
   }
 
+  /**
+   * Установка кастомной модульной сборки корабля из верфи
+   */
+  public setCustomAssembly(assembly: CustomShipAssembly | null): void {
+    this.customAssembly = assembly;
+
+    this.customShipContainer.removeAll(true);
+    this.customPartSprites = [];
+
+    const shouldShow = this.isShipVisible && !this.isGameOver;
+
+    if (!assembly || assembly.modules.length === 0) {
+      this.customShipContainer.setVisible(false);
+      this.shipSprite.setVisible(shouldShow);
+      return;
+    }
+
+    const sortedModules = [...assembly.modules].sort((a, b) => a.zIndex - b.zIndex);
+
+    sortedModules.forEach((mod) => {
+      let texKey = mod.textureKey;
+      let isFallback = false;
+      if (!this.scene.textures.exists(texKey)) {
+        isFallback = true;
+        texKey = this.scene.textures.exists('player_ship') ? 'player_ship' : '__DEFAULT';
+      }
+
+      const sprite = this.scene.add.sprite(mod.offsetX, mod.offsetY, texKey);
+      sprite.setOrigin(0.5, 0.5);
+      sprite.setRotation((mod.rotationDeg * Math.PI) / 180);
+      const scale = 0.5;
+      sprite.setScale((mod.flipX ? -1 : 1) * scale, scale);
+
+      if (isFallback && mod.url) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          if (!this.scene.textures.exists(mod.textureKey)) {
+            this.scene.textures.addImage(mod.textureKey, img);
+          }
+          if (sprite && sprite.active) {
+            sprite.setTexture(mod.textureKey);
+          }
+        };
+        img.src = mod.url;
+      }
+
+      this.customShipContainer.add(sprite);
+      this.customPartSprites.push(sprite);
+    });
+
+    // Сразу ориентируем контейнер и выставляем позицию
+    this.customShipContainer.setPosition(this.shipSprite.x, this.shipSprite.y);
+    this.customShipContainer.setRotation(this.shipFacingAngle + Math.PI / 2);
+    this.customShipContainer.setAlpha(this.shipSprite.alpha);
+
+    // Скрываем стандартный монолитный корпус и активируем собранный корабль
+    this.shipSprite.setVisible(false);
+    this.customShipContainer.setVisible(shouldShow);
+  }
+
+  /**
+   * Вычисление мировой точки выхлопа сопла двигателя, установленного игроком
+   */
+  public getEngineExhaustPoint(): { x: number; y: number; rearAngle: number } {
+    let rearAngle = this.shipFacingAngle + Math.PI;
+    let exhaustX = this.shipSprite.x;
+    let exhaustY = this.shipSprite.y;
+
+    if (this.customAssembly && this.customAssembly.engineOffsets.length > 0) {
+      const enz = this.customAssembly.engineOffsets[0];
+      const rot = this.shipFacingAngle + Math.PI / 2;
+      exhaustX = this.shipSprite.x + Math.cos(rot) * enz.x - Math.sin(rot) * enz.y;
+      exhaustY = this.shipSprite.y + Math.sin(rot) * enz.x + Math.cos(rot) * enz.y;
+      rearAngle += (enz.angleOffset * Math.PI) / 180;
+    }
+
+    return { x: exhaustX, y: exhaustY, rearAngle };
+  }
+
   public tryTriggerDash(particleManager?: ParticleManager): void {
     if (this.dashCooldownTimer > 0 || this.isGameOver || this.isDashing || this.scene.scene.isPaused()) return;
 
@@ -286,9 +377,9 @@ export class PlayerShip {
 
     // Вспышка сопел двигателей
     if (particleManager) {
-      const rearAngle = this.shipFacingAngle + Math.PI;
-      particleManager.spawnDashBurstFire(this.shipSprite.x, this.shipSprite.y, rearAngle);
-      particleManager.spawnShipDashTrail(this.shipSprite.x, this.shipSprite.y, rearAngle);
+      const exhaust = this.getEngineExhaustPoint();
+      particleManager.spawnDashBurstFire(exhaust.x, exhaust.y, exhaust.rearAngle);
+      particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
     }
 
     this.emitDashState();
@@ -305,9 +396,9 @@ export class PlayerShip {
     this.scene.cameras.main.shake(200, 0.008);
 
     if (particleManager) {
-      const rearAngle = this.shipFacingAngle + Math.PI;
-      particleManager.spawnSuperActivationBurst(this.shipSprite.x, this.shipSprite.y, rearAngle);
-      particleManager.spawnShipDashTrail(this.shipSprite.x, this.shipSprite.y, rearAngle);
+      const exhaust = this.getEngineExhaustPoint();
+      particleManager.spawnSuperActivationBurst(exhaust.x, exhaust.y, exhaust.rearAngle);
+      particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
     }
 
     this.emitSuperState();
@@ -370,9 +461,9 @@ export class PlayerShip {
     this.shieldSprite.setAlpha(0.95);
 
     if (particleManager) {
-      const rearAngle = this.shipFacingAngle + Math.PI;
-      particleManager.spawnDashBurstFire(this.shipSprite.x, this.shipSprite.y, rearAngle);
-      particleManager.spawnShipDashTrail(this.shipSprite.x, this.shipSprite.y, rearAngle);
+      const exhaust = this.getEngineExhaustPoint();
+      particleManager.spawnDashBurstFire(exhaust.x, exhaust.y, exhaust.rearAngle);
+      particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
     }
   }
 
@@ -544,25 +635,69 @@ export class PlayerShip {
       }
     }
 
-    // 2. Расчет позиций сопел двигателей на корме космолета (корпус 106x80, сопла сверху: Y = -34, X = ±16)
-    const rot = this.shipSprite.rotation;
-    const flameRot = rot + Math.PI;
-    const cosR = Math.cos(rot);
-    const sinR = Math.sin(rot);
+    // Синхронизация кастомного модульного корабля
+    const shouldShow = this.isShipVisible && !this.isGameOver;
+    if (this.customAssembly && this.customAssembly.modules.length > 0) {
+      this.shipSprite.setVisible(false);
+      this.customShipContainer.setPosition(this.shipSprite.x, this.shipSprite.y);
+      this.customShipContainer.setRotation(this.shipFacingAngle + Math.PI / 2);
+      this.customShipContainer.setAlpha(this.shipSprite.alpha);
+      this.customShipContainer.setVisible(shouldShow);
+    } else {
+      this.shipSprite.setVisible(shouldShow);
+      this.customShipContainer?.setVisible(false);
+    }
 
-    const nozzleOffsetY = -34 * SHIP_SCALE;
-    const nozzleOffsetX = 16 * SHIP_SCALE;
-    const leftNozzleX = this.shipSprite.x + cosR * nozzleOffsetX - sinR * nozzleOffsetY;
-    const leftNozzleY = this.shipSprite.y + sinR * nozzleOffsetX + cosR * nozzleOffsetY;
-    const rightNozzleX = this.shipSprite.x + cosR * (-nozzleOffsetX) - sinR * nozzleOffsetY;
-    const rightNozzleY = this.shipSprite.y + sinR * (-nozzleOffsetX) + cosR * nozzleOffsetY;
+    // 2. Расчет позиций сопел двигателей (из двигателя, поставленного игроком, либо из дефолтного корпуса)
+    let leftNozzleX: number;
+    let leftNozzleY: number;
+    let rightNozzleX: number;
+    let rightNozzleY: number;
+    let flameRot: number;
+    let rearAngle = this.shipFacingAngle + Math.PI;
+
+    if (this.customAssembly && this.customAssembly.engineOffsets.length > 0) {
+      const enz = this.customAssembly.engineOffsets[0];
+      const enzRad = (enz.angleOffset * Math.PI) / 180;
+      flameRot = this.shipFacingAngle + Math.PI / 2 + enzRad;
+      rearAngle = this.shipFacingAngle + Math.PI + enzRad;
+
+      const containerRot = this.shipFacingAngle + Math.PI / 2;
+      const cR = Math.cos(containerRot);
+      const sR = Math.sin(containerRot);
+
+      // Смещение парных сопел относительно центра сопла двигателя
+      const nozzleSpread = 7 * SHIP_SCALE;
+      const enzNozzleSpreadX = Math.cos(enzRad) * nozzleSpread;
+      const enzNozzleSpreadY = Math.sin(enzRad) * nozzleSpread;
+
+      const p1X = enz.x - enzNozzleSpreadX;
+      const p1Y = enz.y - enzNozzleSpreadY;
+      const p2X = enz.x + enzNozzleSpreadX;
+      const p2Y = enz.y + enzNozzleSpreadY;
+
+      leftNozzleX = this.shipSprite.x + cR * p1X - sR * p1Y;
+      leftNozzleY = this.shipSprite.y + sR * p1X + cR * p1Y;
+      rightNozzleX = this.shipSprite.x + cR * p2X - sR * p2Y;
+      rightNozzleY = this.shipSprite.y + sR * p2X + cR * p2Y;
+    } else {
+      const rot = this.shipSprite.rotation;
+      flameRot = rot + Math.PI;
+      const cosR = Math.cos(rot);
+      const sinR = Math.sin(rot);
+
+      const nozzleOffsetY = -34 * SHIP_SCALE;
+      const nozzleOffsetX = 16 * SHIP_SCALE;
+      leftNozzleX = this.shipSprite.x + cosR * nozzleOffsetX - sinR * nozzleOffsetY;
+      leftNozzleY = this.shipSprite.y + sinR * nozzleOffsetX + cosR * nozzleOffsetY;
+      rightNozzleX = this.shipSprite.x + cosR * (-nozzleOffsetX) - sinR * nozzleOffsetY;
+      rightNozzleY = this.shipSprite.y + sinR * (-nozzleOffsetX) + cosR * nozzleOffsetY;
+    }
 
     this.leftFlameSprite.setPosition(leftNozzleX, leftNozzleY);
     this.leftFlameSprite.setRotation(flameRot);
     this.rightFlameSprite.setPosition(rightNozzleX, rightNozzleY);
     this.rightFlameSprite.setRotation(flameRot);
-
-    const rearAngle = this.shipFacingAngle + Math.PI;
 
     // 3. Эффекты пламени сопел в зависимости от режима движения
     if (this.isDashing) {
@@ -624,10 +759,12 @@ export class PlayerShip {
       this.invulnTimer -= seconds;
       const alpha = Math.floor(survivalTime * 20) % 2 === 0 ? 0.35 : 1;
       this.shipSprite.setAlpha(alpha);
+      this.customShipContainer?.setAlpha(alpha);
       this.leftFlameSprite.setAlpha(alpha);
       this.rightFlameSprite.setAlpha(alpha);
     } else {
       this.shipSprite.setAlpha(1);
+      this.customShipContainer?.setAlpha(1);
     }
 
     // Таймер перезарядки форсажа
@@ -671,11 +808,20 @@ export class PlayerShip {
   }
 
   public setVisible(visible: boolean): void {
-    this.shipSprite.setVisible(visible);
-    this.leftFlameSprite?.setVisible(visible);
-    this.rightFlameSprite?.setVisible(visible);
-    if (!visible) {
-      this.shieldSprite.setVisible(false);
+    this.isShipVisible = visible;
+    const shouldShow = visible && !this.isGameOver;
+
+    if (this.customAssembly && this.customAssembly.modules.length > 0) {
+      this.shipSprite.setVisible(false);
+      this.customShipContainer?.setVisible(shouldShow);
+    } else {
+      this.shipSprite.setVisible(shouldShow);
+      this.customShipContainer?.setVisible(false);
+    }
+    this.leftFlameSprite?.setVisible(shouldShow);
+    this.rightFlameSprite?.setVisible(shouldShow);
+    if (!shouldShow) {
+      this.shieldSprite?.setVisible(false);
     }
   }
 
@@ -695,7 +841,11 @@ export class PlayerShip {
   }
 
   public reset(startX: number, startY: number): void {
+    this.isShipVisible = true;
+    this.isGameOver = false;
     this.shipSprite.setPosition(startX, startY);
+    this.customShipContainer?.setPosition(startX, startY);
+    this.customShipContainer?.setRotation(this.shipFacingAngle + Math.PI / 2);
     this.leftFlameSprite?.setPosition(startX, startY);
     this.rightFlameSprite?.setPosition(startX, startY);
     this.shieldSprite?.setPosition(startX, startY);
@@ -741,6 +891,7 @@ export class PlayerShip {
     }
 
     this.shipSprite.destroy();
+    this.customShipContainer?.destroy();
     this.shieldSprite.destroy();
     this.leftFlameSprite?.destroy();
     this.rightFlameSprite?.destroy();
