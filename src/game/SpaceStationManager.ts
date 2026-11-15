@@ -525,7 +525,7 @@ export class SpaceStationManager {
   public checkLaserCollisions(
     weaponSystem: WeaponSystem,
     particleManager: ParticleManager,
-    onScoreGained: (score: number) => void,
+    onScoreGained: (score: number, x?: number, y?: number) => void,
     enemyManager: EnemyManager,
     meteorManager: MeteorManager,
     playerShip: PlayerShip,
@@ -598,7 +598,7 @@ export class SpaceStationManager {
     radius: number,
     damage: number,
     particleManager: ParticleManager,
-    onScoreGained: (score: number) => void,
+    onScoreGained: (score: number, x?: number, y?: number) => void,
     enemyManager: EnemyManager,
     meteorManager: MeteorManager,
     playerShip: PlayerShip,
@@ -633,7 +633,7 @@ export class SpaceStationManager {
   public destroyStation(
     index: number,
     particleManager: ParticleManager,
-    onScoreGained: (score: number) => void,
+    onScoreGained: (score: number, x?: number, y?: number) => void,
     enemyManager: EnemyManager,
     meteorManager: MeteorManager,
     playerShip: PlayerShip,
@@ -652,7 +652,7 @@ export class SpaceStationManager {
 
     // Колоссальный взрыв станции и всплывающий текст опыта
     particleManager.spawnStationMegaExplosion(sx, sy, expRadius, xpReward);
-    onScoreGained(xpReward);
+    onScoreGained(xpReward, sx, sy);
 
     // 1. Урон окружающим вражеским кораблям
     const enemies = enemyManager.getEnemies();

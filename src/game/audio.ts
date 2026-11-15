@@ -561,6 +561,45 @@ class SoundFx {
       // Игнорируем
     }
   }
+
+  /**
+   * Кристаллический голографический звук подбирания фиолетовой сферы опыта.
+   */
+  playExpPickup(): void {
+    try {
+      this.init();
+      const dest = this.getMasterDestination();
+      if (!this.ctx || !dest || this.muted) return;
+      const now = this.ctx.currentTime;
+
+      // Двухтональный восходящий синтезаторный аккорд подбора энергии
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(660, now);
+      osc1.frequency.exponentialRampToValueAtTime(1320, now + 0.11);
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(990, now);
+      osc2.frequency.exponentialRampToValueAtTime(1980, now + 0.11);
+
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(dest);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.16);
+      osc2.stop(now + 0.16);
+    } catch {
+      // Игнорируем
+    }
+  }
 }
 
 export const soundFx = new SoundFx();

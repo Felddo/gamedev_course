@@ -369,7 +369,7 @@ export class EnemyManager {
   public checkLaserCollisions(
     weaponSystem: WeaponSystem,
     particleManager: ParticleManager,
-    onEnemyKilled: (score: number) => void,
+    onEnemyKilled: (score: number, x: number, y: number) => void,
   ): void {
     const lasers = weaponSystem.getLasers();
 
@@ -470,7 +470,7 @@ export class EnemyManager {
     radius: number,
     damage: number,
     particleManager: ParticleManager,
-    onEnemyKilled: (score: number) => void,
+    onEnemyKilled: (score: number, x: number, y: number) => void,
   ): void {
     for (let e = this.enemies.length - 1; e >= 0; e--) {
       const enemy = this.enemies[e];
@@ -489,7 +489,7 @@ export class EnemyManager {
   public destroyEnemy(
     index: number,
     particleManager: ParticleManager,
-    onEnemyKilled: (score: number) => void,
+    onEnemyKilled?: (score: number, x: number, y: number) => void,
   ): void {
     const enemy = this.enemies[index];
     if (!enemy) return;
@@ -502,7 +502,13 @@ export class EnemyManager {
       particleManager.spawnExplosion(enemy.sprite.x, enemy.sprite.y);
     }
 
-    onEnemyKilled(enemy.scoreValue);
+    const ex = enemy.sprite.x;
+    const ey = enemy.sprite.y;
+    const scoreVal = enemy.scoreValue;
+
+    if (onEnemyKilled) {
+      onEnemyKilled(scoreVal, ex, ey);
+    }
     this.destroyEnemySprites(enemy);
     this.enemies.splice(index, 1);
   }
@@ -511,6 +517,7 @@ export class EnemyManager {
     player: PlayerShip,
     particleManager: ParticleManager,
     onGameOver: () => void,
+    onEnemyKilled?: (score: number, x: number, y: number) => void,
   ): void {
     // 1. Попадание красных плазменных зарядов в корабль игрока
     for (let b = this.enemyBullets.length - 1; b >= 0; b--) {
@@ -550,7 +557,7 @@ export class EnemyManager {
           enemy.sprite.setTint(0xffffff);
           enemy.isHitFlash = 0.08;
           if (enemy.hp <= 0) {
-            this.destroyEnemy(e, particleManager, () => {});
+            this.destroyEnemy(e, particleManager, onEnemyKilled);
           }
         }
       }

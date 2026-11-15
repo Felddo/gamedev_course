@@ -441,6 +441,85 @@ export class ParticleManager {
     });
   }
 
+  /**
+   * Голографическая фиолетовая вспышка и искры при подбирании сферы опыта
+   */
+  public spawnExpPickup(x: number, y: number, expValue: number): void {
+    // 1. Расширяющееся голографическое фиолетовое кольцо
+    const ring = this.scene.add.circle(x, y, 14, 0xc084fc, 0.85);
+    ring.setStrokeStyle(2, 0xf3e8ff, 1.0);
+    ring.setDepth(16);
+    this.scene.tweens.add({
+      targets: ring,
+      scale: 2.2,
+      alpha: 0,
+      duration: 220,
+      ease: 'Cubic.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+
+    // 2. Искры фиолетового голографического спектра
+    const sparkCount = Math.min(14, Math.max(7, Math.round(expValue / 3)));
+    const colors = [0xffffff, 0xf3e8ff, 0xe9d5ff, 0xc084fc, 0xa855f7];
+    for (let i = 0; i < sparkCount; i++) {
+      const spark = this.scene.add.sprite(x, y, 'spark_particle');
+      spark.setScale(Phaser.Math.FloatBetween(0.8, 1.5));
+      spark.setTint(colors[i % colors.length]);
+      spark.setDepth(16);
+      spark.setBlendMode(Phaser.BlendModes.ADD);
+
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const speed = Phaser.Math.Between(70, 220);
+      this.particles.push({
+        sprite: spark,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1.0,
+        decay: 3.5,
+      });
+    }
+
+    // 3. Всплывающий голографический текст начисления опыта
+    const expText = this.scene.add.text(x, y - 8, `+${expValue} EXP`, {
+      fontFamily: "'Orbitron', 'Rajdhani', monospace",
+      fontSize: '13px',
+      fontStyle: 'bold',
+      color: '#f3e8ff',
+      stroke: '#581c87',
+      strokeThickness: 3,
+    });
+    expText.setOrigin(0.5, 0.5);
+    expText.setDepth(17);
+
+    this.scene.tweens.add({
+      targets: expText,
+      y: y - 36,
+      alpha: 0,
+      scale: 1.15,
+      duration: 650,
+      ease: 'Sine.easeOut',
+      onComplete: () => expText.destroy(),
+    });
+  }
+
+  /**
+   * Легкий след искр позади притягивающейся сферы опыта
+   */
+  public spawnExpTrailSpark(x: number, y: number): void {
+    const spark = this.scene.add.sprite(x, y, 'spark_particle');
+    spark.setScale(0.7);
+    spark.setTint(0xc084fc);
+    spark.setDepth(14);
+    spark.setBlendMode(Phaser.BlendModes.ADD);
+    this.particles.push({
+      sprite: spark,
+      vx: Phaser.Math.Between(-15, 15),
+      vy: Phaser.Math.Between(-15, 15),
+      alpha: 0.8,
+      decay: 4.5,
+    });
+  }
+
   public destroy(): void {
     this.reset();
   }

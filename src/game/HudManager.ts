@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { PLAYER_MAX_HP } from './constants';
-import { EnemyShip, Meteor, SpaceStation } from './types';
+import { PLAYER_MAX_HP, GAME_PHASES } from './constants';
+import { EnemyShip, Meteor, SpaceStation, ExpOrb } from './types';
 
 const RADAR_SIZE = 170;
 const RADAR_MARGIN = 18;
@@ -8,7 +8,8 @@ const RADAR_SCAN_RADIUS = 1500;
 
 /**
  * Менеджер пользовательского интерфейса (HUD):
- * верхняя голографическая панель и тактический радар сектора
+ * верхняя голографическая панель, фиолетовая голографическая полоска опыта
+ * и тактический радар сектора
  */
 export class HudManager {
   private scene: Phaser.Scene;
@@ -23,10 +24,14 @@ export class HudManager {
   private timerText!: Phaser.GameObjects.Text;
   private killsLabel!: Phaser.GameObjects.Text;
   private killsText!: Phaser.GameObjects.Text;
-  private scoreLabel!: Phaser.GameObjects.Text;
-  private scoreText!: Phaser.GameObjects.Text;
   private phaseLabel!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
+
+  // Голографическая полоска опыта под верхней панелью
+  private expBarGraphics!: Phaser.GameObjects.Graphics;
+  private expBarText!: Phaser.GameObjects.Text;
+  private currentExpRatio = 0;
+  private displayedExpRatio = 0;
 
   // Тактический радар (Мини-карта)
   private radarContainer!: Phaser.GameObjects.Container;
@@ -122,28 +127,6 @@ export class HudManager {
       .setScrollFactor(0)
       .setDepth(32);
 
-    this.scoreLabel = this.scene.add
-      .text(0, 0, 'БОЕВОЙ СЧЕТ', {
-        fontFamily: "'Rajdhani', -apple-system, sans-serif",
-        fontSize: '10px',
-        fontStyle: '600',
-        color: '#6ee7b7',
-      })
-      .setOrigin(0.5, 0.5)
-      .setScrollFactor(0)
-      .setDepth(32);
-
-    this.scoreText = this.scene.add
-      .text(0, 0, '0', {
-        fontFamily: "'Orbitron', 'JetBrains Mono', monospace",
-        fontSize: '16px',
-        fontStyle: 'bold',
-        color: '#34d399',
-      })
-      .setOrigin(0.5, 0.5)
-      .setScrollFactor(0)
-      .setDepth(32);
-
     this.phaseLabel = this.scene.add
       .text(0, 0, 'БОЕВАЯ ФАЗА', {
         fontFamily: "'Rajdhani', -apple-system, sans-serif",
@@ -165,6 +148,24 @@ export class HudManager {
       .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
       .setDepth(32);
+
+    // 1.1. Фиолетовая голографическая полоска опыта под верхней панелью
+    this.expBarGraphics = this.scene.add.graphics();
+    this.expBarGraphics.setScrollFactor(0);
+    this.expBarGraphics.setDepth(31);
+
+    this.expBarText = this.scene.add
+      .text(0, 0, 'ОПЫТ // EXP: 0 / 200 (0%)', {
+        fontFamily: "'Rajdhani', -apple-system, sans-serif",
+        fontSize: '11px',
+        fontStyle: 'bold',
+        color: '#f3e8ff',
+        stroke: '#3b0764',
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5, 0.5)
+      .setScrollFactor(0)
+      .setDepth(33);
 
     this.layoutHud(width);
 
@@ -209,6 +210,7 @@ export class HudManager {
 
   public layoutHud(width: number): void {
     const topBarHeight = 44;
+    const expBarHeight = 14;
     const padX = 18;
 
     this.hudGraphics.clear();
@@ -235,13 +237,59 @@ export class HudManager {
     this.killsLabel.setPosition(killsX, 12);
     this.killsText.setPosition(killsX, 28);
 
-    const scoreX = centerX + 140;
-    this.scoreLabel.setPosition(scoreX, 12);
-    this.scoreText.setPosition(scoreX, 28);
-
     const phaseX = width - padX - 80;
     this.phaseLabel.setPosition(phaseX, 12);
     this.phaseText.setPosition(phaseX, 28);
+
+    const expBarY = topBarHeight;
+    this.expBarText.setPosition(centerX, expBarY + expBarHeight / 2);
+    this.renderExpBar(width);
+  }
+
+  private renderExpBar(width: number): void {
+    const topBarHeight = 44;
+    const expBarHeight = 14;
+    const expBarY = topBarHeight;
+
+    this.expBarGraphics.clear();
+
+    // 1. Темный полупрозрачный фиолетовый фон под верхней панелью
+    this.expBarGraphics.fillStyle(0x0c0418, 0.92);
+    this.expBarGraphics.fillRect(0, expBarY, width, expBarHeight);
+
+    // 2. Голографические границы полоски
+    this.expBarGraphics.lineStyle(1, 0x581c87, 0.65);
+    this.expBarGraphics.lineBetween(0, expBarY, width, expBarY);
+
+    this.expBarGraphics.lineStyle(1.5, 0xa855f7, 0.95);
+    this.expBarGraphics.lineBetween(0, expBarY + expBarHeight, width, expBarY + expBarHeight);
+
+    // 3. Голографические деления / сетка (каждые 10% ширины)
+    this.expBarGraphics.lineStyle(1, 0x9333ea, 0.28);
+    for (let i = 1; i < 10; i++) {
+      const gx = (width * i) / 10;
+      this.expBarGraphics.lineBetween(gx, expBarY + 2, gx, expBarY + expBarHeight - 2);
+    }
+
+    // 4. Заполнение полоски опытом
+    const fillWidth = width * this.displayedExpRatio;
+    if (fillWidth > 0) {
+      // Основной неоново-фиолетовый слой
+      this.expBarGraphics.fillStyle(0x9333ea, 0.9);
+      this.expBarGraphics.fillRect(0, expBarY + 1, fillWidth, expBarHeight - 2);
+
+      // Верхний светлый блик (голографический глянец)
+      this.expBarGraphics.fillStyle(0xd8b4fe, 0.45);
+      this.expBarGraphics.fillRect(0, expBarY + 1, fillWidth, 2);
+
+      // Яркий голографический сканирующий срез
+      this.expBarGraphics.fillStyle(0xffffff, 0.95);
+      this.expBarGraphics.fillRect(Math.max(0, fillWidth - 2), expBarY, 3, expBarHeight);
+
+      // Внешний фиолетовый ореол наконечника
+      this.expBarGraphics.fillStyle(0xc084fc, 0.4);
+      this.expBarGraphics.fillRect(Math.max(0, fillWidth - 6), expBarY, 9, expBarHeight);
+    }
   }
 
   private positionRadar(width: number, height: number): void {
@@ -268,10 +316,10 @@ export class HudManager {
     this.timerText.setVisible(visible);
     this.killsLabel.setVisible(visible);
     this.killsText.setVisible(visible);
-    this.scoreLabel.setVisible(visible);
-    this.scoreText.setVisible(visible);
     this.phaseLabel.setVisible(visible);
     this.phaseText.setVisible(visible);
+    this.expBarGraphics.setVisible(visible);
+    this.expBarText.setVisible(visible);
     this.radarContainer.setVisible(visible);
   }
 
@@ -290,6 +338,7 @@ export class HudManager {
     meteors: Meteor[] = [],
     stations: SpaceStation[] = [],
     targetedStation: SpaceStation | null = null,
+    expOrbs: ExpOrb[] = [],
   ): void {
     if (!this.isVisible) return;
 
@@ -309,13 +358,57 @@ export class HudManager {
     // 2. Таймер выживания
     this.timerText.setText(this.formatTime(survivalTime));
 
-    // 3. Счет и фаза
+    // 3. Цели и фаза
     this.killsText.setText(`${killsCount}`);
-    this.scoreText.setText(`${score}`);
     this.phaseText.setText(`ФАЗА ${currentPhase}`);
 
-    // 4. Тактический радар
-    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation);
+    // 4. Фиолетовая голографическая полоска опыта под верхней панелью
+    this.updateExpBar(score, currentPhase);
+
+    // 5. Тактический радар
+    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, expOrbs);
+  }
+
+  private updateExpBar(score: number, currentPhase: number): void {
+    const width = this.scene.scale.width;
+    let prevThreshold = 0;
+    let nextThreshold = 200;
+
+    const currentPhaseInfo = GAME_PHASES.find((p) => p.number === currentPhase);
+    const nextPhaseInfo = GAME_PHASES.find((p) => p.number === currentPhase + 1);
+
+    if (currentPhaseInfo) {
+      prevThreshold = currentPhaseInfo.scoreThreshold;
+    }
+    if (nextPhaseInfo) {
+      nextThreshold = nextPhaseInfo.scoreThreshold;
+    } else {
+      nextThreshold = prevThreshold + 1000;
+    }
+
+    const expNeeded = Math.max(1, nextThreshold - prevThreshold);
+    const currentExpInPhase = Math.max(0, score - prevThreshold);
+    this.currentExpRatio = Phaser.Math.Clamp(currentExpInPhase / expNeeded, 0, 1);
+
+    // Плавная интерполяция заполнения
+    this.displayedExpRatio = Phaser.Math.Linear(this.displayedExpRatio, this.currentExpRatio, 0.15);
+    if (Math.abs(this.displayedExpRatio - this.currentExpRatio) < 0.002) {
+      this.displayedExpRatio = this.currentExpRatio;
+    }
+
+    const percent = Math.min(100, Math.floor(this.displayedExpRatio * 100));
+
+    if (nextPhaseInfo) {
+      this.expBarText.setText(
+        `ОПЫТ // EXP: ${currentExpInPhase} / ${expNeeded} (${percent}%) // ДО ФАЗЫ ${currentPhase + 1}`,
+      );
+    } else {
+      this.expBarText.setText(
+        `ОПЫТ // EXP: ${currentExpInPhase} / ${expNeeded} (${percent}%) // МАКС. ФАЗА`,
+      );
+    }
+
+    this.renderExpBar(width);
   }
 
   private updateRadar(
@@ -327,6 +420,7 @@ export class HudManager {
     meteors: Meteor[] = [],
     stations: SpaceStation[] = [],
     targetedStation: SpaceStation | null = null,
+    expOrbs: ExpOrb[] = [],
   ): void {
     this.radarGraphics.clear();
     const half = RADAR_SIZE / 2;
@@ -398,6 +492,19 @@ export class HudManager {
       }
     }
 
+    // Сферы голографического опыта на радаре (фиолетовые маркеры)
+    this.radarGraphics.fillStyle(0xc084fc, 0.95);
+    for (const orb of expOrbs) {
+      const dx = orb.x - playerX;
+      const dy = orb.y - playerY;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= scanRadius) {
+        const ox = (dx / scanRadius) * radarRadius;
+        const oy = (dy / scanRadius) * radarRadius;
+        this.radarGraphics.fillCircle(ox, oy, 1.8);
+      }
+    }
+
     // Корабль игрока в центре радара (изумрудный маркер с вектором курса)
     this.radarGraphics.fillStyle(0x10b981, 1);
     this.radarGraphics.fillCircle(0, 0, 3.5);
@@ -431,10 +538,10 @@ export class HudManager {
     this.timerText.destroy();
     this.killsLabel.destroy();
     this.killsText.destroy();
-    this.scoreLabel.destroy();
-    this.scoreText.destroy();
     this.phaseLabel.destroy();
     this.phaseText.destroy();
+    this.expBarGraphics.destroy();
+    this.expBarText.destroy();
     this.radarContainer.destroy();
   }
 }

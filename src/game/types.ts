@@ -147,3 +147,18 @@ export interface SpaceStation {
   explosionRadius: number;
   explosionDamage: number;
 }
+
+/**
+ * Фиолетовая голографическая сфера опыта, выпадающая из врагов
+ */
+export interface ExpOrb {
+  sprite: Phaser.GameObjects.Sprite;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  value: number;
+  isMagnetized: boolean;
+  pulseTimer: number;
+  baseScale: number;
+}

@@ -281,7 +281,7 @@ export class MeteorManager {
   public checkLaserCollisions(
     weaponSystem: WeaponSystem,
     particleManager: ParticleManager,
-    onScoreGained: (score: number) => void,
+    onScoreGained: (score: number, x: number, y: number) => void,
   ): void {
     const projectiles = weaponSystem.getLasers();
 
@@ -323,7 +323,7 @@ export class MeteorManager {
   private destroyMeteor(
     mIdx: number,
     particleManager: ParticleManager,
-    onScoreGained: (score: number) => void,
+    onScoreGained: (score: number, x: number, y: number) => void,
   ): void {
     const m = this.meteors[mIdx];
     const mx = m.sprite.x;
@@ -338,7 +338,7 @@ export class MeteorManager {
     if (cat === 'medium') scoreReward = 60;
     if (cat === 'large') scoreReward = 120;
     if (cat === 'giant') scoreReward = 250;
-    onScoreGained(scoreReward);
+    onScoreGained(scoreReward, mx, my);
 
     // Удаляем исходный спрайт
     m.sprite.destroy();
@@ -364,6 +364,7 @@ export class MeteorManager {
   public checkEnemyCollisions(
     enemyManager: EnemyManager,
     particleManager: ParticleManager,
+    onEnemyKilled?: (score: number, x: number, y: number) => void,
   ): void {
     const enemies = enemyManager.getEnemies();
     for (const meteor of this.meteors) {
@@ -377,7 +378,7 @@ export class MeteorManager {
           enemy.sprite.setTint(0xffffff);
           enemy.isHitFlash = 0.1;
           if (enemy.hp <= 0) {
-            enemyManager.destroyEnemy(e, particleManager, () => {});
+            enemyManager.destroyEnemy(e, particleManager, onEnemyKilled);
           }
         }
       }

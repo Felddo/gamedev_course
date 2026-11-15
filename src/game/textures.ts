@@ -13,6 +13,7 @@ export function ensureGameTextures(scene: Phaser.Scene): void {
   createFireTrailPatchTexture(scene);
   createShieldAuraTexture(scene);
   createEnemyBulletTexture(scene);
+  createExpOrbTexture(scene);
 }
 
 /**
@@ -95,5 +96,42 @@ function createEnemyBulletTexture(scene: Phaser.Scene): void {
   g.fillCircle(11, 11, 3.2);
 
   g.generateTexture('enemy_bullet_red', 22, 22);
+  g.destroy();
+}
+
+/**
+ * Фиолетовая голографическая сфера опыта (размер 32x32).
+ */
+function createExpOrbTexture(scene: Phaser.Scene): void {
+  const g = scene.make.graphics({ x: 0, y: 0 });
+
+  // 1. Внешний голографический ореол энергии
+  g.fillStyle(0xa855f7, 0.28);
+  g.fillCircle(16, 16, 15);
+
+  // 2. Вторичное свечение силового поля
+  g.fillStyle(0xc084fc, 0.48);
+  g.fillCircle(16, 16, 11);
+
+  // 3. Тонкое голографическое орбитальное кольцо
+  g.lineStyle(1.5, 0xe9d5ff, 0.95);
+  g.strokeCircle(16, 16, 9.5);
+
+  // 4. Внутреннее тело концентрированного опыта
+  g.fillStyle(0x9333ea, 0.92);
+  g.fillCircle(16, 16, 6.5);
+
+  // 5. Ослепительно белое энергетическое ядро
+  g.fillStyle(0xffffff, 1.0);
+  g.fillCircle(16, 16, 3.2);
+
+  // 6. Тактические голографические засечки (4 маркера по краям)
+  g.lineStyle(1.5, 0xffffff, 0.95);
+  g.lineBetween(16, 3, 16, 6);
+  g.lineBetween(16, 26, 16, 29);
+  g.lineBetween(3, 16, 6, 16);
+  g.lineBetween(26, 16, 29, 16);
+
+  g.generateTexture('exp_orb_purple', 32, 32);
   g.destroy();
 }

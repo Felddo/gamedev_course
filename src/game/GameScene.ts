@@ -37,6 +37,7 @@ import { AtmosphereManager } from './AtmosphereManager';
 import { HudManager } from './HudManager';
 import { MeteorManager } from './MeteorManager';
 import { SpaceStationManager } from './SpaceStationManager';
+import { ExperienceManager } from './ExperienceManager';
 
 /**
  * Основная боевая сцена космического выживания:
@@ -54,6 +55,7 @@ export class GameScene extends Phaser.Scene {
   private hudManager!: HudManager;
   private meteorManager!: MeteorManager;
   private spaceStationManager!: SpaceStationManager;
+  private experienceManager!: ExperienceManager;
 
   // Опасные зоны плазменного шлейфа двигателей
   private fireHazards: FireHazard[] = [];
@@ -201,6 +203,9 @@ export class GameScene extends Phaser.Scene {
     this.spaceStationManager = new SpaceStationManager(this);
     this.spaceStationManager.createInitialStations(2);
 
+    // 8.2. Инициализация менеджера фиолетового голографического опыта
+    this.experienceManager = new ExperienceManager(this);
+
     // 9. Установка начальной фазы боя
     this.enemyManager.setPhase(1);
 
@@ -227,6 +232,7 @@ export class GameScene extends Phaser.Scene {
       this.hudManager.destroy();
       this.meteorManager.destroy();
       this.spaceStationManager.destroy();
+      this.experienceManager.destroy();
     });
   }
 
@@ -236,6 +242,7 @@ export class GameScene extends Phaser.Scene {
     this.playerShip.setVisible(false);
     this.playerShip.setAutopilot(false);
     this.hudManager.setVisible(false);
+    this.experienceManager.reset();
     this.cameras.main.setZoom(1.0);
     this.cameras.main.setFollowOffset(0, 0);
   }
@@ -254,6 +261,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.reset();
     this.weaponSystem.reset();
     this.weaponSystem.resetUpgrades();
+    this.experienceManager.reset();
   }
 
   public startCombatSession(): void {
@@ -268,6 +276,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.reset();
     this.weaponSystem.reset();
     this.weaponSystem.resetUpgrades();
+    this.experienceManager.reset();
     this.enemyManager.setPhase(1);
     this.meteorManager.setPhase(1);
     this.playerShip.reset(MAP_WIDTH / 2, MAP_HEIGHT / 2);
@@ -411,23 +420,30 @@ export class GameScene extends Phaser.Scene {
     this.meteorManager.checkLaserCollisions(
       this.weaponSystem,
       this.particleManager,
-      (scoreGained) => {
-        this.score += scoreGained;
-        this.checkPhaseProgression();
+      (scoreGained, mx, my) => {
+        this.experienceManager.spawnOrbs(mx, my, scoreGained);
       },
     );
 
     // 5.2. Кинетические удары метеоритов по кораблям врагов
-    this.meteorManager.checkEnemyCollisions(this.enemyManager, this.particleManager);
+    this.meteorManager.checkEnemyCollisions(
+      this.enemyManager,
+      this.particleManager,
+      (scoreGained, ex, ey) => {
+        this.killsCount += 1;
+        this.experienceManager.spawnOrbs(ex, ey, scoreGained);
+      },
+    );
 
     // 5.3. Движение и попадания по странствующим космическим базам
     this.spaceStationManager.update(seconds, this.cameras.main);
     this.spaceStationManager.checkLaserCollisions(
       this.weaponSystem,
       this.particleManager,
-      (scoreGained) => {
-        this.score += scoreGained;
-        this.checkPhaseProgression();
+      (scoreGained, sx, sy) => {
+        const dropX = sx ?? this.playerShip.x;
+        const dropY = sy ?? this.playerShip.y;
+        this.experienceManager.spawnOrbs(dropX, dropY, scoreGained);
       },
       this.enemyManager,
       this.meteorManager,
@@ -438,14 +454,13 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.handleSpawning(seconds, this.survivalTime, this.cameras.main);
     this.enemyManager.update(seconds, this.playerShip.x, this.playerShip.y, this.particleManager);
 
-    // 7. Попадания снарядов по вражеским кораблям
+    // 7. Попадания снарядов по вражеским кораблям (выпадение сфер опыта)
     this.enemyManager.checkLaserCollisions(
       this.weaponSystem,
       this.particleManager,
-      (scoreGained) => {
-        this.score += scoreGained;
+      (scoreGained, ex, ey) => {
         this.killsCount += 1;
-        this.checkPhaseProgression();
+        this.experienceManager.spawnOrbs(ex, ey, scoreGained);
       },
     );
 
@@ -462,10 +477,9 @@ export class GameScene extends Phaser.Scene {
           hazard.radius,
           0.4,
           this.particleManager,
-          (scoreGained) => {
-            this.score += scoreGained;
+          (scoreGained, ex, ey) => {
             this.killsCount += 1;
-            this.checkPhaseProgression();
+            this.experienceManager.spawnOrbs(ex, ey, scoreGained);
           },
         );
         this.spaceStationManager.checkFireDamage(
@@ -474,9 +488,10 @@ export class GameScene extends Phaser.Scene {
           hazard.radius,
           0.4,
           this.particleManager,
-          (scoreGained) => {
-            this.score += scoreGained;
-            this.checkPhaseProgression();
+          (scoreGained, sx, sy) => {
+            const dropX = sx ?? hazard.x;
+            const dropY = sy ?? hazard.y;
+            this.experienceManager.spawnOrbs(dropX, dropY, scoreGained);
           },
           this.enemyManager,
           this.meteorManager,
@@ -499,12 +514,28 @@ export class GameScene extends Phaser.Scene {
         }
         this.triggerGameOver();
       },
+      (scoreGained, ex, ey) => {
+        this.killsCount += 1;
+        this.experienceManager.spawnOrbs(ex, ey, scoreGained);
+      },
+    );
+
+    // 8.1. Обновление фиолетового голографического опыта: притягивание и сбор
+    this.experienceManager.update(
+      seconds,
+      this.playerShip.x,
+      this.playerShip.y,
+      (expGained) => {
+        this.score += expGained;
+        this.checkPhaseProgression();
+      },
+      this.particleManager,
     );
 
     // 9. Обновление частиц и спецэффектов
     this.particleManager.update(seconds);
 
-    // 10. Обновление интерфейса HUD и тактического радара
+    // 10. Обновление интерфейса HUD, фиолетовой полоски опыта и тактического радара
     this.hudManager.update(
       this.playerShip.hp,
       this.survivalTime,
@@ -520,6 +551,7 @@ export class GameScene extends Phaser.Scene {
       this.meteorManager.getMeteors(),
       this.spaceStationManager.getStations(),
       this.spaceStationManager.getTargetedStation(),
+      this.experienceManager.getOrbs(),
     );
   }
 
