@@ -2,6 +2,10 @@ import Phaser from 'phaser';
 import { PLAYER_MAX_HP } from './constants';
 import { EnemyShip, Meteor, SpaceStation } from './types';
 
+const RADAR_SIZE = 170;
+const RADAR_MARGIN = 18;
+const RADAR_SCAN_RADIUS = 1500;
+
 /**
  * Менеджер пользовательского интерфейса (HUD):
  * верхняя голографическая панель и тактический радар сектора
@@ -174,19 +178,16 @@ export class HudManager {
     });
 
     // 2. Тактический радар сектора (Мини-карта)
-    const radarSize = 136;
-    const rx = width - radarSize / 2 - 18;
-    const ry = height - radarSize / 2 - 18;
-
-    this.radarContainer = this.scene.add.container(rx, ry);
+    this.radarContainer = this.scene.add.container(0, 0);
+    this.positionRadar(width, height);
     this.radarContainer.setScrollFactor(0);
     this.radarContainer.setDepth(30);
 
-    this.radarBg = this.scene.add.rectangle(0, 0, radarSize, radarSize, 0x020c08, 0.85);
+    this.radarBg = this.scene.add.rectangle(0, 0, RADAR_SIZE, RADAR_SIZE, 0x020c08, 0.85);
     this.radarBg.setStrokeStyle(1.5, 0x10b981);
 
     this.radarLabel = this.scene.add
-      .text(-radarSize / 2 + 6, -radarSize / 2 - 14, 'ТАКТИЧЕСКИЙ РАДАР // СЕКТОР', {
+      .text(-RADAR_SIZE / 2 + 6, -RADAR_SIZE / 2 - 14, 'ТАКТИЧЕСКИЙ РАДАР // СЕКТОР', {
         fontFamily: "'Rajdhani', monospace",
         fontSize: '10px',
         fontStyle: 'bold',
@@ -195,7 +196,7 @@ export class HudManager {
       .setOrigin(0, 0);
 
     this.coordsText = this.scene.add
-      .text(-radarSize / 2 + 6, radarSize / 2 + 4, 'КООРД: 1800, 1800', {
+      .text(-RADAR_SIZE / 2 + 6, RADAR_SIZE / 2 + 4, 'КООРД: 1800, 1800', {
         fontFamily: "'Rajdhani', monospace",
         fontSize: '10px',
         color: '#6ee7b7',
@@ -243,12 +244,15 @@ export class HudManager {
     this.phaseText.setPosition(phaseX, 28);
   }
 
+  private positionRadar(width: number, height: number): void {
+    const rx = width - RADAR_SIZE / 2 - RADAR_MARGIN;
+    const ry = height - RADAR_SIZE / 2 - RADAR_MARGIN;
+    this.radarContainer.setPosition(rx, ry);
+  }
+
   public handleResize(width: number, height: number): void {
     this.layoutHud(width);
-    const radarSize = 136;
-    const rx = width - radarSize / 2 - 18;
-    const ry = height - radarSize / 2 - 18;
-    this.radarContainer.setPosition(rx, ry);
+    this.positionRadar(width, height);
   }
 
   private isVisible = true;
@@ -290,7 +294,7 @@ export class HudManager {
 
     // 1. Полоска прочности корабля
     const hpRatio = Phaser.Math.Clamp(playerHp / PLAYER_MAX_HP, 0, 1);
-    this.hpBarFill.width = 140 * hpRatio;
+    this.hpBarFill.setSize(Math.max(0, 140 * hpRatio), 12);
 
     if (hpRatio > 0.5) {
       this.hpBarFill.setFillStyle(0x10b981);
@@ -323,10 +327,9 @@ export class HudManager {
     stations: SpaceStation[] = [],
   ): void {
     this.radarGraphics.clear();
-    const radarSize = 136;
-    const half = radarSize / 2;
+    const half = RADAR_SIZE / 2;
     const radarRadius = half - 5;
-    const scanRadius = 1500;
+    const scanRadius = RADAR_SCAN_RADIUS;
 
     // Сетка радара
     this.radarGraphics.lineStyle(1, 0x064e3b, 0.6);

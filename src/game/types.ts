@@ -12,6 +12,7 @@ export interface LaserProjectile {
   isExplosive?: boolean;
   pierceCount?: number;
   hitEnemies?: Set<EnemyShip>;
+  hitStations?: Set<SpaceStation>;
 }
 
 /**
@@ -133,6 +134,11 @@ export interface SpaceStation {
   hp: number;
   maxHp: number;
   radius: number;
+  halfWidth: number;
+  halfHeight: number;
+  boundingRadius: number;
+  barWidth: number;
+  barHeight: number;
   scale: number;
   isHitFlash: number;
   xpReward: number;

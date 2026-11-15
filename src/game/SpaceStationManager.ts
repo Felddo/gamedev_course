@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SpaceStation } from './types';
+import { SpaceStation, LaserProjectile } from './types';
 import { WeaponSystem } from './WeaponSystem';
 import { ParticleManager } from './ParticleManager';
 import { EnemyManager } from './EnemyManager';
@@ -103,14 +103,16 @@ export class SpaceStationManager {
       }
 
       // Обновление красной полоски HP сверху базы
-      const barWidth = station.radius * 1.8;
-      const barY = station.sprite.y - station.radius - 18;
+      const barWidth = station.barWidth;
+      const barHeight = station.barHeight;
+      const barY = station.sprite.y - station.boundingRadius - 28;
       const hpRatio = Phaser.Math.Clamp(station.hp / station.maxHp, 0, 1);
-      const currentFillW = barWidth * hpRatio;
+      const currentFillW = Math.max(0, barWidth * hpRatio);
 
       station.hpBarBg.setPosition(station.sprite.x, barY);
-      station.hpBarFill.width = currentFillW;
-      station.hpBarFill.setPosition(station.sprite.x - barWidth / 2 + currentFillW / 2, barY);
+      station.hpBarFill.setPosition(station.sprite.x - barWidth / 2, barY);
+      station.hpBarFill.setSize(currentFillW, barHeight);
+      station.hpBarFill.setVisible(currentFillW > 0);
 
       // Очистка баз, оставшихся далеко позади при исследовании бесконечного космоса
       const distToCamera = Phaser.Math.Distance.Between(
@@ -175,8 +177,12 @@ export class SpaceStationManager {
     const textureKey = STATION_TEXTURE_KEYS[typeIndex];
 
     let maxHp = 40;
-    let radius = 48;
     let scale = 1.15;
+    let halfWidth = 72;
+    let halfHeight = 200;
+    let boundingRadius = 215;
+    let barWidth = 180;
+    let barHeight = 12;
     let speed = Phaser.Math.FloatBetween(24, 34);
     let xpReward = 400;
     let explosionRadius = 240;
@@ -185,8 +191,12 @@ export class SpaceStationManager {
     if (typeIndex === 1) {
       // 021: Орбитальный индустриальный комплекс
       maxHp = 70;
-      radius = 62;
       scale = 1.35;
+      halfWidth = 116;
+      halfHeight = 195;
+      boundingRadius = 230;
+      barWidth = 220;
+      barHeight = 14;
       speed = Phaser.Math.FloatBetween(18, 28);
       xpReward = 700;
       explosionRadius = 300;
@@ -194,13 +204,19 @@ export class SpaceStationManager {
     } else if (typeIndex === 2) {
       // 024: Тяжелая звездная цитадель
       maxHp = 110;
-      radius = 78;
       scale = 1.55;
+      halfWidth = 214;
+      halfHeight = 310;
+      boundingRadius = 380;
+      barWidth = 280;
+      barHeight = 16;
       speed = Phaser.Math.FloatBetween(14, 22);
       xpReward = 1100;
       explosionRadius = 360;
       explosionDamage = 80;
     }
+
+    const radius = boundingRadius;
 
     const sprite = this.scene.add.sprite(x, y, textureKey);
     sprite.setOrigin(0.5, 0.5);
@@ -208,16 +224,30 @@ export class SpaceStationManager {
     sprite.setDepth(6.5);
     sprite.setRotation(Phaser.Math.FloatBetween(0, Math.PI * 2));
 
-    // Красная полоска HP сверху базы
-    const barWidth = radius * 1.8;
-    const barHeight = 7;
-    const barY = y - radius - 18;
+    // Увеличенная и аккуратно выровненная полоска HP сверху базы
+    const barY = y - boundingRadius - 28;
 
-    const hpBarBg = this.scene.add.rectangle(x, barY, barWidth + 4, barHeight + 4, 0x020617, 0.85);
-    hpBarBg.setStrokeStyle(1.2, 0x475569, 0.9);
+    const hpBarBg = this.scene.add.rectangle(
+      x,
+      barY,
+      barWidth + 6,
+      barHeight + 6,
+      0x050b14,
+      0.88,
+    );
+    hpBarBg.setStrokeStyle(1.5, 0x475569, 0.95);
+    hpBarBg.setOrigin(0.5, 0.5);
     hpBarBg.setDepth(15);
 
-    const hpBarFill = this.scene.add.rectangle(x, barY, barWidth, barHeight, 0xef4444, 1.0);
+    const hpBarFill = this.scene.add.rectangle(
+      x - barWidth / 2,
+      barY,
+      barWidth,
+      barHeight,
+      0xef4444,
+      1.0,
+    );
+    hpBarFill.setOrigin(0, 0.5);
     hpBarFill.setDepth(15.1);
 
     this.stations.push({
@@ -234,12 +264,75 @@ export class SpaceStationManager {
       hp: maxHp,
       maxHp,
       radius,
+      halfWidth,
+      halfHeight,
+      boundingRadius,
+      barWidth,
+      barHeight,
       scale,
       isHitFlash: 0,
       xpReward,
       explosionRadius,
       explosionDamage,
     });
+  }
+
+  /**
+   * Проверка: находится ли точка (x, y) внутри ориентированного хитбокса космической базы
+   * с учетом угла поворота и дополнительного допуска (padding)
+   */
+  public isPointInsideStation(
+    x: number,
+    y: number,
+    station: SpaceStation,
+    padding = 16,
+  ): boolean {
+    const dx = x - station.sprite.x;
+    const dy = y - station.sprite.y;
+
+    // Быстрый отсев по радиусу описанной окружности
+    const maxBound = station.boundingRadius + padding;
+    if (dx * dx + dy * dy > maxBound * maxBound) {
+      return false;
+    }
+
+    // Перевод координат в локальную систему станции с учетом угла поворота
+    const angle = -station.sprite.rotation;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const localX = dx * cos - dy * sin;
+    const localY = dx * sin + dy * cos;
+
+    return (
+      Math.abs(localX) <= station.halfWidth + padding &&
+      Math.abs(localY) <= station.halfHeight + padding
+    );
+  }
+
+  /**
+   * Проверка столкновения снаряда со станцией с учетом траектории полета
+   */
+  public isLaserHittingStation(
+    laser: LaserProjectile,
+    station: SpaceStation,
+    padding = 16,
+  ): boolean {
+    // 1. Текущая позиция снаряда
+    if (this.isPointInsideStation(laser.sprite.x, laser.sprite.y, station, padding)) {
+      return true;
+    }
+
+    // 2. Промежуточная точка для предотвращения туннелирования при высокой скорости снаряда
+    const midX = laser.sprite.x - laser.vx * 0.009;
+    const midY = laser.sprite.y - laser.vy * 0.009;
+    if (this.isPointInsideStation(midX, midY, station, padding)) {
+      return true;
+    }
+
+    // 3. Предыдущая позиция снаряда
+    const prevX = laser.sprite.x - laser.vx * 0.018;
+    const prevY = laser.sprite.y - laser.vy * 0.018;
+    return this.isPointInsideStation(prevX, prevY, station, padding);
   }
 
   /**
@@ -260,16 +353,21 @@ export class SpaceStationManager {
 
       for (let s = this.stations.length - 1; s >= 0; s--) {
         const station = this.stations[s];
-        const dist = Phaser.Math.Distance.Between(
-          laser.sprite.x,
-          laser.sprite.y,
-          station.sprite.x,
-          station.sprite.y,
-        );
 
-        if (dist <= station.radius + 8) {
+        if (laser.hitStations && laser.hitStations.has(station)) {
+          continue;
+        }
+
+        const isHit = this.isLaserHittingStation(laser, station, 16);
+
+        if (isHit) {
           soundFx.playHit();
           particleManager.spawnHitSparks(laser.sprite.x, laser.sprite.y);
+
+          if (!laser.hitStations) {
+            laser.hitStations = new Set();
+          }
+          laser.hitStations.add(station);
 
           // Вспышка обшивки при получении урона
           station.sprite.setTint(0xffffff);
@@ -323,8 +421,7 @@ export class SpaceStationManager {
   ): void {
     for (let s = this.stations.length - 1; s >= 0; s--) {
       const station = this.stations[s];
-      const dist = Phaser.Math.Distance.Between(x, y, station.sprite.x, station.sprite.y);
-      if (dist <= radius + station.radius) {
+      if (this.isPointInsideStation(x, y, station, radius)) {
         station.hp -= damage;
         station.sprite.setTint(0xf97316);
         station.isHitFlash = 0.06;

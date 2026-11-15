@@ -1,4 +1,4 @@
-// --- Константы космического мира и карты ---
+// --- Константы космического мира и карты --
 export const MAP_WIDTH = 3072;
 export const MAP_HEIGHT = 1677;
 
@@ -34,7 +34,7 @@ export const ENEMY_SCOUT_HP = 2;
 export const ENEMY_SCOUT_SPEED = 115;
 export const ENEMY_SCOUT_SCORE = 10;
 export const ENEMY_SCOUT_SCALE = 0.34;
-export const ENEMY_SCOUT_RADIUS = 14;
+export const ENEMY_SCOUT_RADIUS = 26; // Увеличенный хитбокс (ранее 14, визуальный размах крыльев ~46px)
 
 export const ENEMY_ZAKU_HP = ENEMY_SCOUT_HP;
 export const ENEMY_ZAKU_SPEED = ENEMY_SCOUT_SPEED;
@@ -47,7 +47,7 @@ export const ENEMY_INTERCEPTOR_HP = 6;
 export const ENEMY_INTERCEPTOR_SPEED = 75;
 export const ENEMY_INTERCEPTOR_SCORE = 30;
 export const ENEMY_INTERCEPTOR_SCALE = 0.38;
-export const ENEMY_INTERCEPTOR_RADIUS = 18;
+export const ENEMY_INTERCEPTOR_RADIUS = 30; // Увеличенный хитбокс (ранее 18, визуальный размер 48x41px)
 
 export const ENEMY_DOM_HP = ENEMY_INTERCEPTOR_HP;
 export const ENEMY_DOM_SPEED = ENEMY_INTERCEPTOR_SPEED;
@@ -60,7 +60,7 @@ export const ENEMY_GUNSHIP_HP = 20;
 export const ENEMY_GUNSHIP_SPEED = 62;
 export const ENEMY_GUNSHIP_SCORE = 120;
 export const ENEMY_GUNSHIP_SCALE = 0.42;
-export const ENEMY_GUNSHIP_RADIUS = 22;
+export const ENEMY_GUNSHIP_RADIUS = 36; // Увеличенный хитбокс (ранее 22, визуальный корпус 40x62px)
 export const ENEMY_GUNSHIP_SHOOT_COOLDOWN = 1.9;
 export const ENEMY_GUNSHIP_SHOOT_RANGE = 680;
 export const ENEMY_GUNSHIP_BULLET_SPEED = 340;
@@ -99,9 +99,9 @@ export const GAME_PHASES: PhaseInfo[] = [
     number: 1,
     title: 'Фаза 1',
     scoreThreshold: 0,
-    subtitle: 'ПРОТОКОЛ: ЗАЧИСТКА СЕКТОРА // СЛЕДУЮЩАЯ ФАЗА: 1000 ОЧКОВ',
+    subtitle: 'ПРОТОКОЛ: ЗАЧИСТКА СЕКТОРА',
     allowTerminator: false,
-    spawnIntensity: 1.0,
+    spawnIntensity: 0.4,
     healthMultiplier: 1.0,
     maxMeteors: 10,
     meteorSpawnInterval: 2.2,
@@ -113,7 +113,7 @@ export const GAME_PHASES: PhaseInfo[] = [
     scoreThreshold: 200,
     subtitle: 'ВНИМАНИЕ: МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
     allowTerminator: true,
-    spawnIntensity: 1.4,
+    spawnIntensity: 0.5,
     healthMultiplier: 1.5,
     maxMeteors: 22,
     meteorSpawnInterval: 1.1,
@@ -122,10 +122,10 @@ export const GAME_PHASES: PhaseInfo[] = [
   {
     number: 3,
     title: 'Фаза 3',
-    scoreThreshold: 700,
+    scoreThreshold: 1000,
     subtitle: 'ВНИМАНИЕ: сильный МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
     allowTerminator: true,
-    spawnIntensity: 1.4,
+    spawnIntensity: 0.7,
     healthMultiplier: 1.5,
     maxMeteors: 25,
     meteorSpawnInterval: 1.1,
@@ -134,10 +134,10 @@ export const GAME_PHASES: PhaseInfo[] = [
   {
     number: 4,
     title: 'Фаза 4',
-    scoreThreshold: 1200,
+    scoreThreshold: 2000,
     subtitle: 'ВНИМАНИЕ: сильный МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
     allowTerminator: true,
-    spawnIntensity: 1.6,
+    spawnIntensity: 0.9,
     healthMultiplier: 1.5,
     maxMeteors: 22,
     meteorSpawnInterval: 1.1,
@@ -146,10 +146,10 @@ export const GAME_PHASES: PhaseInfo[] = [
   {
     number: 5,
     title: 'Фаза 5',
-    scoreThreshold: 1800,
+    scoreThreshold: 3000,
     subtitle: 'ВНИМАНИЕ: сильный МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
     allowTerminator: true,
-    spawnIntensity: 1.6,
+    spawnIntensity: 1.1,
     healthMultiplier: 1.6,
     maxMeteors: 25,
     meteorSpawnInterval: 1.1,

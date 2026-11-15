@@ -380,6 +380,9 @@ export class EnemyManager {
           continue;
         }
 
+        const projectileRadius = (laser.damage && laser.damage > BLASTER_DAMAGE) ? 14 : 10;
+        const hitRadius = enemy.radius + projectileRadius;
+
         const dist = Phaser.Math.Distance.Between(
           laser.sprite.x,
           laser.sprite.y,
@@ -387,8 +390,17 @@ export class EnemyManager {
           enemy.sprite.y,
         );
 
-        const hitRadius = (laser.damage && laser.damage > BLASTER_DAMAGE) ? enemy.radius + 6 : enemy.radius;
-        if (dist <= hitRadius) {
+        let isHit = dist <= hitRadius;
+        if (!isHit) {
+          // Проверка промежуточной точки для предотвращения туннелирования высокоскоростных снарядов
+          const midX = laser.sprite.x - laser.vx * 0.009;
+          const midY = laser.sprite.y - laser.vy * 0.009;
+          if (Phaser.Math.Distance.Between(midX, midY, enemy.sprite.x, enemy.sprite.y) <= hitRadius) {
+            isHit = true;
+          }
+        }
+
+        if (isHit) {
           soundFx.playHit();
           particleManager.spawnHitSparks(laser.sprite.x, laser.sprite.y);
 
@@ -528,7 +540,7 @@ export class EnemyManager {
       for (let e = this.enemies.length - 1; e >= 0; e--) {
         const enemy = this.enemies[e];
         const dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.sprite.x, enemy.sprite.y);
-        if (dist < enemy.radius + 18) {
+        if (dist < enemy.radius + 20) {
           soundFx.playExplosion();
           particleManager.spawnExplosion(enemy.sprite.x, enemy.sprite.y);
           enemy.hp -= 20;
@@ -553,7 +565,7 @@ export class EnemyManager {
         enemy.sprite.y,
       );
 
-      if (dist < enemy.radius + 14) {
+      if (dist < enemy.radius + 10) {
         const isDead = player.takeDamage(15);
         soundFx.playHit();
         this.scene.cameras.main.shake(140, 0.007);

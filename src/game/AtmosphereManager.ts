@@ -2,10 +2,16 @@ import Phaser from 'phaser';
 import { CosmicDustParticle, CosmicStar } from './types';
 import { MAP_WIDTH, MAP_HEIGHT } from './constants';
 
+const STAR_TEXTURE_KEY = 'cosmic_star_tiny';
+const STAR_COUNT = 100;
+const STAR_SPAN_X = 2800;
+const STAR_SPAN_Y = 1800;
+const STAR_DEPTH = -4;
+
 /**
  * Менеджер процедурной космической среды:
  * - Глубокий звездный вакуум и процедурные туманности
- * - Множество непрерывно движущихся звезд с эффектом параллакса и мерцанием (3 слоя глубины)
+ * - Непрерывно движущиеся звезды одного типа с мерцанием
  * - Периодически пролетающие кометы
  * - Парящие светящиеся частицы звездной пыли
  */
@@ -51,7 +57,7 @@ export class AtmosphereManager {
     // 2. Процедурные космические туманности
     this.createProceduralNebulas();
 
-    // 3. Процедурно генерируемые двигающиеся звезды (3 слоя глубины)
+    // 3. Процедурно генерируемые двигающиеся звезды (один тип)
     this.createProceduralMovingStars();
   }
 
@@ -64,45 +70,12 @@ export class AtmosphereManager {
    * Создание необходимых процедурных текстур для космоса, звезд и туманностей
    */
   private ensureSpaceTextures(): void {
-    // 1. Текстуры звезд
-    if (!this.scene.textures.exists('cosmic_star_tiny')) {
+    // 1. Текстура звезд (единый тип)
+    if (!this.scene.textures.exists(STAR_TEXTURE_KEY)) {
       const g = this.scene.make.graphics({ x: 0, y: 0 });
       g.fillStyle(0xffffff, 1);
       g.fillCircle(2, 2, 1.2);
-      g.generateTexture('cosmic_star_tiny', 4, 4);
-      g.destroy();
-    }
-
-    if (!this.scene.textures.exists('cosmic_star_med')) {
-      const g = this.scene.make.graphics({ x: 0, y: 0 });
-      g.fillStyle(0x38bdf8, 0.4);
-      g.fillCircle(4, 4, 3.5);
-      g.fillStyle(0xffffff, 1);
-      g.fillCircle(4, 4, 1.8);
-      g.generateTexture('cosmic_star_med', 8, 8);
-      g.destroy();
-    }
-
-    if (!this.scene.textures.exists('cosmic_star_bright')) {
-      const g = this.scene.make.graphics({ x: 0, y: 0 });
-      g.fillStyle(0x06b6d4, 0.35);
-      g.fillCircle(8, 8, 7.5);
-      g.fillStyle(0xffffff, 0.85);
-      g.fillRect(7, 1, 2, 14);
-      g.fillRect(1, 7, 14, 2);
-      g.fillStyle(0xffffff, 1);
-      g.fillCircle(8, 8, 2.8);
-      g.generateTexture('cosmic_star_bright', 16, 16);
-      g.destroy();
-    }
-
-    if (!this.scene.textures.exists('cosmic_star_gold')) {
-      const g = this.scene.make.graphics({ x: 0, y: 0 });
-      g.fillStyle(0xf59e0b, 0.35);
-      g.fillCircle(5, 5, 4.5);
-      g.fillStyle(0xfef08a, 1);
-      g.fillCircle(5, 5, 2.2);
-      g.generateTexture('cosmic_star_gold', 10, 10);
+      g.generateTexture(STAR_TEXTURE_KEY, 4, 4);
       g.destroy();
     }
 
@@ -201,24 +174,21 @@ export class AtmosphereManager {
   }
 
   /**
-   * Процедурно генерируемые двигающиеся звезды (3 слоя глубины)
+   * Процедурно генерируемые двигающиеся звезды (один тип)
    */
   private createProceduralMovingStars(): void {
     this.stars = [];
     const cam = this.scene.cameras.main;
     const cx = cam.worldView ? cam.worldView.centerX : MAP_WIDTH / 2;
     const cy = cam.worldView ? cam.worldView.centerY : MAP_HEIGHT / 2;
-    const spanX = 2800;
-    const spanY = 1800;
 
-    // Слой 1: Далекие крошечные звезды (220 шт)
-    for (let i = 0; i < 220; i++) {
-      const x = cx + Phaser.Math.Between(-spanX / 2, spanX / 2);
-      const y = cy + Phaser.Math.Between(-spanY / 2, spanY / 2);
-      const sprite = this.scene.add.sprite(x, y, 'cosmic_star_tiny');
-      sprite.setDepth(-4);
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const x = cx + Phaser.Math.Between(-STAR_SPAN_X / 2, STAR_SPAN_X / 2);
+      const y = cy + Phaser.Math.Between(-STAR_SPAN_Y / 2, STAR_SPAN_Y / 2);
+      const sprite = this.scene.add.sprite(x, y, STAR_TEXTURE_KEY);
+      sprite.setDepth(STAR_DEPTH);
 
-      const baseAlpha = Phaser.Math.FloatBetween(0.28, 0.7);
+      const baseAlpha = Phaser.Math.FloatBetween(0.35, 0.85);
       sprite.setAlpha(baseAlpha);
 
       this.stars.push({
@@ -231,55 +201,6 @@ export class AtmosphereManager {
         twinkleSpeed: Phaser.Math.FloatBetween(1.2, 2.5),
         twinkleOffset: Math.random() * Math.PI * 2,
         layer: 1,
-      });
-    }
-
-    // Слой 2: Средние звезды с легким ореолом (120 шт)
-    for (let i = 0; i < 120; i++) {
-      const x = cx + Phaser.Math.Between(-spanX / 2, spanX / 2);
-      const y = cy + Phaser.Math.Between(-spanY / 2, spanY / 2);
-      const textureKey = Math.random() < 0.25 ? 'cosmic_star_gold' : 'cosmic_star_med';
-      const sprite = this.scene.add.sprite(x, y, textureKey);
-      sprite.setDepth(-3);
-      sprite.setScale(Phaser.Math.FloatBetween(0.9, 1.3));
-
-      const baseAlpha = Phaser.Math.FloatBetween(0.5, 0.85);
-      sprite.setAlpha(baseAlpha);
-
-      this.stars.push({
-        sprite,
-        x,
-        y,
-        vx: Phaser.Math.FloatBetween(-34, -24),
-        vy: Phaser.Math.FloatBetween(8, 16),
-        baseAlpha,
-        twinkleSpeed: Phaser.Math.FloatBetween(2.0, 4.0),
-        twinkleOffset: Math.random() * Math.PI * 2,
-        layer: 2,
-      });
-    }
-
-    // Слой 3: Яркие искрящиеся передние звезды с лучами (55 шт)
-    for (let i = 0; i < 55; i++) {
-      const x = cx + Phaser.Math.Between(-spanX / 2, spanX / 2);
-      const y = cy + Phaser.Math.Between(-spanY / 2, spanY / 2);
-      const sprite = this.scene.add.sprite(x, y, 'cosmic_star_bright');
-      sprite.setDepth(-2);
-      sprite.setScale(Phaser.Math.FloatBetween(0.9, 1.4));
-
-      const baseAlpha = Phaser.Math.FloatBetween(0.75, 1.0);
-      sprite.setAlpha(baseAlpha);
-
-      this.stars.push({
-        sprite,
-        x,
-        y,
-        vx: Phaser.Math.FloatBetween(-58, -42),
-        vy: Phaser.Math.FloatBetween(14, 24),
-        baseAlpha,
-        twinkleSpeed: Phaser.Math.FloatBetween(3.5, 6.0),
-        twinkleOffset: Math.random() * Math.PI * 2,
-        layer: 3,
       });
     }
   }
