@@ -215,7 +215,7 @@
           <header class="hud-header">
             <div class="hud-status-badge">
               <span class="hud-status-dot"></span>
-              <span class="hud-status-code">SYS_STATUS: COMBAT READY // PROTOCOL ACTIVE</span>
+              <span class="hud-status-code" id="menu-campaign-status">SYS_STATUS: СЕКТОР 1 // МИССИЯ 1-1</span>
             </div>
             <h1 class="hud-game-title">IRON RESOLVE</h1>
             <div class="hud-game-subtitle">SURVIVOR PROTOCOL</div>
@@ -237,8 +237,8 @@
                 <div class="holo-content">
                   <span class="holo-index">01</span>
                   <div class="holo-titles">
-                    <span class="holo-title">НАЧАТЬ ИГРУ</span>
-                    <span class="holo-sub">SYS_LAUNCH // БОЕВОЙ ВЫХОД</span>
+                    <span class="holo-title" id="btn-start-title">НАЧАТЬ ИГРУ</span>
+                    <span class="holo-sub" id="btn-start-sub">SYS_LAUNCH // БОЕВОЙ ВЫХОД</span>
                   </div>
                 </div>
                 <span class="corner-bracket corner-tl"></span>
@@ -585,6 +585,109 @@
           </button>
           <button id="modal-go-restart-btn" class="modal-action-btn btn-holo-restart" type="button">
             ПЕРЕЗАПУСК [SPACE]
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Голографическое окно завершения миссии (Mission Complete) -->
+    <div id="modal-mission-complete" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Миссия выполнена">
+      <div class="holo-modal-window">
+        <div class="modal-card-scanlines"></div>
+        <span class="corner-bracket corner-tl"></span>
+        <span class="corner-bracket corner-tr"></span>
+        <span class="corner-bracket corner-bl"></span>
+        <span class="corner-bracket corner-br"></span>
+
+        <header class="modal-card-header">
+          <div class="modal-card-title-wrap">
+            <span class="modal-badge" id="mc-badge" style="border-color: #34d399; background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">ПОБЕДА // VICTORY</span>
+            <h2 id="mc-title">МИССИЯ 1-1 ВЫПОЛНЕНА</h2>
+          </div>
+        </header>
+
+        <div class="modal-card-body">
+          <p id="mc-subtitle" class="modal-desc-text"
+            style="color: #a7f3d0; margin: 0 0 14px 0; font-family: 'Rajdhani', sans-serif; font-size: 15px;">
+            СЕКТОР 1 // ПАТРУЛЬ АВАНПОСТА // ЦЕЛИ МИССИИ ДОСТИГНУТЫ
+          </p>
+
+          <div class="modal-debrief-grid">
+            <div class="debrief-card">
+              <span class="debrief-label">ВРЕМЯ МИССИИ</span>
+              <span id="mc-time" class="debrief-value">02:00</span>
+            </div>
+            <div class="debrief-card">
+              <span class="debrief-label">ЛИКВИДИРОВАНО</span>
+              <span id="mc-kills" class="debrief-value">0</span>
+            </div>
+            <div class="debrief-card">
+              <span class="debrief-label">НАБРАНО ОЧКОВ</span>
+              <span id="mc-score" class="debrief-value score-val">0</span>
+            </div>
+          </div>
+
+          <!-- Слот для карточек модулей и тактических улучшений (будущие обновления) -->
+          <div id="mission-rewards-slot" class="mission-rewards-slot hidden" aria-label="Тактические модули">
+            <!-- Зарезервированный слот для подключения модулей -->
+          </div>
+        </div>
+
+        <footer class="modal-card-footer row-buttons" style="margin-top: 24px;">
+          <button id="btn-mc-menu" class="modal-action-btn btn-secondary" type="button">
+            В ГЛАВНОЕ МЕНЮ
+          </button>
+          <button id="btn-mc-next" class="modal-action-btn btn-holo-restart" type="button">
+            <span id="btn-mc-next-text">СЛЕДУЮЩАЯ МИССИЯ [SPACE]</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Голографическое окно завершения всей кампании (Campaign Complete) -->
+    <div id="modal-campaign-complete" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Кампания завершена">
+      <div class="holo-modal-window">
+        <div class="modal-card-scanlines"></div>
+        <span class="corner-bracket corner-tl"></span>
+        <span class="corner-bracket corner-tr"></span>
+        <span class="corner-bracket corner-bl"></span>
+        <span class="corner-bracket corner-br"></span>
+
+        <header class="modal-card-header">
+          <div class="modal-card-title-wrap">
+            <span class="modal-badge" style="border-color: #facc15; background: rgba(234, 179, 8, 0.2); color: #fde047;">ТРИУМФ // TRIUMPH</span>
+            <h2>КАМПАНИЯ ЗАВЕРШЕНА!</h2>
+          </div>
+        </header>
+
+        <div class="modal-card-body">
+          <p class="modal-desc-text"
+            style="color: #fde047; margin: 0 0 14px 0; font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 600;">
+            ВСЕ 3 СЕКТОРА ОСВОБОЖДЕНЫ! ВЕРХОВНЫЙ ДРЕДНОУТ "АПОКАЛИПСИС" ПОВЕРЖЕН.
+          </p>
+
+          <div class="modal-debrief-grid">
+            <div class="debrief-card">
+              <span class="debrief-label">МИССИЙ ПРОЙДЕНО</span>
+              <span class="debrief-value" style="color: #34d399;">15 / 15</span>
+            </div>
+            <div class="debrief-card">
+              <span class="debrief-label">СЕКТОРЫ</span>
+              <span class="debrief-value" style="color: #6ee7b7;">3 / 3</span>
+            </div>
+            <div class="debrief-card">
+              <span class="debrief-label">ОБЩИЙ СЧЕТ</span>
+              <span id="cc-total-score" class="debrief-value score-val">0</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="modal-card-footer row-buttons" style="margin-top: 24px;">
+          <button id="btn-cc-menu" class="modal-action-btn btn-secondary" type="button">
+            В ГЛАВНОЕ МЕНЮ
+          </button>
+          <button id="btn-cc-restart" class="modal-action-btn btn-holo-restart" type="button">
+            НАЧАТЬ ЗАНОВО [1-1]
           </button>
         </footer>
       </div>

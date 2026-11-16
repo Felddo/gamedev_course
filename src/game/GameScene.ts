@@ -40,6 +40,8 @@ import { SpaceStationManager } from './SpaceStationManager';
 import { ExperienceManager } from './ExperienceManager';
 import { buildPartsCatalog } from './shipBuilder/partsCatalog';
 import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
+import { CampaignMission } from './campaign/types';
+import { campaignManager } from './campaign/CampaignManager';
 
 /**
  * Основная боевая сцена космического выживания:
@@ -71,6 +73,8 @@ export class GameScene extends Phaser.Scene {
   private score = 0;
   private currentPhase = 1;
   private isGameOver = false;
+  public isMissionWon = false;
+  public currentMission: CampaignMission | null = null;
 
   // Режим главного меню
   public isMenuMode = true;
@@ -206,6 +210,22 @@ export class GameScene extends Phaser.Scene {
 
     // 5. Менеджер кораблей противника
     this.enemyManager = new EnemyManager(this);
+    this.enemyManager.onBossDestroyed = (_boss) => {
+      if (this.currentMission?.isBoss && !this.isGameOver && !this.isMissionWon) {
+        this.triggerMissionVictory();
+      }
+    };
+    this.enemyManager.onBossSpawned = (boss) => {
+      window.dispatchEvent(
+        new CustomEvent('phase-changed', {
+          detail: {
+            phase: 2,
+            title: boss.bossName || 'БОСС СЕКТОРА',
+            subtitle: 'ТРЕВОГА // В СЕКТОР ВОШЕЛ ВРАЖЕСКИЙ ФЛАГМАН!',
+          },
+        }),
+      );
+    };
 
     // 6. Настройка камеры для слежения за кораблем
     this.cameras.main.removeBounds();
@@ -270,6 +290,7 @@ export class GameScene extends Phaser.Scene {
   public enterMenuMode(): void {
     this.isMenuMode = true;
     this.isGameOver = false;
+    this.isMissionWon = false;
     this.hudManager.setVisible(false);
     this.playerShip.setVisible(false);
     this.playerShip.setAutopilot(false);
@@ -284,21 +305,29 @@ export class GameScene extends Phaser.Scene {
     this.experienceManager.reset();
   }
 
-  public startCombatSession(): void {
+  public startCombatSession(customMission?: CampaignMission): void {
     this.isMenuMode = false;
     this.isGameOver = false;
+    this.isMissionWon = false;
     this.survivalTime = 0;
     this.killsCount = 0;
     this.score = 0;
     this.currentPhase = 1;
     this.fireHazards = [];
+
+    // Инициализация миссии кампании
+    this.currentMission = customMission || campaignManager.getCurrentMission();
+
     this.spaceStationManager.setTargetedStation(null);
     this.enemyManager.reset();
     this.weaponSystem.reset();
     this.weaponSystem.resetUpgrades();
     this.experienceManager.reset();
-    this.enemyManager.setPhase(1);
-    this.meteorManager.setPhase(1);
+
+    this.enemyManager.setMission(this.currentMission);
+    this.meteorManager.setMission(this.currentMission);
+    this.hudManager.setMission(this.currentMission);
+
     this.playerShip.reset(MAP_WIDTH / 2, MAP_HEIGHT / 2);
     if (this.activeShipAssembly) {
       this.playerShip.setCustomAssembly(this.activeShipAssembly);
@@ -362,7 +391,28 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (this.isMissionWon) {
+      this.particleManager.update(seconds);
+      this.atmosphereManager.updateCosmicDust(seconds);
+      this.atmosphereManager.updateCosmicAtmosphere(seconds, this.cameras.main);
+      this.meteorManager.update(seconds, this.cameras.main, this.particleManager);
+      this.spaceStationManager.update(seconds, this.cameras.main);
+      return;
+    }
+
     this.survivalTime += seconds;
+
+    // Проверка победы в обычной миссии кампании (по истечении времени выживания)
+    if (
+      this.currentMission &&
+      !this.currentMission.isBoss &&
+      this.survivalTime >= this.currentMission.targetDuration &&
+      !this.isGameOver &&
+      !this.isMissionWon
+    ) {
+      this.triggerMissionVictory();
+      return;
+    }
 
     // 1. Процедурный космос: движение звезд и мерцание звездной пыли
     this.atmosphereManager.updateCosmicAtmosphere(seconds, this.cameras.main);
@@ -605,6 +655,48 @@ export class GameScene extends Phaser.Scene {
       this.spaceStationManager.getStations(),
       this.spaceStationManager.getTargetedStation(),
       this.experienceManager.getOrbs(),
+      this.enemyManager.getActiveBoss(),
+    );
+  }
+
+  public triggerMissionVictory(): void {
+    if (this.isMissionWon || this.isGameOver) return;
+    this.isMissionWon = true;
+
+    // 1. Останавливаем появление новых врагов и метеоритов
+    this.enemyManager.stopSpawning();
+    this.enemyManager.clearActiveThreats();
+    this.meteorManager.stopSpawning();
+
+    // 2. Победный звуковой эффект и праздничный салют в космосе
+    soundFx.playUpgradeSelect();
+    this.particleManager.spawnExplosion(this.playerShip.x + 35, this.playerShip.y - 30);
+    this.particleManager.spawnExplosion(this.playerShip.x - 35, this.playerShip.y + 30);
+    this.cameras.main.shake(300, 0.012);
+
+    // 3. Фиксация победы в CampaignManager
+    const outcome = campaignManager.recordVictory(this.score, this.killsCount, this.survivalTime);
+    const timeFormatted = this.hudManager.formatTime(this.survivalTime);
+
+    // 4. Оповещение UI об успешном выполнении миссии
+    window.dispatchEvent(
+      new CustomEvent('mission-completed', {
+        detail: {
+          sector: outcome.completedSector,
+          mission: outcome.completedMission,
+          missionId: `${outcome.completedSector}-${outcome.completedMission}`,
+          title: this.currentMission?.title || `Миссия ${outcome.completedSector}-${outcome.completedMission}`,
+          subtitle: this.currentMission?.subtitle || `СЕКТОР ${outcome.completedSector}`,
+          isBoss: this.currentMission?.isBoss || false,
+          score: this.score,
+          kills: this.killsCount,
+          time: timeFormatted,
+          nextSector: outcome.nextSector,
+          nextMission: outcome.nextMission,
+          isCampaignComplete: outcome.isCampaignComplete,
+          totalScore: campaignManager.getSaveData().totalScore,
+        },
+      }),
     );
   }
 

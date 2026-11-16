@@ -49,12 +49,15 @@ export interface EnemyShip {
   scoreValue: number;
   radius: number;
   isHitFlash: number;
-  type?: 'scout' | 'interceptor' | 'gunship' | 'zaku' | 'dom' | 'terminator';
+  type?: 'scout' | 'interceptor' | 'gunship' | 'zaku' | 'dom' | 'terminator' | 'boss';
   shootCooldown?: number;
   shootTimer?: number;
   animPhase?: number;
   recoil?: number;
   isInvulnerable?: boolean;
+  isBoss?: boolean;
+  bossName?: string;
+  spreadCount?: number;
 }
 
 // Алиас для обратной совместимости

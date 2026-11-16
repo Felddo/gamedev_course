@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PLAYER_MAX_HP, GAME_PHASES } from './constants';
 import { EnemyShip, Meteor, SpaceStation, ExpOrb } from './types';
+import { CampaignMission } from './campaign/types';
 
 const RADAR_SIZE = 170;
 const RADAR_MARGIN = 18;
@@ -8,11 +9,12 @@ const RADAR_SCAN_RADIUS = 1500;
 
 /**
  * Менеджер пользовательского интерфейса (HUD):
- * верхняя голографическая панель, фиолетовая голографическая полоска опыта
- * и тактический радар сектора
+ * верхняя голографическая панель, фиолетовая голографическая полоска опыта,
+ * индикатор босса миссии и тактический радар сектора
  */
 export class HudManager {
   private scene: Phaser.Scene;
+  private currentMission: CampaignMission | null = null;
 
   // Элементы верхней панели
   private hudGraphics!: Phaser.GameObjects.Graphics;
@@ -32,6 +34,10 @@ export class HudManager {
   private expBarText!: Phaser.GameObjects.Text;
   private currentExpRatio = 0;
   private displayedExpRatio = 0;
+
+  // Полоса здоровья босса
+  private bossBarGraphics!: Phaser.GameObjects.Graphics;
+  private bossBarText!: Phaser.GameObjects.Text;
 
   // Тактический радар (Мини-карта)
   private radarContainer!: Phaser.GameObjects.Container;
@@ -166,6 +172,25 @@ export class HudManager {
       .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
       .setDepth(33);
+
+    // 1.2. Полоска здоровья босса миссии
+    this.bossBarGraphics = this.scene.add.graphics();
+    this.bossBarGraphics.setScrollFactor(0);
+    this.bossBarGraphics.setDepth(34);
+
+    this.bossBarText = this.scene.add
+      .text(0, 0, '', {
+        fontFamily: "'Orbitron', 'Rajdhani', monospace",
+        fontSize: '11px',
+        fontStyle: 'bold',
+        color: '#fef2f2',
+        stroke: '#7f1d1d',
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5, 0.5)
+      .setScrollFactor(0)
+      .setDepth(35)
+      .setVisible(false);
 
     this.layoutHud(width);
 
@@ -321,6 +346,21 @@ export class HudManager {
     this.expBarGraphics.setVisible(visible);
     this.expBarText.setVisible(visible);
     this.radarContainer.setVisible(visible);
+    if (this.bossBarGraphics) this.bossBarGraphics.setVisible(visible);
+    if (this.bossBarText && !visible) this.bossBarText.setVisible(false);
+  }
+
+  public setMission(mission: CampaignMission): void {
+    this.currentMission = mission;
+    this.phaseLabel.setText('СЕКТОР ' + mission.sector);
+    this.phaseText.setText(mission.isBoss ? `БОСС ${mission.id}` : `МИССИЯ ${mission.id}`);
+    if (mission.isBoss) {
+      this.timerLabel.setText('ДО ВХОДА БОССА');
+    } else {
+      this.timerLabel.setText('ДО ЭВАКУАЦИИ');
+    }
+    if (this.bossBarGraphics) this.bossBarGraphics.clear();
+    if (this.bossBarText) this.bossBarText.setVisible(false);
   }
 
   public update(
@@ -339,6 +379,7 @@ export class HudManager {
     stations: SpaceStation[] = [],
     targetedStation: SpaceStation | null = null,
     expOrbs: ExpOrb[] = [],
+    activeBoss: EnemyShip | null = null,
   ): void {
     if (!this.isVisible) return;
 
@@ -355,18 +396,84 @@ export class HudManager {
     }
     this.hpText.setText(`${Math.ceil(hpRatio * 100)}%`);
 
-    // 2. Таймер выживания
-    this.timerText.setText(this.formatTime(survivalTime));
+    // 2. Таймер и индикация миссии кампании
+    if (this.currentMission) {
+      if (this.currentMission.isBoss) {
+        if (activeBoss && activeBoss.hp > 0) {
+          this.timerLabel.setText('ФЛАГМАН В СЕКТОРЕ');
+          this.timerText.setText(this.formatTime(survivalTime));
+          this.phaseLabel.setText('СЕКТОР ' + this.currentMission.sector);
+          this.phaseText.setText('БОСС ' + this.currentMission.id);
+          this.renderBossBar(activeBoss);
+        } else {
+          const spawnDelay = this.currentMission.bossConfig?.spawnDelay ?? 60;
+          const remainingToBoss = Math.max(0, spawnDelay - survivalTime);
+          this.timerLabel.setText('ДО ВХОДА БОССА');
+          this.timerText.setText(this.formatTime(remainingToBoss));
+          this.phaseLabel.setText('СЕКТОР ' + this.currentMission.sector);
+          this.phaseText.setText('МИССИЯ ' + this.currentMission.id + ' [БОСС]');
+          if (this.bossBarGraphics) this.bossBarGraphics.clear();
+          if (this.bossBarText) this.bossBarText.setVisible(false);
+        }
+      } else {
+        const remainingSeconds = Math.max(0, this.currentMission.targetDuration - survivalTime);
+        this.timerLabel.setText('ДО ЭВАКУАЦИИ');
+        this.timerText.setText(this.formatTime(remainingSeconds));
+        this.phaseLabel.setText('СЕКТОР ' + this.currentMission.sector);
+        this.phaseText.setText('МИССИЯ ' + this.currentMission.id);
+        if (this.bossBarGraphics) this.bossBarGraphics.clear();
+        if (this.bossBarText) this.bossBarText.setVisible(false);
+      }
+    } else {
+      this.timerLabel.setText('ПРОТОКОЛ ВЫЖИВАНИЯ');
+      this.timerText.setText(this.formatTime(survivalTime));
+      this.phaseLabel.setText('БОЕВАЯ ФАЗА');
+      this.phaseText.setText(`ФАЗА ${currentPhase}`);
+      if (this.bossBarGraphics) this.bossBarGraphics.clear();
+      if (this.bossBarText) this.bossBarText.setVisible(false);
+    }
 
-    // 3. Цели и фаза
+    // 3. Цели
     this.killsText.setText(`${killsCount}`);
-    this.phaseText.setText(`ФАЗА ${currentPhase}`);
 
     // 4. Фиолетовая голографическая полоска опыта под верхней панелью
     this.updateExpBar(score, currentPhase);
 
     // 5. Тактический радар
     this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, expOrbs);
+  }
+
+  private renderBossBar(boss: EnemyShip): void {
+    if (!this.bossBarGraphics || !this.bossBarText) return;
+    const width = this.scene.scale.width;
+    const barY = 62;
+    const barHeight = 16;
+    const bossRatio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
+    const barWidth = Math.min(460, width - 40);
+    const barX = (width - barWidth) / 2;
+
+    this.bossBarGraphics.clear();
+    // Подложка
+    this.bossBarGraphics.fillStyle(0x1a0606, 0.92);
+    this.bossBarGraphics.fillRect(barX, barY, barWidth, barHeight);
+    this.bossBarGraphics.lineStyle(1.5, 0xef4444, 0.95);
+    this.bossBarGraphics.strokeRect(barX, barY, barWidth, barHeight);
+
+    // Заполнение красным градиентом
+    const fillWidth = (barWidth - 2) * bossRatio;
+    if (fillWidth > 0) {
+      this.bossBarGraphics.fillStyle(0xdc2626, 0.95);
+      this.bossBarGraphics.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2);
+      this.bossBarGraphics.fillStyle(0xf87171, 0.55);
+      this.bossBarGraphics.fillRect(barX + 1, barY + 1, fillWidth, 2);
+    }
+
+    this.bossBarText.setVisible(this.isVisible);
+    this.bossBarText.setPosition(width / 2, barY + barHeight / 2);
+    const percent = Math.ceil(bossRatio * 100);
+    this.bossBarText.setText(
+      `⚠ ${boss.bossName || 'БОСС'} // ПРОЧНОСТЬ: ${Math.ceil(boss.hp)} / ${boss.maxHp} (${percent}%)`,
+    );
   }
 
   private updateExpBar(score: number, currentPhase: number): void {
@@ -542,6 +649,8 @@ export class HudManager {
     this.phaseText.destroy();
     this.expBarGraphics.destroy();
     this.expBarText.destroy();
+    this.bossBarGraphics.destroy();
+    this.bossBarText.destroy();
     this.radarContainer.destroy();
   }
 }

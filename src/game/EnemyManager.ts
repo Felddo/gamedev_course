@@ -30,11 +30,12 @@ import { EnemyShip, EnemyBullet } from './types';
 import { PlayerShip } from './PlayerShip';
 import { WeaponSystem } from './WeaponSystem';
 import { ParticleManager } from './ParticleManager';
+import { CampaignMission, MissionBossConfig } from './campaign/types';
 
 /**
  * Менеджер вражеских космических кораблей:
- * волны спавна, перехват корабля игрока, стрельба плазменными зарядами
- * и расчет попаданий/столкновений в открытом космосе.
+ * волны спавна, перехват корабля игрока, стрельба плазменными зарядами,
+ * поддержка боссов кампании и расчет попаданий/столкновений в открытом космосе.
  */
 export class EnemyManager {
   private scene: Phaser.Scene;
@@ -44,8 +45,65 @@ export class EnemyManager {
   private currentSpawnInterval = 0.1;
   private currentPhase = 1;
 
+  // Интеграция с системой кампании
+  private currentMission: CampaignMission | null = null;
+  private isSpawningStopped = false;
+  private bossSpawned = false;
+  private activeBoss: EnemyShip | null = null;
+
+  public onBossSpawned?: (boss: EnemyShip) => void;
+  public onBossDestroyed?: (boss: EnemyShip) => void;
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+  }
+
+  public setMission(mission: CampaignMission): void {
+    this.currentMission = mission;
+    this.isSpawningStopped = false;
+    this.bossSpawned = false;
+    this.activeBoss = null;
+  }
+
+  public getCurrentMission(): CampaignMission | null {
+    return this.currentMission;
+  }
+
+  public stopSpawning(): void {
+    this.isSpawningStopped = true;
+  }
+
+  public clearActiveThreats(): void {
+    // 1. Уничтожаем все летящие вражеские снаряды
+    for (const bullet of this.enemyBullets) {
+      bullet.sprite.destroy();
+    }
+    this.enemyBullets = [];
+
+    // 2. Оставшиеся рядовые враги прекращают атаку и деактивируются
+    for (const enemy of this.enemies) {
+      if (enemy.sprite && enemy.sprite.active) {
+        this.scene.tweens.add({
+          targets: enemy.sprite,
+          alpha: 0,
+          scale: 0.1,
+          duration: 400,
+          onComplete: () => {
+            this.destroyEnemySprites(enemy);
+          },
+        });
+      }
+    }
+    this.enemies = [];
+    this.activeBoss = null;
+  }
+
+  public getActiveBoss(): EnemyShip | null {
+    return this.activeBoss;
+  }
+
+  public isBossSpawned(): boolean {
+    return this.bossSpawned;
   }
 
   public getEnemies(): EnemyShip[] {
@@ -97,6 +155,9 @@ export class EnemyManager {
     this.spawnTimer = 0;
     this.currentSpawnInterval = 0.1;
     this.currentPhase = 1;
+    this.isSpawningStopped = false;
+    this.bossSpawned = false;
+    this.activeBoss = null;
   }
 
   private destroyEnemySprites(enemy: EnemyShip): void {
@@ -127,14 +188,102 @@ export class EnemyManager {
   }
 
   public handleSpawning(seconds: number, survivalTime: number, cam: Phaser.Cameras.Scene2D.Camera): void {
+    if (this.isSpawningStopped) return;
+
+    // 1. Проверка появления босса миссии
+    if (
+      this.currentMission?.isBoss &&
+      !this.bossSpawned &&
+      this.currentMission.bossConfig
+    ) {
+      if (survivalTime >= this.currentMission.bossConfig.spawnDelay) {
+        this.spawnBoss(cam, this.currentMission.bossConfig);
+        this.bossSpawned = true;
+      }
+    }
+
+    // 2. Периодический спавн рядовых вражеских звеньев
     this.spawnTimer += seconds;
-    const phaseInfo = this.getCurrentPhaseInfo();
-    const spawnIntensity = Math.max(0.05, phaseInfo.spawnIntensity || 1.0);
-    this.currentSpawnInterval = Math.max(0.05, (0.4 - survivalTime * 0.005) / spawnIntensity);
+    let spawnIntensity = 1.0;
+    if (this.currentMission) {
+      spawnIntensity = Math.max(0.1, this.currentMission.enemyConfig.spawnIntensity);
+      this.currentSpawnInterval = Math.max(0.08, (0.42 - Math.min(60, survivalTime) * 0.003) / spawnIntensity);
+    } else {
+      const phaseInfo = this.getCurrentPhaseInfo();
+      spawnIntensity = Math.max(0.05, phaseInfo.spawnIntensity || 1.0);
+      this.currentSpawnInterval = Math.max(0.05, (0.4 - survivalTime * 0.005) / spawnIntensity);
+    }
 
     while (this.spawnTimer >= this.currentSpawnInterval) {
       this.spawnTimer -= this.currentSpawnInterval;
       this.spawnRandomEnemy(cam, survivalTime);
+    }
+  }
+
+  public spawnBoss(cam: Phaser.Cameras.Scene2D.Camera, bossConfig: MissionBossConfig): void {
+    const viewLeft = cam.worldView.x;
+    const viewTop = cam.worldView.y;
+    const viewRight = cam.worldView.right;
+    const viewBottom = cam.worldView.bottom;
+
+    const edge = Phaser.Math.Between(0, 3);
+    const offset = 120;
+    let x = 0;
+    let y = 0;
+
+    switch (edge) {
+      case 0:
+        x = Phaser.Math.Between(viewLeft + 50, viewRight - 50);
+        y = viewTop - offset;
+        break;
+      case 1:
+        x = Phaser.Math.Between(viewLeft + 50, viewRight - 50);
+        y = viewBottom + offset;
+        break;
+      case 2:
+        x = viewLeft - offset;
+        y = Phaser.Math.Between(viewTop + 50, viewBottom - 50);
+        break;
+      case 3:
+        x = viewRight + offset;
+        y = Phaser.Math.Between(viewTop + 50, viewBottom - 50);
+        break;
+    }
+
+    const sprite = this.scene.add.sprite(x, y, 'enemy_ship_shooter');
+    sprite.setOrigin(0.5, 0.5);
+    sprite.setScale(bossConfig.scale);
+    if (bossConfig.tint) {
+      sprite.setTint(bossConfig.tint);
+    }
+    sprite.setDepth(9);
+
+    const bossEnemy: EnemyShip = {
+      type: 'boss',
+      sprite,
+      hp: bossConfig.hp,
+      maxHp: bossConfig.hp,
+      speed: bossConfig.speed,
+      scoreValue: 3000,
+      radius: Math.round(54 * (bossConfig.scale / 0.95)),
+      isHitFlash: 0,
+      isInvulnerable: false,
+      isBoss: true,
+      bossName: bossConfig.name,
+      shootCooldown: bossConfig.shootCooldown,
+      shootTimer: 0.6,
+      animPhase: 0,
+      spreadCount: bossConfig.spreadCount,
+    };
+
+    this.activeBoss = bossEnemy;
+    this.enemies.push(bossEnemy);
+
+    soundFx.playPhaseNotification(2);
+    this.scene.cameras.main.shake(450, 0.02);
+
+    if (this.onBossSpawned) {
+      this.onBossSpawned(bossEnemy);
     }
   }
 
@@ -168,6 +317,22 @@ export class EnemyManager {
         break;
     }
 
+    if (this.currentMission) {
+      const cfg = this.currentMission.enemyConfig;
+      const roll = Math.random();
+      const gunshipThreshold = cfg.allowGunship ? cfg.gunshipRatio : 0;
+      const interceptorThreshold = gunshipThreshold + cfg.interceptorRatio;
+
+      if (roll < gunshipThreshold) {
+        this.spawnGunship(x, y);
+      } else if (roll < interceptorThreshold) {
+        this.spawnInterceptorShip(x, y);
+      } else {
+        this.spawnScoutShip(x, y);
+      }
+      return;
+    }
+
     const phaseInfo = this.getCurrentPhaseInfo();
     const allowGunship = phaseInfo.allowTerminator;
     const gunshipChance = allowGunship
@@ -194,7 +359,10 @@ export class EnemyManager {
     sprite.setScale(ENEMY_GUNSHIP_SCALE);
     sprite.setDepth(7);
 
-    const hpMult = Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
+    const hpMult = this.currentMission
+      ? this.currentMission.enemyConfig.healthMultiplier
+      : Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
+    const speedMult = this.currentMission ? this.currentMission.enemyConfig.speedMultiplier : 1.0;
     const gunshipHp = Math.max(1, Math.round(ENEMY_GUNSHIP_HP * hpMult));
 
     this.enemies.push({
@@ -202,7 +370,7 @@ export class EnemyManager {
       sprite,
       hp: gunshipHp,
       maxHp: gunshipHp,
-      speed: ENEMY_GUNSHIP_SPEED,
+      speed: ENEMY_GUNSHIP_SPEED * speedMult,
       scoreValue: ENEMY_GUNSHIP_SCORE,
       radius: ENEMY_GUNSHIP_RADIUS,
       isHitFlash: 0,
@@ -221,7 +389,10 @@ export class EnemyManager {
     sprite.setScale(ENEMY_INTERCEPTOR_SCALE);
     sprite.setDepth(7);
 
-    const hpMult = Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
+    const hpMult = this.currentMission
+      ? this.currentMission.enemyConfig.healthMultiplier
+      : Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
+    const speedMult = this.currentMission ? this.currentMission.enemyConfig.speedMultiplier : 1.0;
     const interceptorHp = Math.max(1, Math.round(ENEMY_INTERCEPTOR_HP * hpMult));
 
     this.enemies.push({
@@ -229,7 +400,7 @@ export class EnemyManager {
       sprite,
       hp: interceptorHp,
       maxHp: interceptorHp,
-      speed: ENEMY_INTERCEPTOR_SPEED,
+      speed: ENEMY_INTERCEPTOR_SPEED * speedMult,
       scoreValue: ENEMY_INTERCEPTOR_SCORE,
       radius: ENEMY_INTERCEPTOR_RADIUS,
       isHitFlash: 0,
@@ -246,7 +417,10 @@ export class EnemyManager {
     sprite.setScale(ENEMY_SCOUT_SCALE);
     sprite.setDepth(7);
 
-    const hpMult = Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
+    const hpMult = this.currentMission
+      ? this.currentMission.enemyConfig.healthMultiplier
+      : Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
+    const speedMult = this.currentMission ? this.currentMission.enemyConfig.speedMultiplier : 1.0;
     const scoutHp = Math.max(1, Math.round(ENEMY_SCOUT_HP * hpMult));
 
     this.enemies.push({
@@ -254,7 +428,7 @@ export class EnemyManager {
       sprite,
       hp: scoutHp,
       maxHp: scoutHp,
-      speed: ENEMY_SCOUT_SPEED,
+      speed: ENEMY_SCOUT_SPEED * speedMult,
       scoreValue: ENEMY_SCOUT_SCORE,
       radius: ENEMY_SCOUT_RADIUS,
       isHitFlash: 0,
@@ -303,8 +477,28 @@ export class EnemyManager {
       const flySway = Math.sin(enemy.animPhase) * 0.04;
       enemy.sprite.rotation = (angle - Math.PI / 2) + flySway;
 
-      // Логика стрельбы тяжелого крейсера (spaceShips_006.png)
-      if (enemy.type === 'gunship' || enemy.type === 'terminator') {
+      // Логика стрельбы босса (веерный залп) и тяжелого крейсера
+      if (enemy.isBoss) {
+        if (distToPlayer <= 950) {
+          enemy.shootTimer = (enemy.shootTimer ?? 0) + seconds;
+          if (enemy.shootTimer >= (enemy.shootCooldown ?? 1.5)) {
+            enemy.shootTimer = 0;
+            const spreadCount = enemy.spreadCount || 3;
+            const spreadStep = 0.16;
+            const startAngle = angle - ((spreadCount - 1) / 2) * spreadStep;
+            const bDmg = this.currentMission?.bossConfig?.bulletDamage ?? 18;
+            const bSpd = this.currentMission?.bossConfig?.bulletSpeed ?? 400;
+
+            for (let s = 0; s < spreadCount; s++) {
+              const currentAngle = startAngle + s * spreadStep;
+              const muzzleDist = enemy.radius * 0.7;
+              const muzzleX = enemy.sprite.x + Math.cos(currentAngle) * muzzleDist;
+              const muzzleY = enemy.sprite.y + Math.sin(currentAngle) * muzzleDist;
+              this.fireEnemyBulletWithParams(muzzleX, muzzleY, currentAngle, bSpd, bDmg, particleManager);
+            }
+          }
+        }
+      } else if (enemy.type === 'gunship' || enemy.type === 'terminator') {
         if (distToPlayer <= ENEMY_GUNSHIP_SHOOT_RANGE) {
           enemy.shootTimer = (enemy.shootTimer ?? 0) + seconds;
           if (enemy.shootTimer >= (enemy.shootCooldown ?? ENEMY_GUNSHIP_SHOOT_COOLDOWN)) {
@@ -359,6 +553,35 @@ export class EnemyManager {
       vy,
       lifetime: ENEMY_GUNSHIP_BULLET_LIFETIME,
       damage: ENEMY_GUNSHIP_BULLET_DAMAGE,
+    });
+
+    if (particleManager) {
+      particleManager.spawnEnemyMuzzleFlash(x, y, angle);
+    }
+  }
+
+  public fireEnemyBulletWithParams(
+    x: number,
+    y: number,
+    angle: number,
+    speed: number,
+    damage: number,
+    particleManager?: ParticleManager,
+  ): void {
+    soundFx.playTerminatorShoot();
+
+    const bulletSprite = this.scene.add.sprite(x, y, 'enemy_bullet_red');
+    bulletSprite.setDepth(11);
+
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+
+    this.enemyBullets.push({
+      sprite: bulletSprite,
+      vx,
+      vy,
+      lifetime: ENEMY_GUNSHIP_BULLET_LIFETIME * 1.2,
+      damage,
     });
 
     if (particleManager) {
@@ -496,7 +719,16 @@ export class EnemyManager {
 
     soundFx.playExplosion();
 
-    if (enemy.type === 'gunship' || enemy.type === 'terminator') {
+    if (enemy.isBoss) {
+      this.activeBoss = null;
+      this.scene.cameras.main.shake(650, 0.035);
+      particleManager.spawnBigExplosion(enemy.sprite.x, enemy.sprite.y);
+      particleManager.spawnBigExplosion(enemy.sprite.x + 28, enemy.sprite.y - 20);
+      particleManager.spawnBigExplosion(enemy.sprite.x - 28, enemy.sprite.y + 20);
+      if (this.onBossDestroyed) {
+        this.onBossDestroyed(enemy);
+      }
+    } else if (enemy.type === 'gunship' || enemy.type === 'terminator') {
       particleManager.spawnBigExplosion(enemy.sprite.x, enemy.sprite.y);
     } else {
       particleManager.spawnExplosion(enemy.sprite.x, enemy.sprite.y);

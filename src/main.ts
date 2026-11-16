@@ -5,6 +5,7 @@ import { getRandomUpgrades, TankUpgrade } from './game/upgrades';
 import { GAME_PHASES } from './game/constants';
 import { GameScene } from './game/GameScene';
 import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
+import { campaignManager } from './game/campaign/CampaignManager';
 import menuBgUrl from './assets/menu_bg.jpg';
 
 let phaserGame: Phaser.Game | null = null;
@@ -37,6 +38,9 @@ if (mainMenu) {
 }
 
 const btnStart = document.getElementById('btn-start') as HTMLButtonElement;
+const btnStartTitle = document.getElementById('btn-start-title') as HTMLElement;
+const btnStartSub = document.getElementById('btn-start-sub') as HTMLElement;
+const menuCampaignStatus = document.getElementById('menu-campaign-status') as HTMLElement;
 const btnSettings = document.getElementById('btn-settings') as HTMLButtonElement;
 const btnExit = document.getElementById('btn-exit') as HTMLButtonElement;
 
@@ -68,6 +72,23 @@ const modalGoMenuBtn = document.getElementById('modal-go-menu-btn') as HTMLButto
 const goTime = document.getElementById('go-time') as HTMLElement;
 const goKills = document.getElementById('go-kills') as HTMLElement;
 const goScore = document.getElementById('go-score') as HTMLElement;
+
+// Mission Complete Modal Elements
+const modalMissionComplete = document.getElementById('modal-mission-complete') as HTMLElement;
+const mcTitle = document.getElementById('mc-title') as HTMLElement;
+const mcSubtitle = document.getElementById('mc-subtitle') as HTMLElement;
+const mcTime = document.getElementById('mc-time') as HTMLElement;
+const mcKills = document.getElementById('mc-kills') as HTMLElement;
+const mcScore = document.getElementById('mc-score') as HTMLElement;
+const btnMcNext = document.getElementById('btn-mc-next') as HTMLButtonElement;
+const btnMcNextText = document.getElementById('btn-mc-next-text') as HTMLElement;
+const btnMcMenu = document.getElementById('btn-mc-menu') as HTMLButtonElement;
+
+// Campaign Complete Modal Elements
+const modalCampaignComplete = document.getElementById('modal-campaign-complete') as HTMLElement;
+const ccTotalScore = document.getElementById('cc-total-score') as HTMLElement;
+const btnCcMenu = document.getElementById('btn-cc-menu') as HTMLButtonElement;
+const btnCcRestart = document.getElementById('btn-cc-restart') as HTMLButtonElement;
 
 // Rocket Dash HUD Elements
 const dashHud = document.getElementById('dash-hud') as HTMLElement;
@@ -283,6 +304,10 @@ function attachAudioHover(button: HTMLElement): void {
   modalExitConfirmBtn,
   modalGoRestartBtn,
   modalGoMenuBtn,
+  btnMcNext,
+  btnMcMenu,
+  btnCcMenu,
+  btnCcRestart,
   dashTriggerCard,
   superTriggerCard,
 ].forEach((btn) => {
@@ -334,12 +359,19 @@ function resumeGame(): void {
 function launchGame(): void {
   soundFx.playUiClick();
 
+  if (campaignManager.isCampaignCompleted()) {
+    campaignManager.resetCampaign();
+  }
+  updateMenuCampaignInfo();
+
   // Плавное скрытие главного меню и отображение игрового холста
   mainMenu.classList.add('hidden');
   gameContainer?.classList.remove('hidden');
   dashHud?.classList.add('hidden');
   topEscBtn?.classList.add('hidden');
   modalPause?.classList.add('hidden');
+  hideMissionComplete();
+  hideCampaignComplete();
   isGamePaused = true;
   isGameStarted = true;
 
@@ -383,8 +415,13 @@ function startCombatFromBuilder(assembly?: CustomShipAssembly): void {
     }
   }
 
-  // Отображение зеленой голограммы "Фаза 1"
-  showPhaseAnnouncement(1);
+  const activeMission = campaignManager.getCurrentMission();
+  // Отображение голограммы миссии
+  showPhaseAnnouncement(
+    1,
+    activeMission.title,
+    `${activeMission.subtitle} // ${activeMission.briefing}`,
+  );
 
   window.requestAnimationFrame(() => {
     phaserGame?.scale.refresh();
@@ -407,12 +444,16 @@ function returnToMainMenu(): void {
   shipBuilderModal.close();
   appliedUpgradeIds.clear();
   hideGameOver();
+  hideMissionComplete();
+  hideCampaignComplete();
   hidePhaseAnnouncement();
   modalPause?.classList.add('hidden');
   modalSettings?.classList.add('hidden');
   modalExit?.classList.add('hidden');
   isGamePaused = false;
   isGameStarted = false;
+
+  updateMenuCampaignInfo();
 
   dashHud?.classList.add('hidden');
   topEscBtn?.classList.add('hidden');
@@ -714,6 +755,7 @@ function restartFromGameOver(): void {
   soundFx.playUiClick();
   hideGameOver();
   hidePhaseAnnouncement();
+  campaignManager.prepareRetry();
   appliedUpgradeIds.clear();
   gameContainer?.classList.remove('hidden');
   dashHud?.classList.add('hidden');
@@ -745,6 +787,165 @@ function returnToMenuFromGameOver(): void {
 
 modalGoRestartBtn?.addEventListener('click', restartFromGameOver);
 modalGoMenuBtn?.addEventListener('click', returnToMenuFromGameOver);
+
+// Управление окнами завершения миссии и кампании
+function showMissionComplete(
+  missionId: string,
+  title: string,
+  subtitle: string,
+  time: string,
+  kills: number,
+  score: number,
+  nextSector: number,
+  nextMission: number,
+): void {
+  hideGameOver();
+  modalPause?.classList.add('hidden');
+  isGamePaused = true;
+  dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
+
+  if (mcTitle) mcTitle.textContent = `МИССИЯ ${missionId} ВЫПОЛНЕНА`;
+  if (mcSubtitle) mcSubtitle.textContent = `${subtitle} // ${title}`;
+  if (mcTime) mcTime.textContent = time;
+  if (mcKills) mcKills.textContent = kills.toString();
+  if (mcScore) mcScore.textContent = score.toString();
+
+  if (btnMcNextText) {
+    btnMcNextText.textContent = `СЛЕДУЮЩАЯ МИССИЯ [${nextSector}-${nextMission}]`;
+  }
+
+  modalMissionComplete?.classList.remove('hidden');
+  updateMenuCampaignInfo();
+}
+
+function hideMissionComplete(): void {
+  modalMissionComplete?.classList.add('hidden');
+}
+
+function showCampaignComplete(totalScore: number): void {
+  hideGameOver();
+  hideMissionComplete();
+  modalPause?.classList.add('hidden');
+  isGamePaused = true;
+  dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
+
+  if (ccTotalScore) ccTotalScore.textContent = totalScore.toString();
+  modalCampaignComplete?.classList.remove('hidden');
+  updateMenuCampaignInfo();
+}
+
+function hideCampaignComplete(): void {
+  modalCampaignComplete?.classList.add('hidden');
+}
+
+function startNextMission(): void {
+  soundFx.playUiClick();
+  hideMissionComplete();
+  appliedUpgradeIds.clear();
+
+  if (campaignManager.isCampaignCompleted()) {
+    showCampaignComplete(campaignManager.getSaveData().totalScore);
+    return;
+  }
+
+  const nextMission = campaignManager.getCurrentMission();
+
+  dashHud?.classList.remove('hidden');
+  topEscBtn?.classList.remove('hidden');
+  isGamePaused = false;
+  isGameStarted = true;
+
+  if (phaserGame) {
+    const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+    if (scene) {
+      if (scene.scene.isPaused()) {
+        scene.scene.resume();
+      }
+      scene.startCombatSession(nextMission);
+    }
+  }
+
+  showPhaseAnnouncement(1, nextMission.title, `${nextMission.subtitle} // ${nextMission.briefing}`);
+
+  window.requestAnimationFrame(() => {
+    phaserGame?.scale.refresh();
+  });
+}
+
+function returnToMenuFromMissionComplete(): void {
+  soundFx.playUiClick();
+  hideMissionComplete();
+  returnToMainMenu();
+}
+
+function returnToMenuFromCampaignComplete(): void {
+  soundFx.playUiClick();
+  hideCampaignComplete();
+  returnToMainMenu();
+}
+
+function restartCampaignFromBeginning(): void {
+  soundFx.playUiClick();
+  campaignManager.resetCampaign();
+  hideCampaignComplete();
+  updateMenuCampaignInfo();
+  launchGame();
+}
+
+btnMcNext?.addEventListener('click', startNextMission);
+btnMcMenu?.addEventListener('click', returnToMenuFromMissionComplete);
+btnCcMenu?.addEventListener('click', returnToMenuFromCampaignComplete);
+btnCcRestart?.addEventListener('click', restartCampaignFromBeginning);
+
+// Слушатель завершения миссии
+window.addEventListener('mission-completed', ((e: CustomEvent) => {
+  const detail = e.detail || {};
+  if (detail.isCampaignComplete) {
+    showCampaignComplete(detail.totalScore || detail.score || 0);
+  } else {
+    showMissionComplete(
+      detail.missionId || `${detail.sector}-${detail.mission}`,
+      detail.title || 'Миссия',
+      detail.subtitle || '',
+      detail.time || '00:00',
+      detail.kills || 0,
+      detail.score || 0,
+      detail.nextSector || 1,
+      detail.nextMission || 1,
+    );
+  }
+}) as EventListener);
+
+function updateMenuCampaignInfo(): void {
+  const currentMission = campaignManager.getCurrentMission();
+  const completedCount = campaignManager.getCompletedCount();
+  const isDone = campaignManager.isCampaignCompleted();
+
+  if (btnStartTitle && btnStartSub) {
+    if (isDone) {
+      btnStartTitle.textContent = 'КАМПАНИЯ ЗАВЕРШЕНА';
+      btnStartSub.textContent = 'SYS_REPLAY // НАЧАТЬ ЗАНОВО [1-1]';
+    } else if (completedCount > 0) {
+      btnStartTitle.textContent = 'ПРОДОЛЖИТЬ';
+      btnStartSub.textContent = `SYS_RESUME // СЕКТОР ${currentMission.sector}: МИССИЯ ${currentMission.id}`;
+    } else {
+      btnStartTitle.textContent = 'НАЧАТЬ КАМПАНИЮ';
+      btnStartSub.textContent = 'SYS_LAUNCH // СЕКТОР 1: МИССИЯ 1-1';
+    }
+  }
+
+  if (menuCampaignStatus) {
+    if (isDone) {
+      menuCampaignStatus.textContent = 'SYS_STATUS: ВСЕ 15 МИССИЙ ПРОЙДЕНЫ // КАМПАНИЯ ЗАВЕРШЕНА';
+    } else if (completedCount > 0) {
+      menuCampaignStatus.textContent = `SYS_STATUS: СЕКТОР ${currentMission.sector} // МИССИЯ ${currentMission.id} [${completedCount}/15 ВЫПОЛНЕНО]`;
+    } else {
+      menuCampaignStatus.textContent = 'SYS_STATUS: СЕКТОР 1 // МИССИЯ 1-1';
+    }
+  }
+}
 
 window.addEventListener('tank-destroyed', ((e: CustomEvent) => {
   const detail = e.detail || {};
@@ -937,6 +1138,41 @@ window.addEventListener('keydown', (e) => {
     }
   }
 
+  // Если открыто окно победы в миссии
+  if (modalMissionComplete && !modalMissionComplete.classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      returnToMenuFromMissionComplete();
+      return;
+    }
+    if (e.key === 'Enter' || e.code === 'Space') {
+      startNextMission();
+      return;
+    }
+  }
+
+  // Если открыто окно завершения всей кампании
+  if (modalCampaignComplete && !modalCampaignComplete.classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      returnToMenuFromCampaignComplete();
+      return;
+    }
+    if (e.key === 'Enter' || e.code === 'Space') {
+      restartCampaignFromBeginning();
+      return;
+    }
+  }
+
+  // F8: Быстрое завершение текущей миссии (для проверки и отладки)
+  if (e.code === 'F8') {
+    e.preventDefault();
+    if (phaserGame && isGameStarted) {
+      const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+      if (scene) {
+        scene.triggerMissionVictory();
+      }
+    }
+  }
+
   if (e.key === 'Escape') {
     // 1. Окно настроек
     if (!modalSettings.classList.contains('hidden')) {
@@ -981,4 +1217,35 @@ window.addEventListener('keydown', (e) => {
 
 // Инициализация Phaser игрового мира сразу при загрузке страницы для главного экрана
 phaserGame = createGame('game');
+
+// Инициализация отображения текущей миссии кампании в главном меню
+updateMenuCampaignInfo();
+
+// Dev API для быстрой проверки и тестирования переходов
+(window as unknown as { __CAMPAIGN_DEV__: unknown }).__CAMPAIGN_DEV__ = {
+  winCurrentMission: () => {
+    if (phaserGame) {
+      const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+      if (scene) {
+        scene.triggerMissionVictory();
+      }
+    }
+  },
+  setMission: (sector: number, mission: number) => {
+    campaignManager.setMission(sector, mission);
+    updateMenuCampaignInfo();
+    const targetMission = campaignManager.getCurrentMission();
+    if (phaserGame && isGameStarted) {
+      const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+      if (scene) {
+        scene.startCombatSession(targetMission);
+      }
+    }
+  },
+  resetCampaign: () => {
+    campaignManager.resetCampaign();
+    updateMenuCampaignInfo();
+  },
+  getState: () => campaignManager.getSaveData(),
+};
 

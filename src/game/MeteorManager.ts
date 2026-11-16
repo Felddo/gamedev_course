@@ -6,6 +6,7 @@ import { WeaponSystem } from './WeaponSystem';
 import { EnemyManager } from './EnemyManager';
 import { ParticleManager } from './ParticleManager';
 import { soundFx } from './audio';
+import { CampaignMission } from './campaign/types';
 
 const METEOR_TEXTURES = ['meteor_001', 'meteor_002', 'meteor_003', 'meteor_004'];
 
@@ -13,12 +14,14 @@ const METEOR_TEXTURES = ['meteor_001', 'meteor_002', 'meteor_003', 'meteor_004']
  * Менеджер метеоритов: периодический спавн астероидов различных размеров,
  * физическое движение в невесомости с вращением, столкновения с лазерами,
  * уничтожение врагов и МГНОВЕННАЯ СМЕРТЬ корабля при таране метеорита.
- * Настройки количества и частоты спавна управляются фазами игры (GAME_PHASES).
+ * Настройки количества и частоты спавна управляются фазами игры (GAME_PHASES)
+ * или конфигурацией активной миссии кампании.
  */
 export class MeteorManager {
   private scene: Phaser.Scene;
   private meteors: Meteor[] = [];
   private spawnTimer = 0.5;
+  private isSpawningStopped = false;
 
   // Настройки текущей фазы
   private currentPhaseNumber = 1;
@@ -36,6 +39,16 @@ export class MeteorManager {
 
   public getCurrentPhaseInfo(): PhaseInfo {
     return GAME_PHASES.find((p) => p.number === this.currentPhaseNumber) || GAME_PHASES[0];
+  }
+
+  public stopSpawning(): void {
+    this.isSpawningStopped = true;
+  }
+
+  public setMission(mission: CampaignMission): void {
+    this.isSpawningStopped = false;
+    this.maxMeteors = mission.enemyConfig.maxMeteors;
+    this.spawnInterval = mission.enemyConfig.meteorSpawnInterval;
   }
 
   /**
@@ -77,11 +90,11 @@ export class MeteorManager {
     cam: Phaser.Cameras.Scene2D.Camera,
     particleManager: ParticleManager,
   ): void {
-    // 1. Таймер периодического появления новых метеоритов (согласно настройкам фазы)
+    // 1. Таймер периодического появления новых метеоритов (согласно настройкам фазы/миссии)
     this.spawnTimer -= seconds;
     if (this.spawnTimer <= 0) {
       this.spawnTimer = Phaser.Math.FloatBetween(this.spawnInterval * 0.8, this.spawnInterval * 1.25);
-      if (this.meteors.length < this.maxMeteors) {
+      if (!this.isSpawningStopped && this.meteors.length < this.maxMeteors) {
         this.spawnMeteorAroundCamera(cam);
       }
     }
