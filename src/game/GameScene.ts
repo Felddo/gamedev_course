@@ -353,6 +353,10 @@ export class GameScene extends Phaser.Scene {
     this.playerShip.reset(MAP_WIDTH / 2, MAP_HEIGHT / 2);
     if (this.activeShipAssembly) {
       this.playerShip.setCustomAssembly(this.activeShipAssembly);
+      if (this.playerShip.installedStats) {
+        this.weaponSystem.applyAssemblyStats(this.playerShip.installedStats);
+      }
+      this.hudManager.playerMaxHp = this.playerShip.maxHp;
     }
     this.playerShip.resetUpgrades();
     this.playerShip.setVisible(true);
@@ -387,8 +391,16 @@ export class GameScene extends Phaser.Scene {
     if (assembly) {
       this.activeShipAssembly = assembly;
       this.playerShip.setCustomAssembly(assembly);
+      if (this.playerShip.installedStats) {
+        this.weaponSystem.applyAssemblyStats(this.playerShip.installedStats);
+      }
+      this.hudManager.playerMaxHp = this.playerShip.maxHp;
     } else if (this.activeShipAssembly) {
       this.playerShip.setCustomAssembly(this.activeShipAssembly);
+      if (this.playerShip.installedStats) {
+        this.weaponSystem.applyAssemblyStats(this.playerShip.installedStats);
+      }
+      this.hudManager.playerMaxHp = this.playerShip.maxHp;
     }
     this.playerShip.setVisible(true);
     this.cameras.main.centerOn(this.playerShip.x, this.playerShip.y);

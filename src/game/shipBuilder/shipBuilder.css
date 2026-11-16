@@ -586,6 +586,77 @@
   border-radius: 2px;
 }
 
+/* Стили для заблокированных модулей */
+.part-card.part-card-locked {
+  cursor: not-allowed;
+  opacity: 0.62;
+  background: rgba(15, 15, 22, 0.82);
+  border: 1px dashed rgba(239, 68, 68, 0.45);
+  filter: grayscale(0.55);
+}
+
+.part-card.part-card-locked:hover {
+  background: rgba(35, 15, 20, 0.95);
+  border-color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.45);
+  transform: none;
+}
+
+.part-preview-wrap {
+  position: relative;
+}
+
+.part-lock-overlay {
+  position: absolute;
+  top: 1px;
+  right: -2px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(239, 68, 68, 0.7);
+  border-radius: 3px;
+  padding: 1px 3px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 700;
+  color: #fca5a5;
+  letter-spacing: 0.4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.part-lock-overlay .lock-icon {
+  font-size: 8px;
+}
+
+.part-lock-condition {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  font-weight: 600;
+  color: #f87171;
+  text-align: center;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+.part-stat-tag {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  font-weight: 600;
+  color: #34d399;
+  text-align: center;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
 .parts-col-footer-hint {
   padding: 5px;
   background: rgba(3, 20, 14, 0.9);

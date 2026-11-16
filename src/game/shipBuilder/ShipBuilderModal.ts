@@ -1,5 +1,8 @@
 import { buildPartsCatalog, CategoryData, FolderNode, PartItem } from './partsCatalog';
 import { soundFx } from '../audio';
+import { campaignManager } from '../campaign/CampaignManager';
+import { SavedDroppedPart } from '../campaign/types';
+import { getModuleByPartId } from './modulesCatalog';
 
 export interface DroppedPartInstance {
   uid: string;
@@ -44,7 +47,7 @@ export const CATEGORY_LIMITS: Record<string, { max: number; title: string; icon:
   body: { max: 1, title: 'Корпус', icon: '🛡️' },
   wings: { max: 2, title: 'Крылья', icon: '🪽' },
   engines: { max: 1, title: 'Двигатели', icon: '🚀' },
-  guns: { max: 1, title: 'Пушки', icon: '⚡' },
+  guns: { max: 2, title: 'Пушки', icon: '⚡' },
 };
 
 export class ShipBuilderModal {
@@ -113,7 +116,9 @@ export class ShipBuilderModal {
 
     this.createDom();
     this.bindEvents();
-    this.loadDefaultShipPreset();
+    if (!this.loadSavedShipAssembly()) {
+      this.loadDefaultShipPreset();
+    }
     this.render();
   }
 
@@ -256,7 +261,7 @@ export class ShipBuilderModal {
                     </svg>
                   </div>
                   <span class="hangar-hint-text">ПЕРЕТАЩИТЕ МОДУЛИ В АНГАР</span>
-                  <span class="hangar-hint-sub">1 Корпус, 1 Кабина, 2 Крыла, 1 Двигатель, 1 Пушка</span>
+                  <span class="hangar-hint-sub">1 Корпус, 1 Кабина, 2 Крыла, 1 Двигатель, до 2 Пушек</span>
                 </div>
 
                 <!-- Поверхность для размещения сброшенных деталей -->
@@ -272,7 +277,7 @@ export class ShipBuilderModal {
                   ✕ ОЧИСТИТЬ ВСЕ
                 </button>
                 <div id="shipyard-parts-counter" class="hangar-parts-counter">
-                  ДЕТАЛЕЙ: 0 / 6
+                  ДЕТАЛЕЙ: 0 / 7
                 </div>
               </div>
             </div>
@@ -464,12 +469,21 @@ export class ShipBuilderModal {
   }
 
   /**
-   * Попытка добавления детали с проверкой лимита
+   * Попытка добавления детали с проверкой лимита и разблокировки
    */
   public tryAddPart(part: PartItem, x: number, y: number): boolean {
     const catId = part.category;
     const limitCfg = CATEGORY_LIMITS[catId];
 
+    // 1. Проверка разблокировки модуля
+    const mod = getModuleByPartId(part.id);
+    if (mod && !campaignManager.isModuleUnlocked(mod.id)) {
+      soundFx.playHit();
+      this.showAlert(`МОДУЛЬ ЗАБЛОКИРОВАН: ${mod.name.toUpperCase()} (${mod.unlockMission.toUpperCase()})`);
+      return false;
+    }
+
+    // 2. Проверка лимита категории
     if (!this.canAddCategoryPart(catId)) {
       soundFx.playHit();
       this.showAlert(
@@ -627,6 +641,7 @@ export class ShipBuilderModal {
     this.renderCategoriesColumn();
     this.renderDroppedParts();
     this.updateSelectedToolbar();
+    this.persistAssembly();
   }
 
   /**
@@ -944,7 +959,7 @@ export class ShipBuilderModal {
 
     if (this.partsCounterEl) {
       const total = this.droppedParts.length;
-      this.partsCounterEl.textContent = `ДЕТАЛЕЙ: ${total} / 6`;
+      this.partsCounterEl.textContent = `ДЕТАЛЕЙ: ${total} / 7`;
     }
   }
 
@@ -1094,41 +1109,102 @@ export class ShipBuilderModal {
     this.partsGridEl.innerHTML = '';
 
     items.forEach((part) => {
+      const mod = getModuleByPartId(part.id);
+      const isUnlocked = mod ? campaignManager.isModuleUnlocked(mod.id) : false;
+      const displayName = mod ? mod.name : part.name;
+
       const card = document.createElement('div');
-      card.className = 'part-card';
-      card.setAttribute('draggable', 'true');
+      card.className = `part-card ${!isUnlocked ? 'part-card-locked' : ''}`;
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
-      card.setAttribute('title', `Перетащите ${part.name} в ангар или нажмите для добавления`);
 
-      card.innerHTML = `
-        <div class="part-card-inner">
-          <div class="part-preview-wrap">
-            <img src="${part.url}" alt="${part.name}" class="part-preview-img" loading="lazy" draggable="false" />
+      if (!isUnlocked) {
+        card.setAttribute('draggable', 'false');
+        card.setAttribute(
+          'title',
+          mod
+            ? `${mod.name} // 🔒 ЗАБЛОКИРОВАНО\nУсловие: ${mod.unlockMission}\n${mod.description}\nЭффект: ${mod.statsDescription}`
+            : `Модуль заблокирован в текущей кампании`
+        );
+
+        card.innerHTML = `
+          <div class="part-card-inner">
+            <div class="part-preview-wrap">
+              <img src="${part.url}" alt="${displayName}" class="part-preview-img part-locked-img" loading="lazy" draggable="false" />
+              <div class="part-lock-overlay">
+                <span class="lock-icon">🔒</span>
+                <span class="locked-text">LOCKED</span>
+              </div>
+            </div>
+            <div class="part-meta">
+              <span class="part-name-tag">${displayName}</span>
+              <span class="part-lock-condition">${mod?.unlockMission || 'Заблокировано'}</span>
+            </div>
           </div>
-          <div class="part-meta">
-            <span class="part-name-tag">${part.name}</span>
+        `;
+
+        card.addEventListener('mouseenter', () => soundFx.playUiHover());
+        card.addEventListener('click', () => {
+          soundFx.playHit();
+          this.showAlert(
+            `МОДУЛЬ ЗАБЛОКИРОВАН: ${mod ? `${mod.name} (${mod.unlockMission})` : 'Недоступен'}`
+          );
+        });
+        card.addEventListener('dragstart', (e: DragEvent) => {
+          e.preventDefault();
+          soundFx.playHit();
+          this.showAlert(
+            `МОДУЛЬ ЗАБЛОКИРОВАН: ${mod ? `${mod.name} (${mod.unlockMission})` : 'Недоступен'}`
+          );
+        });
+      } else {
+        card.setAttribute('draggable', 'true');
+        card.setAttribute(
+          'title',
+          mod
+            ? `${mod.name} [${mod.englishName}]\n${mod.description}\nЭФФЕКТ: ${mod.statsDescription}`
+            : `Перетащите ${part.name} в ангар или кликните для установки`
+        );
+
+        card.innerHTML = `
+          <div class="part-card-inner">
+            <div class="part-preview-wrap">
+              <img src="${part.url}" alt="${displayName}" class="part-preview-img" loading="lazy" draggable="false" />
+            </div>
+            <div class="part-meta">
+              <span class="part-name-tag">${displayName}</span>
+              ${mod ? `<span class="part-stat-tag" title="${mod.statsDescription}">${mod.statsDescription}</span>` : ''}
+            </div>
+            <span class="part-drag-badge">DRAG</span>
           </div>
-          <span class="part-drag-badge">DRAG</span>
-        </div>
-      `;
+        `;
 
-      card.addEventListener('mouseenter', () => soundFx.playUiHover());
+        card.addEventListener('mouseenter', () => soundFx.playUiHover());
 
-      // HTML5 DragStart
-      card.addEventListener('dragstart', (e: DragEvent) => {
-        soundFx.playUiHover();
-        if (e.dataTransfer) {
-          e.dataTransfer.setData('application/json', JSON.stringify(part));
-          e.dataTransfer.effectAllowed = 'copy';
-        }
-      });
+        // Быстрый клик для добавления
+        card.addEventListener('click', () => {
+          if (this.hasMovedSignificantly) return;
+          const bayRect = this.centerBayEl.getBoundingClientRect();
+          const dropX = bayRect.width > 0 ? bayRect.width / 2 + (Math.random() * 30 - 15) : 200;
+          const dropY = bayRect.height > 0 ? bayRect.height / 2 + (Math.random() * 30 - 15) : 200;
+          this.tryAddPart(part, dropX, dropY);
+        });
 
-      // Pointer / Touch Down
-      card.addEventListener('pointerdown', (e: PointerEvent) => {
-        if (e.button !== 0 && e.pointerType === 'mouse') return;
-        this.startPointerDrag(part, e);
-      });
+        // HTML5 DragStart
+        card.addEventListener('dragstart', (e: DragEvent) => {
+          soundFx.playUiHover();
+          if (e.dataTransfer) {
+            e.dataTransfer.setData('application/json', JSON.stringify(part));
+            e.dataTransfer.effectAllowed = 'copy';
+          }
+        });
+
+        // Pointer / Touch Down
+        card.addEventListener('pointerdown', (e: PointerEvent) => {
+          if (e.button !== 0 && e.pointerType === 'mouse') return;
+          this.startPointerDrag(part, e);
+        });
+      }
 
       this.partsGridEl.appendChild(card);
     });
@@ -1138,6 +1214,13 @@ export class ShipBuilderModal {
    * Начало перетаскивания через Pointer/Touch из каталога
    */
   private startPointerDrag(part: PartItem, e: PointerEvent): void {
+    const mod = getModuleByPartId(part.id);
+    if (mod && !campaignManager.isModuleUnlocked(mod.id)) {
+      soundFx.playHit();
+      this.showAlert(`МОДУЛЬ ЗАБЛОКИРОВАН: ${mod.name.toUpperCase()} (${mod.unlockMission.toUpperCase()})`);
+      return;
+    }
+
     this.touchDragPart = part;
     this.isPointerDragging = true;
     this.pointerStartX = e.clientX;
@@ -1209,6 +1292,7 @@ export class ShipBuilderModal {
     if (this.isMovingDroppedPart) {
       this.isMovingDroppedPart = false;
       this.movingPartUid = null;
+      this.persistAssembly();
     }
 
     // 2. Окончание перетаскивания из каталога
@@ -1276,6 +1360,7 @@ export class ShipBuilderModal {
     this.renderLimitsGrid();
     this.renderCategoriesColumn();
     this.renderDroppedParts();
+    this.persistAssembly();
   }
 
   /**
@@ -1344,6 +1429,7 @@ export class ShipBuilderModal {
 
     this.renderDroppedParts();
     this.updateSelectedToolbar();
+    this.persistAssembly();
   }
 
   /**
@@ -1359,6 +1445,7 @@ export class ShipBuilderModal {
     part.rotation = (part.rotation + degrees) % 360;
     this.updateDroppedPartElement(part);
     this.updateSelectedToolbar();
+    this.persistAssembly();
   }
 
   /**
@@ -1374,6 +1461,7 @@ export class ShipBuilderModal {
     part.flipX = !part.flipX;
     this.updateDroppedPartElement(part);
     this.updateSelectedToolbar();
+    this.persistAssembly();
   }
 
   /**
@@ -1387,6 +1475,7 @@ export class ShipBuilderModal {
     this.renderCategoriesColumn();
     this.renderDroppedParts();
     this.updateSelectedToolbar();
+    this.persistAssembly();
   }
 
   /**
@@ -1408,7 +1497,79 @@ export class ShipBuilderModal {
     this.renderCategoriesColumn();
     this.renderDroppedParts();
     this.updateSelectedToolbar();
+    this.persistAssembly();
     soundFx.playUiClick();
+  }
+
+  /**
+   * Поиск детали по ее partId во всем каталоге
+   */
+  public findPartById(id: string): PartItem | null {
+    for (const cat of this.catalog) {
+      const direct = cat.directItems.find((p) => p.id === id);
+      if (direct) return direct;
+      for (const folder of cat.folders) {
+        const found = folder.items.find((p) => p.id === id);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Загрузка сохраненной сборки корабля из CampaignManager
+   */
+  public loadSavedShipAssembly(): boolean {
+    const saved = campaignManager.getSavedShipAssembly();
+    if (!saved || saved.length === 0) return false;
+
+    const restored: DroppedPartInstance[] = [];
+    for (const s of saved) {
+      const part = this.findPartById(s.partId);
+      if (!part) return false;
+
+      // Проверяем, разблокирован ли модуль
+      const mod = getModuleByPartId(part.id);
+      if (mod && !campaignManager.isModuleUnlocked(mod.id)) {
+        return false;
+      }
+
+      restored.push({
+        uid: s.uid,
+        part,
+        x: s.x,
+        y: s.y,
+        zIndex: s.zIndex,
+        rotation: s.rotation,
+        flipX: s.flipX,
+        width: s.width || 70,
+        height: s.height || 70,
+      });
+    }
+
+    this.droppedParts = restored;
+    if (this.droppedParts.length > 0) {
+      this.selectedPartUid = this.droppedParts[0].uid;
+    }
+    return true;
+  }
+
+  /**
+   * Сохранение текущей сборки корабля в localStorage через CampaignManager
+   */
+  public persistAssembly(): void {
+    const saved: SavedDroppedPart[] = this.droppedParts.map((p) => ({
+      uid: p.uid,
+      partId: p.part.id,
+      x: p.x,
+      y: p.y,
+      zIndex: p.zIndex,
+      rotation: p.rotation,
+      flipX: p.flipX,
+      width: p.width,
+      height: p.height,
+    }));
+    campaignManager.saveShipAssembly(saved);
   }
 
   /**

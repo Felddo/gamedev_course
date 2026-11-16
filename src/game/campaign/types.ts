@@ -51,6 +51,18 @@ export interface ScrapVictoryBreakdown {
   alreadyRewarded: boolean;    // Защита от дублирования: флаг, начислялась ли награда ранее
 }
 
+export interface SavedDroppedPart {
+  uid: string;
+  partId: string;
+  x: number;
+  y: number;
+  zIndex: number;
+  rotation: number;
+  flipX: boolean;
+  width: number;
+  height: number;
+}
+
 export interface CampaignSaveData {
   currentSector: number;        // 1..3
   currentMission: number;       // 1..5
@@ -60,5 +72,8 @@ export interface CampaignSaveData {
   missionScores: Record<string, number>;
   scrapBalance: number;         // Баланс единственной валюты «Металлолом»
   rewardedMissions: string[];   // Список миссий, за которые уже была выдана награда (защита от повторного начисления)
+  unlockedModuleIds: string[];  // Разблокированные ID боевых модулей корабля
+  rewardedModuleMissions: string[]; // Миссии, за которые уже получен выбор модуля (1-1, 1-3, 2-1, 2-3, 3-1, 3-3)
+  savedShipAssembly?: SavedDroppedPart[]; // Сохраненная кастомная сборка корабля
   updatedAt: number;
 }

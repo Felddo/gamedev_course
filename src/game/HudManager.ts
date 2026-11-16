@@ -15,6 +15,7 @@ const RADAR_SCAN_RADIUS = 1500;
 export class HudManager {
   private scene: Phaser.Scene;
   private currentMission: CampaignMission | null = null;
+  public playerMaxHp: number = PLAYER_MAX_HP;
 
   // Элементы верхней панели
   private hudGraphics!: Phaser.GameObjects.Graphics;
@@ -414,7 +415,8 @@ export class HudManager {
     if (!this.isVisible) return;
 
     // 1. Полоска прочности корабля
-    const hpRatio = Phaser.Math.Clamp(playerHp / PLAYER_MAX_HP, 0, 1);
+    const maxHp = this.playerMaxHp > 0 ? this.playerMaxHp : PLAYER_MAX_HP;
+    const hpRatio = Phaser.Math.Clamp(playerHp / maxHp, 0, 1);
     this.hpBarFill.setSize(Math.max(0, 140 * hpRatio), 12);
 
     if (hpRatio > 0.5) {

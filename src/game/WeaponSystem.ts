@@ -12,6 +12,7 @@ import {
 import { LaserProjectile, EnemyShip } from './types';
 import { PlayerShip } from './PlayerShip';
 import { ParticleManager } from './ParticleManager';
+import { CalculatedShipStats } from './shipBuilder/modulesCatalog';
 
 /**
  * Оружейная система космического корабля:
@@ -22,6 +23,12 @@ export class WeaponSystem {
   private lasers: LaserProjectile[] = [];
   private blasterTimer = 0;
   private superMuzzleAlternate = 0;
+
+  // Характеристики от установленных боевых модулей конструктора
+  public bulletDamageBonus = 0;
+  public fireRateMultiplier = 1.0;
+  public bulletSpeedBonus = 0;
+  public extraProjectiles = 0;
 
   // Тактические апгрейды оружейной системы
   public appliedUpgrades = new Set<string>();
@@ -80,6 +87,13 @@ export class WeaponSystem {
     this.cooldownMultiplier = 1.0;
   }
 
+  public applyAssemblyStats(stats: CalculatedShipStats): void {
+    this.bulletDamageBonus = stats.bulletDamageBonus;
+    this.fireRateMultiplier = stats.fireRateMultiplier;
+    this.bulletSpeedBonus = stats.bulletSpeedBonus;
+    this.extraProjectiles = stats.extraProjectiles;
+  }
+
   public handleBlasterFire(
     seconds: number,
     player: PlayerShip,
@@ -88,7 +102,7 @@ export class WeaponSystem {
     hasTarget = true,
   ): void {
     const baseCooldown = player.isSuperMode ? SUPER_BLASTER_COOLDOWN : BLASTER_COOLDOWN;
-    const currentCooldown = baseCooldown * this.cooldownMultiplier;
+    const currentCooldown = (baseCooldown * this.cooldownMultiplier) / this.fireRateMultiplier;
     this.blasterTimer += seconds;
     if (this.blasterTimer < currentCooldown) return;
 
@@ -101,75 +115,60 @@ export class WeaponSystem {
 
     if (player.isSuperMode) {
       this.fireSuperBolt(player, nearestEnemy, particleManager);
-    } else if (this.hasTwinCannon) {
-      const fireAngle = player.aimAngle;
-      soundFx.playCannon();
-      player.recoilOffset = 6.0;
-
-      let x1: number;
-      let y1: number;
-      let x2: number;
-      let y2: number;
-
-      if (player.customAssembly && player.customAssembly.gunOffsets.length >= 2) {
-        const gun1 = player.customAssembly.gunOffsets[0];
-        const gun2 = player.customAssembly.gunOffsets[1];
-        const rot = player.shipFacingAngle + Math.PI / 2;
-        const cR = Math.cos(rot);
-        const sR = Math.sin(rot);
-        x1 = player.x + cR * gun1.x - sR * gun1.y;
-        y1 = player.y + sR * gun1.x + cR * gun1.y;
-        x2 = player.x + cR * gun2.x - sR * gun2.y;
-        y2 = player.y + sR * gun2.x + cR * gun2.y;
-      } else if (player.customAssembly && player.customAssembly.gunOffsets.length === 1) {
-        const gun = player.customAssembly.gunOffsets[0];
-        const rot = player.shipFacingAngle + Math.PI / 2;
-        const cR = Math.cos(rot);
-        const sR = Math.sin(rot);
-        const gx = player.x + cR * gun.x - sR * gun.y;
-        const gy = player.y + sR * gun.x + cR * gun.y;
-        const sideAngle = fireAngle + Math.PI / 2;
-        x1 = gx + Math.cos(sideAngle) * 9;
-        y1 = gy + Math.sin(sideAngle) * 9;
-        x2 = gx - Math.cos(sideAngle) * 9;
-        y2 = gy - Math.sin(sideAngle) * 9;
-      } else {
-        const muzzleDist = 26;
-        const muzzleX = player.x + Math.cos(fireAngle) * muzzleDist;
-        const muzzleY = player.y + Math.sin(fireAngle) * muzzleDist;
-        const sideAngle = fireAngle + Math.PI / 2;
-        x1 = muzzleX + Math.cos(sideAngle) * 11;
-        y1 = muzzleY + Math.sin(sideAngle) * 11;
-        x2 = muzzleX - Math.cos(sideAngle) * 11;
-        y2 = muzzleY - Math.sin(sideAngle) * 11;
-      }
-
-      this.fireSingleBolt(x1, y1, fireAngle);
-      this.fireSingleBolt(x2, y2, fireAngle);
-      particleManager.spawnMuzzleFlash(x1, y1, fireAngle);
-      particleManager.spawnMuzzleFlash(x2, y2, fireAngle);
     } else {
       const fireAngle = player.aimAngle;
-
       soundFx.playCannon();
       player.recoilOffset = 6.0;
 
-      let muzzleX: number;
-      let muzzleY: number;
-
       if (player.customAssembly && player.customAssembly.gunOffsets.length > 0) {
-        const gun = player.customAssembly.gunOffsets[0];
+        // Динамический расчет точек огня для всех установленных пушек
         const rot = player.shipFacingAngle + Math.PI / 2;
-        muzzleX = player.x + Math.cos(rot) * gun.x - Math.sin(rot) * gun.y;
-        muzzleY = player.y + Math.sin(rot) * gun.x + Math.cos(rot) * gun.y;
-      } else {
-        const muzzleDist = 28;
-        muzzleX = player.x + Math.cos(fireAngle) * muzzleDist;
-        muzzleY = player.y + Math.sin(fireAngle) * muzzleDist;
-      }
+        const cR = Math.cos(rot);
+        const sR = Math.sin(rot);
 
-      this.fireSingleBolt(muzzleX, muzzleY, fireAngle);
-      particleManager.spawnMuzzleFlash(muzzleX, muzzleY, fireAngle);
+        for (const gun of player.customAssembly.gunOffsets) {
+          const gx = player.x + cR * gun.x - sR * gun.y;
+          const gy = player.y + sR * gun.x + cR * gun.y;
+
+          if (this.hasTwinCannon) {
+            const sideAngle = fireAngle + Math.PI / 2;
+            const x1 = gx + Math.cos(sideAngle) * 8;
+            const y1 = gy + Math.sin(sideAngle) * 8;
+            const x2 = gx - Math.cos(sideAngle) * 8;
+            const y2 = gy - Math.sin(sideAngle) * 8;
+            this.fireSingleBolt(x1, y1, fireAngle);
+            this.fireSingleBolt(x2, y2, fireAngle);
+            particleManager.spawnMuzzleFlash(x1, y1, fireAngle);
+            particleManager.spawnMuzzleFlash(x2, y2, fireAngle);
+          } else {
+            this.fireSingleBolt(gx, gy, fireAngle);
+            particleManager.spawnMuzzleFlash(gx, gy, fireAngle);
+          }
+        }
+      } else {
+        if (this.hasTwinCannon) {
+          const muzzleDist = 26;
+          const muzzleX = player.x + Math.cos(fireAngle) * muzzleDist;
+          const muzzleY = player.y + Math.sin(fireAngle) * muzzleDist;
+          const sideAngle = fireAngle + Math.PI / 2;
+          const x1 = muzzleX + Math.cos(sideAngle) * 11;
+          const y1 = muzzleY + Math.sin(sideAngle) * 11;
+          const x2 = muzzleX - Math.cos(sideAngle) * 11;
+          const y2 = muzzleY - Math.sin(sideAngle) * 11;
+
+          this.fireSingleBolt(x1, y1, fireAngle);
+          this.fireSingleBolt(x2, y2, fireAngle);
+          particleManager.spawnMuzzleFlash(x1, y1, fireAngle);
+          particleManager.spawnMuzzleFlash(x2, y2, fireAngle);
+        } else {
+          const muzzleDist = 28;
+          const muzzleX = player.x + Math.cos(fireAngle) * muzzleDist;
+          const muzzleY = player.y + Math.sin(fireAngle) * muzzleDist;
+
+          this.fireSingleBolt(muzzleX, muzzleY, fireAngle);
+          particleManager.spawnMuzzleFlash(muzzleX, muzzleY, fireAngle);
+        }
+      }
     }
   }
 
@@ -205,7 +204,8 @@ export class WeaponSystem {
   }
 
   public fireSingleBolt(x: number, y: number, angle: number): void {
-    const speed = this.hasRapidPlasma ? BLASTER_SPEED * 1.25 : BLASTER_SPEED;
+    const baseSpeed = this.hasRapidPlasma ? BLASTER_SPEED * 1.25 : BLASTER_SPEED;
+    const speed = baseSpeed + this.bulletSpeedBonus;
     const sprite = this.scene.add.sprite(x, y, 'player_missile');
     sprite.setRotation(angle + Math.PI / 2);
     sprite.setScale(0.85, 0.85);
@@ -223,7 +223,7 @@ export class WeaponSystem {
       vx,
       vy,
       lifetime: (BLASTER_RANGE * 1.15) / speed,
-      damage: BLASTER_DAMAGE,
+      damage: BLASTER_DAMAGE + this.bulletDamageBonus,
       isExplosive: this.hasExplosiveShells,
       pierceCount: this.hasPiercing ? 2 : 1,
       hitEnemies: new Set(),
@@ -267,7 +267,7 @@ export class WeaponSystem {
       vx,
       vy,
       lifetime: BLASTER_RANGE / SUPER_BLASTER_SPEED,
-      damage: SUPER_BLASTER_DAMAGE,
+      damage: SUPER_BLASTER_DAMAGE + this.bulletDamageBonus,
       isExplosive: this.hasExplosiveShells,
       pierceCount: this.hasPiercing ? 2 : 1,
       hitEnemies: new Set(),

@@ -15,6 +15,7 @@ import { EnemyShip } from './types';
 import { AtmosphereManager } from './AtmosphereManager';
 import { ParticleManager } from './ParticleManager';
 import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
+import { calculateAssemblyStats, CalculatedShipStats } from './shipBuilder/modulesCatalog';
 
 /**
  * Боевой космический корабль игрока:
@@ -56,6 +57,9 @@ export class PlayerShip {
   }
 
   // Показатели корабля
+  public installedStats: CalculatedShipStats | null = null;
+  public maxHp = PLAYER_MAX_HP;
+  public damageReduction = 0;
   public hp = PLAYER_MAX_HP;
   public invulnTimer = 0;
   public isGameOver = false;
@@ -270,8 +274,18 @@ export class PlayerShip {
     if (!assembly || assembly.modules.length === 0) {
       this.customShipContainer.setVisible(false);
       this.shipSprite.setVisible(shouldShow);
+      this.installedStats = null;
+      this.maxHp = PLAYER_MAX_HP;
+      this.damageReduction = 0;
+      this.hp = Math.min(this.hp, this.maxHp);
       return;
     }
+
+    // Расчет характеристик по фактически установленным модулям
+    this.installedStats = calculateAssemblyStats(assembly.modules);
+    this.maxHp = this.installedStats.maxHp;
+    this.damageReduction = this.installedStats.damageReduction;
+    this.hp = this.maxHp;
 
     const sortedModules = [...assembly.modules].sort((a, b) => a.zIndex - b.zIndex);
 
@@ -354,7 +368,8 @@ export class PlayerShip {
 
     this.isDashing = true;
     this.dashTimer = DASH_DURATION;
-    this.dashCooldownTimer = DASH_COOLDOWN * this.dashCooldownMultiplier;
+    const dashCdMod = this.installedStats?.dashCooldownMultiplier || 1.0;
+    this.dashCooldownTimer = DASH_COOLDOWN * this.dashCooldownMultiplier * dashCdMod;
     this.dashMoveAngle = moveAngle;
     this.dashDirX = Math.cos(moveAngle);
     this.dashDirY = Math.sin(moveAngle);
@@ -389,7 +404,8 @@ export class PlayerShip {
     if (this.superCooldownTimer > 0 || this.isSuperMode || this.isGameOver || this.scene.scene.isPaused()) return;
 
     this.isSuperMode = true;
-    this.superDurationTimer = SUPER_DURATION;
+    const superDurBonus = this.installedStats?.superDurationBonus || 0;
+    this.superDurationTimer = SUPER_DURATION + superDurBonus;
     this.superCooldownTimer = 0;
 
     soundFx.playSuperTransform();
@@ -407,17 +423,19 @@ export class PlayerShip {
   public exitSuperMode(): void {
     this.isSuperMode = false;
     this.superDurationTimer = 0;
-    this.superCooldownTimer = SUPER_COOLDOWN;
+    const superCdMod = this.installedStats?.superCooldownMultiplier || 1.0;
+    this.superCooldownTimer = SUPER_COOLDOWN * superCdMod;
 
     this.emitSuperState();
   }
 
   public emitDashState(): void {
+    const dashCdMod = this.installedStats?.dashCooldownMultiplier || 1.0;
     window.dispatchEvent(
       new CustomEvent('tank-dash-state', {
         detail: {
           cooldown: this.dashCooldownTimer,
-          maxCooldown: DASH_COOLDOWN * this.dashCooldownMultiplier,
+          maxCooldown: DASH_COOLDOWN * this.dashCooldownMultiplier * dashCdMod,
           isReady: this.dashCooldownTimer <= 0,
           isDashing: this.isDashing,
         },
@@ -426,13 +444,15 @@ export class PlayerShip {
   }
 
   public emitSuperState(): void {
+    const superCdMod = this.installedStats?.superCooldownMultiplier || 1.0;
+    const superDurBonus = this.installedStats?.superDurationBonus || 0;
     window.dispatchEvent(
       new CustomEvent('tank-super-state', {
         detail: {
           cooldown: this.superCooldownTimer,
-          maxCooldown: SUPER_COOLDOWN,
+          maxCooldown: SUPER_COOLDOWN * superCdMod,
           duration: this.superDurationTimer,
-          maxDuration: SUPER_DURATION,
+          maxDuration: SUPER_DURATION + superDurBonus,
           isReady: !this.isSuperMode && this.superCooldownTimer <= 0,
           isActive: this.isSuperMode,
         },
@@ -445,7 +465,8 @@ export class PlayerShip {
 
     this.isDashing = true;
     this.dashTimer = DASH_DURATION;
-    this.dashCooldownTimer = DASH_COOLDOWN * this.dashCooldownMultiplier;
+    const dashCdMod = this.installedStats?.dashCooldownMultiplier || 1.0;
+    this.dashCooldownTimer = DASH_COOLDOWN * this.dashCooldownMultiplier * dashCdMod;
     this.dashMoveAngle = moveAngle;
     this.dashDirX = Math.cos(moveAngle);
     this.dashDirY = Math.sin(moveAngle);
@@ -480,7 +501,8 @@ export class PlayerShip {
       if (this.isDashing) {
         this.dashTimer -= seconds;
         const progress = 1 - Math.max(0, this.dashTimer / DASH_DURATION);
-        const currentSpeed = Phaser.Math.Linear(DASH_SPEED, PLAYER_SPEED * 1.3, progress);
+        const dashSpeed = DASH_SPEED * (this.installedStats?.dashSpeedMultiplier || 1.0);
+        const currentSpeed = Phaser.Math.Linear(dashSpeed, PLAYER_SPEED * 1.3, progress);
 
         const sideAngle = this.dashMoveAngle + Math.PI / 2;
         const driftSlip = Math.sin(progress * Math.PI) * 195 * Math.sign(this.dashDriftYaw);
@@ -560,7 +582,8 @@ export class PlayerShip {
       if (this.isDashing) {
         this.dashTimer -= seconds;
         const progress = 1 - Math.max(0, this.dashTimer / DASH_DURATION);
-        const currentSpeed = Phaser.Math.Linear(DASH_SPEED, PLAYER_SPEED * 1.3, progress);
+        const dashSpeed = DASH_SPEED * (this.installedStats?.dashSpeedMultiplier || 1.0);
+        const currentSpeed = Phaser.Math.Linear(dashSpeed, PLAYER_SPEED * 1.3, progress);
 
         const sideAngle = this.dashMoveAngle + Math.PI / 2;
         const driftSlip = Math.sin(progress * Math.PI) * 195 * Math.sign(this.dashDriftYaw);
@@ -599,9 +622,10 @@ export class PlayerShip {
         isMoving = dx !== 0 || dy !== 0;
 
         if (isMoving) {
+          const modSpeedMult = this.installedStats?.speedMultiplier || 1.0;
           const len = Math.hypot(dx, dy);
-          const moveX = (dx / len) * PLAYER_SPEED * this.speedMultiplier * seconds;
-          const moveY = (dy / len) * PLAYER_SPEED * this.speedMultiplier * seconds;
+          const moveX = (dx / len) * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * seconds;
+          const moveY = (dy / len) * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * seconds;
 
           this.shipSprite.x += moveX;
           this.shipSprite.y += moveY;
@@ -609,10 +633,12 @@ export class PlayerShip {
           const moveAngle = Math.atan2(dy, dx);
           this.lastMoveAngle = moveAngle;
 
-          // Корпус плавно ориентируется по вектору движения, не поворачиваясь к врагам при автонаводке
+          // Корпус плавно ориентируется по вектору движения, маневренность зависит от установленных крыльев
           const targetRotation = moveAngle - Math.PI / 2;
           const diff = Phaser.Math.Angle.Wrap(targetRotation - this.shipSprite.rotation);
-          this.shipSprite.rotation += diff * Math.min(1, 14 * seconds);
+          const baseTurnRate = 14 + (this.installedStats?.turnSpeedBonus || 0);
+          const turnRate = baseTurnRate * (this.installedStats?.turnSpeedMultiplier || 1.0);
+          this.shipSprite.rotation += diff * Math.min(1, turnRate * seconds);
 
           // Плазменный след двигателей при тактическом улучшении
           if (this.hasFireTrail) {
@@ -796,13 +822,14 @@ export class PlayerShip {
 
   public takeDamage(amount: number): boolean {
     if (this.isAutopilot) {
-      this.hp = Math.max(PLAYER_MAX_HP * 0.65, this.hp - amount * 0.25);
+      this.hp = Math.max(this.maxHp * 0.65, this.hp - amount * 0.25);
       this.invulnTimer = 0.45;
       return false;
     }
     if (this.invulnTimer > 0 || this.isDashing) return false;
 
-    this.hp = Math.max(0, this.hp - amount);
+    const netDamage = Math.max(1, amount * (1 - this.damageReduction));
+    this.hp = Math.max(0, this.hp - netDamage);
     this.invulnTimer = PLAYER_INVULN_TIME;
     return this.hp <= 0;
   }
@@ -849,7 +876,7 @@ export class PlayerShip {
     this.leftFlameSprite?.setPosition(startX, startY);
     this.rightFlameSprite?.setPosition(startX, startY);
     this.shieldSprite?.setPosition(startX, startY);
-    this.hp = PLAYER_MAX_HP;
+    this.hp = this.maxHp;
     this.invulnTimer = 0;
     this.isGameOver = false;
     this.isDashing = false;

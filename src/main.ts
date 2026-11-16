@@ -7,6 +7,7 @@ import { GameScene } from './game/GameScene';
 import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
 import { campaignManager } from './game/campaign/CampaignManager';
 import { ScrapVictoryBreakdown } from './game/campaign/types';
+import { isModuleRewardMission, getAvailableRewardModules, ShipModule } from './game/shipBuilder/modulesCatalog';
 import menuBgUrl from './assets/menu_bg.jpg';
 
 let phaserGame: Phaser.Game | null = null;
@@ -799,6 +800,104 @@ function returnToMenuFromGameOver(): void {
 modalGoRestartBtn?.addEventListener('click', restartFromGameOver);
 modalGoMenuBtn?.addEventListener('click', returnToMenuFromGameOver);
 
+function getModuleCategoryLabel(category: string): string {
+  switch (category) {
+    case 'body':
+      return '🛡️ КОРПУС';
+    case 'guns':
+      return '⚡ ПУШКА';
+    case 'engines':
+      return '🚀 ДВИГАТЕЛЬ';
+    case 'wings':
+      return '🪽 КРЫЛЬЯ';
+    case 'pilot':
+      return '👤 КАБИНА';
+    default:
+      return category.toUpperCase();
+  }
+}
+
+function renderMissionModuleRewards(
+  container: HTMLElement,
+  missionId: string,
+  modules: ShipModule[]
+): void {
+  container.innerHTML = `
+    <div class="reward-modules-header">
+      <div class="reward-badge-wrap">
+        <span class="reward-badge-icon">🎖️</span>
+        <span class="reward-modules-badge">ТАКТИЧЕСКАЯ НАГРАДА // ВЫБОР МОДУЛЯ</span>
+      </div>
+      <h3 class="reward-modules-title">ВЫБЕРИТЕ 1 БОЕВОЙ МОДУЛЬ ДЛЯ КОРАБЛЯ</h3>
+      <p class="reward-modules-sub">Модуль будет немедленно разблокирован и доступен для сборки в ангаре</p>
+    </div>
+    <div class="reward-modules-grid"></div>
+  `;
+
+  const grid = container.querySelector('.reward-modules-grid') as HTMLElement;
+  if (!grid) return;
+
+  modules.forEach((mod) => {
+    const part = shipBuilderModal.findPartById(mod.partId);
+    const imgUrl = part?.url || '';
+
+    const card = document.createElement('div');
+    card.className = 'reward-module-card';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('data-mod-id', mod.id);
+
+    card.innerHTML = `
+      <span class="corner-bracket corner-tl"></span>
+      <span class="corner-bracket corner-tr"></span>
+      <span class="corner-bracket corner-bl"></span>
+      <span class="corner-bracket corner-br"></span>
+      <div class="reward-card-category">${getModuleCategoryLabel(mod.category)}</div>
+      <div class="reward-card-img-wrap">
+        <img src="${imgUrl}" alt="${mod.name}" class="reward-card-img" />
+      </div>
+      <h4 class="reward-card-title">${mod.name}</h4>
+      <div class="reward-card-eng">${mod.englishName}</div>
+      <div class="reward-card-desc">${mod.description}</div>
+      <div class="reward-card-stats-box">
+        <span class="stats-box-label">ЭФФЕКТ:</span>
+        <span class="stats-box-val">${mod.statsDescription}</span>
+      </div>
+      <button class="reward-card-choose-btn" type="button">РАЗБЛОКИРОВАТЬ</button>
+    `;
+
+    card.addEventListener('mouseenter', () => soundFx.playUiHover());
+
+    const pickModule = () => {
+      if (card.classList.contains('selected') || card.classList.contains('disabled')) return;
+
+      campaignManager.recordModuleReward(missionId, mod.id);
+      soundFx.playUpgradeSelect();
+
+      card.classList.add('selected');
+      const allCards = grid.querySelectorAll('.reward-module-card');
+      allCards.forEach((c) => {
+        if (c !== card) {
+          c.classList.add('disabled');
+        }
+      });
+
+      const btn = card.querySelector('.reward-card-choose-btn');
+      if (btn) btn.textContent = '✓ РАЗБЛОКИРОВАНО';
+    };
+
+    card.addEventListener('click', pickModule);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        pickModule();
+      }
+    });
+
+    grid.appendChild(card);
+  });
+}
+
 // Управление окнами завершения миссии и кампании
 function showMissionComplete(
   missionId: string,
@@ -844,6 +943,31 @@ function showMissionComplete(
     if (mcScrapBossRow) mcScrapBossRow.classList.add('hidden');
     if (mcScrapTotal) mcScrapTotal.textContent = '+0';
     if (mcScrapBalance) mcScrapBalance.textContent = currentBalance.toString();
+  }
+
+  // Награда модулем за вехи кампании (1-1, 1-3, 2-1, 2-3, 3-1, 3-3)
+  const rewardsSlot = document.getElementById('mission-rewards-slot');
+  const shouldOfferModuleReward =
+    isModuleRewardMission(missionId) && !campaignManager.isModuleMissionRewarded(missionId);
+
+  if (rewardsSlot) {
+    if (shouldOfferModuleReward) {
+      const availableModules = getAvailableRewardModules(
+        missionId,
+        campaignManager.getUnlockedModuleIds()
+      );
+
+      if (availableModules.length > 0) {
+        renderMissionModuleRewards(rewardsSlot, missionId, availableModules);
+        rewardsSlot.classList.remove('hidden');
+      } else {
+        rewardsSlot.classList.add('hidden');
+        rewardsSlot.innerHTML = '';
+      }
+    } else {
+      rewardsSlot.classList.add('hidden');
+      rewardsSlot.innerHTML = '';
+    }
   }
 
   if (btnMcNextText) {

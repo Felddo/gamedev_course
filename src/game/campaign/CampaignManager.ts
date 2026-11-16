@@ -1,6 +1,7 @@
 import { CAMPAIGN_MISSIONS } from './campaignData';
-import { CampaignMission, CampaignSaveData, ScrapVictoryBreakdown } from './types';
+import { CampaignMission, CampaignSaveData, SavedDroppedPart, ScrapVictoryBreakdown } from './types';
 import { SCRAP_CONFIG, rollScrap } from './scrapConfig';
+import { DEFAULT_UNLOCKED_MODULES, isModuleRewardMission } from '../shipBuilder/modulesCatalog';
 
 const STORAGE_KEY = 'iron_resolve_campaign_save';
 
@@ -40,6 +41,8 @@ export class CampaignManager {
       missionScores: {},
       scrapBalance: 0,
       rewardedMissions: [],
+      unlockedModuleIds: [...DEFAULT_UNLOCKED_MODULES],
+      rewardedModuleMissions: [],
       updatedAt: Date.now(),
     };
 
@@ -58,6 +61,14 @@ export class CampaignManager {
       const scrapBalance = typeof parsed.scrapBalance === 'number' && parsed.scrapBalance >= 0 ? Math.floor(parsed.scrapBalance) : 0;
       const rewardedMissions = Array.isArray(parsed.rewardedMissions) ? parsed.rewardedMissions : [];
 
+      // Гарантируем, что базовые модули всегда включены в список открытых
+      const unlockedRaw = Array.isArray(parsed.unlockedModuleIds) ? parsed.unlockedModuleIds : [];
+      const unlockedSet = new Set<string>([...DEFAULT_UNLOCKED_MODULES, ...unlockedRaw]);
+      const unlockedModuleIds = Array.from(unlockedSet);
+
+      const rewardedModuleMissions = Array.isArray(parsed.rewardedModuleMissions) ? parsed.rewardedModuleMissions : [];
+      const savedShipAssembly = Array.isArray(parsed.savedShipAssembly) ? parsed.savedShipAssembly : undefined;
+
       return {
         currentSector: sector,
         currentMission: mission,
@@ -67,6 +78,9 @@ export class CampaignManager {
         missionScores,
         scrapBalance,
         rewardedMissions,
+        unlockedModuleIds,
+        rewardedModuleMissions,
+        savedShipAssembly,
         updatedAt: parsed.updatedAt || Date.now(),
       };
     } catch (e) {
@@ -96,7 +110,71 @@ export class CampaignManager {
       ...this.saveData,
       completedMissions: [...this.saveData.completedMissions],
       rewardedMissions: [...this.saveData.rewardedMissions],
+      unlockedModuleIds: [...this.saveData.unlockedModuleIds],
+      rewardedModuleMissions: [...this.saveData.rewardedModuleMissions],
+      savedShipAssembly: this.saveData.savedShipAssembly ? [...this.saveData.savedShipAssembly] : undefined,
     };
+  }
+
+  /**
+   * Получить список всех разблокированных модулей
+   */
+  public getUnlockedModuleIds(): string[] {
+    return [...this.saveData.unlockedModuleIds];
+  }
+
+  /**
+   * Проверить, разблокирован ли указанный модуль
+   */
+  public isModuleUnlocked(moduleId: string): boolean {
+    return this.saveData.unlockedModuleIds.includes(moduleId);
+  }
+
+  /**
+   * Разблокировать модуль по ID с немедленным сохранением
+   */
+  public unlockModule(moduleId: string): boolean {
+    if (!this.saveData.unlockedModuleIds.includes(moduleId)) {
+      this.saveData.unlockedModuleIds.push(moduleId);
+      this.saveToStorage();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Проверить, была ли уже выдана награда-модуль за данную миссию
+   */
+  public isModuleMissionRewarded(missionId: string): boolean {
+    return this.saveData.rewardedModuleMissions.includes(missionId);
+  }
+
+  /**
+   * Зафиксировать получение награды-модуля за миссию (защита от повторного начисления)
+   */
+  public recordModuleReward(missionId: string, chosenModuleId?: string): void {
+    if (chosenModuleId) {
+      this.unlockModule(chosenModuleId);
+    }
+    if (!this.saveData.rewardedModuleMissions.includes(missionId)) {
+      this.saveData.rewardedModuleMissions.push(missionId);
+      this.saveToStorage();
+    }
+  }
+
+  /**
+   * Сохранить текущую раскладку деталей сборки корабля
+   */
+  public saveShipAssembly(assembly: SavedDroppedPart[]): void {
+    this.saveData.savedShipAssembly = assembly.map((p) => ({ ...p }));
+    this.saveToStorage();
+  }
+
+  /**
+   * Получить сохраненную сборку корабля
+   */
+  public getSavedShipAssembly(): SavedDroppedPart[] | undefined {
+    return this.saveData.savedShipAssembly ? [...this.saveData.savedShipAssembly] : undefined;
   }
 
   /**
@@ -269,6 +347,9 @@ export class CampaignManager {
       missionScores: {},
       scrapBalance: 0,
       rewardedMissions: [],
+      unlockedModuleIds: [...DEFAULT_UNLOCKED_MODULES],
+      rewardedModuleMissions: [],
+      savedShipAssembly: undefined,
       updatedAt: Date.now(),
     };
     this.saveToStorage();
