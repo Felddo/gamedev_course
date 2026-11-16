@@ -592,7 +592,7 @@ export class EnemyManager {
   public checkLaserCollisions(
     weaponSystem: WeaponSystem,
     particleManager: ParticleManager,
-    onEnemyKilled: (score: number, x: number, y: number) => void,
+    onEnemyKilled: (score: number, x: number, y: number, enemyType?: EnemyShip['type'], isBoss?: boolean) => void,
   ): void {
     const lasers = weaponSystem.getLasers();
 
@@ -693,7 +693,7 @@ export class EnemyManager {
     radius: number,
     damage: number,
     particleManager: ParticleManager,
-    onEnemyKilled: (score: number, x: number, y: number) => void,
+    onEnemyKilled: (score: number, x: number, y: number, enemyType?: EnemyShip['type'], isBoss?: boolean) => void,
   ): void {
     for (let e = this.enemies.length - 1; e >= 0; e--) {
       const enemy = this.enemies[e];
@@ -712,7 +712,7 @@ export class EnemyManager {
   public destroyEnemy(
     index: number,
     particleManager: ParticleManager,
-    onEnemyKilled?: (score: number, x: number, y: number) => void,
+    onEnemyKilled?: (score: number, x: number, y: number, enemyType?: EnemyShip['type'], isBoss?: boolean) => void,
   ): void {
     const enemy = this.enemies[index];
     if (!enemy) return;
@@ -737,9 +737,11 @@ export class EnemyManager {
     const ex = enemy.sprite.x;
     const ey = enemy.sprite.y;
     const scoreVal = enemy.scoreValue;
+    const enemyType = enemy.type;
+    const isBoss = !!enemy.isBoss;
 
     if (onEnemyKilled) {
-      onEnemyKilled(scoreVal, ex, ey);
+      onEnemyKilled(scoreVal, ex, ey, enemyType, isBoss);
     }
     this.destroyEnemySprites(enemy);
     this.enemies.splice(index, 1);
@@ -749,7 +751,7 @@ export class EnemyManager {
     player: PlayerShip,
     particleManager: ParticleManager,
     onGameOver: () => void,
-    onEnemyKilled?: (score: number, x: number, y: number) => void,
+    onEnemyKilled?: (score: number, x: number, y: number, enemyType?: EnemyShip['type'], isBoss?: boolean) => void,
   ): void {
     // 1. Попадание красных плазменных зарядов в корабль игрока
     for (let b = this.enemyBullets.length - 1; b >= 0; b--) {

@@ -6,6 +6,7 @@ import { GAME_PHASES } from './game/constants';
 import { GameScene } from './game/GameScene';
 import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
 import { campaignManager } from './game/campaign/CampaignManager';
+import { ScrapVictoryBreakdown } from './game/campaign/types';
 import menuBgUrl from './assets/menu_bg.jpg';
 
 let phaserGame: Phaser.Game | null = null;
@@ -87,8 +88,18 @@ const btnMcMenu = document.getElementById('btn-mc-menu') as HTMLButtonElement;
 // Campaign Complete Modal Elements
 const modalCampaignComplete = document.getElementById('modal-campaign-complete') as HTMLElement;
 const ccTotalScore = document.getElementById('cc-total-score') as HTMLElement;
+const ccTotalScrap = document.getElementById('cc-total-scrap') as HTMLElement;
 const btnCcMenu = document.getElementById('btn-cc-menu') as HTMLButtonElement;
 const btnCcRestart = document.getElementById('btn-cc-restart') as HTMLButtonElement;
+
+// Scrap Currency UI Elements
+const menuScrapBalance = document.getElementById('menu-scrap-balance') as HTMLElement;
+const mcScrapEnemies = document.getElementById('mc-scrap-enemies') as HTMLElement;
+const mcScrapMission = document.getElementById('mc-scrap-mission') as HTMLElement;
+const mcScrapBoss = document.getElementById('mc-scrap-boss') as HTMLElement;
+const mcScrapBossRow = document.getElementById('mc-scrap-boss-row') as HTMLElement;
+const mcScrapTotal = document.getElementById('mc-scrap-total') as HTMLElement;
+const mcScrapBalance = document.getElementById('mc-scrap-balance') as HTMLElement;
 
 // Rocket Dash HUD Elements
 const dashHud = document.getElementById('dash-hud') as HTMLElement;
@@ -798,6 +809,7 @@ function showMissionComplete(
   score: number,
   nextSector: number,
   nextMission: number,
+  scrapBreakdown?: ScrapVictoryBreakdown,
 ): void {
   hideGameOver();
   modalPause?.classList.add('hidden');
@@ -811,6 +823,29 @@ function showMissionComplete(
   if (mcKills) mcKills.textContent = kills.toString();
   if (mcScore) mcScore.textContent = score.toString();
 
+  // Заполнение информации о добытом металлоломе
+  if (scrapBreakdown) {
+    if (mcScrapEnemies) mcScrapEnemies.textContent = `+${scrapBreakdown.enemyScrap}`;
+    if (mcScrapMission) mcScrapMission.textContent = `+${scrapBreakdown.missionReward}`;
+    if (mcScrapBossRow && mcScrapBoss) {
+      if (scrapBreakdown.bossBonus > 0) {
+        mcScrapBossRow.classList.remove('hidden');
+        mcScrapBoss.textContent = `+${scrapBreakdown.bossBonus}`;
+      } else {
+        mcScrapBossRow.classList.add('hidden');
+      }
+    }
+    if (mcScrapTotal) mcScrapTotal.textContent = `+${scrapBreakdown.totalEarned}`;
+    if (mcScrapBalance) mcScrapBalance.textContent = scrapBreakdown.newBalance.toString();
+  } else {
+    const currentBalance = campaignManager.getScrapBalance();
+    if (mcScrapEnemies) mcScrapEnemies.textContent = '+0';
+    if (mcScrapMission) mcScrapMission.textContent = '+0';
+    if (mcScrapBossRow) mcScrapBossRow.classList.add('hidden');
+    if (mcScrapTotal) mcScrapTotal.textContent = '+0';
+    if (mcScrapBalance) mcScrapBalance.textContent = currentBalance.toString();
+  }
+
   if (btnMcNextText) {
     btnMcNextText.textContent = `СЛЕДУЮЩАЯ МИССИЯ [${nextSector}-${nextMission}]`;
   }
@@ -823,7 +858,7 @@ function hideMissionComplete(): void {
   modalMissionComplete?.classList.add('hidden');
 }
 
-function showCampaignComplete(totalScore: number): void {
+function showCampaignComplete(totalScore: number, scrapBalance?: number): void {
   hideGameOver();
   hideMissionComplete();
   modalPause?.classList.add('hidden');
@@ -832,6 +867,9 @@ function showCampaignComplete(totalScore: number): void {
   topEscBtn?.classList.add('hidden');
 
   if (ccTotalScore) ccTotalScore.textContent = totalScore.toString();
+  if (ccTotalScrap) {
+    ccTotalScrap.textContent = (scrapBalance ?? campaignManager.getScrapBalance()).toString();
+  }
   modalCampaignComplete?.classList.remove('hidden');
   updateMenuCampaignInfo();
 }
@@ -903,7 +941,8 @@ btnCcRestart?.addEventListener('click', restartCampaignFromBeginning);
 window.addEventListener('mission-completed', ((e: CustomEvent) => {
   const detail = e.detail || {};
   if (detail.isCampaignComplete) {
-    showCampaignComplete(detail.totalScore || detail.score || 0);
+    const finalScrap = detail.scrapBreakdown?.newBalance ?? campaignManager.getScrapBalance();
+    showCampaignComplete(detail.totalScore || detail.score || 0, finalScrap);
   } else {
     showMissionComplete(
       detail.missionId || `${detail.sector}-${detail.mission}`,
@@ -914,6 +953,7 @@ window.addEventListener('mission-completed', ((e: CustomEvent) => {
       detail.score || 0,
       detail.nextSector || 1,
       detail.nextMission || 1,
+      detail.scrapBreakdown,
     );
   }
 }) as EventListener);
@@ -922,6 +962,7 @@ function updateMenuCampaignInfo(): void {
   const currentMission = campaignManager.getCurrentMission();
   const completedCount = campaignManager.getCompletedCount();
   const isDone = campaignManager.isCampaignCompleted();
+  const scrapBalance = campaignManager.getScrapBalance();
 
   if (btnStartTitle && btnStartSub) {
     if (isDone) {
@@ -944,6 +985,10 @@ function updateMenuCampaignInfo(): void {
     } else {
       menuCampaignStatus.textContent = 'SYS_STATUS: СЕКТОР 1 // МИССИЯ 1-1';
     }
+  }
+
+  if (menuScrapBalance) {
+    menuScrapBalance.textContent = scrapBalance.toString();
   }
 }
 

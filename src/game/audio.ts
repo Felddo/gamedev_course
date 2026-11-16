@@ -600,6 +600,45 @@ class SoundFx {
       // Игнорируем
     }
   }
+
+  /**
+   * Металлический звонкий звук подбора металлолома (scrap clink / pickup).
+   */
+  playScrapPickup(): void {
+    try {
+      this.init();
+      const dest = this.getMasterDestination();
+      if (!this.ctx || !dest || this.muted) return;
+      const now = this.ctx.currentTime;
+
+      // Металлический звонкий перкуссионный резонанс с высокой гармоникой
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(1480, now);
+      osc1.frequency.exponentialRampToValueAtTime(2200, now + 0.08);
+
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(2960, now);
+      osc2.frequency.exponentialRampToValueAtTime(3700, now + 0.06);
+
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(dest);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.18);
+      osc2.stop(now + 0.18);
+    } catch {
+      // Игнорируем
+    }
+  }
 }
 
 export const soundFx = new SoundFx();

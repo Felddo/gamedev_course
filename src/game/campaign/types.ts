@@ -42,6 +42,15 @@ export interface CampaignMission {
   bossConfig?: MissionBossConfig;
 }
 
+export interface ScrapVictoryBreakdown {
+  enemyScrap: number;          // Металлолом, подобранный с поверженных врагов
+  missionReward: number;       // Награда за успешное завершение миссии
+  bossBonus: number;           // Бонус за ликвидацию босса
+  totalEarned: number;         // Суммарный заработок металлолома за вылет
+  newBalance: number;          // Итоговый баланс после начисления
+  alreadyRewarded: boolean;    // Защита от дублирования: флаг, начислялась ли награда ранее
+}
+
 export interface CampaignSaveData {
   currentSector: number;        // 1..3
   currentMission: number;       // 1..5
@@ -49,5 +58,7 @@ export interface CampaignSaveData {
   state: 'in_progress' | 'completed';
   totalScore: number;
   missionScores: Record<string, number>;
+  scrapBalance: number;         // Баланс единственной валюты «Металлолом»
+  rewardedMissions: string[];   // Список миссий, за которые уже была выдана награда (защита от повторного начисления)
   updatedAt: number;
 }

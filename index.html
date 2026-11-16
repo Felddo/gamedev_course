@@ -216,6 +216,11 @@
             <div class="hud-status-badge">
               <span class="hud-status-dot"></span>
               <span class="hud-status-code" id="menu-campaign-status">SYS_STATUS: СЕКТОР 1 // МИССИЯ 1-1</span>
+              <span class="hud-scrap-badge" id="menu-scrap-badge" title="Запас металлолома">
+                <span class="hud-scrap-icon">⚙</span>
+                <span class="hud-scrap-label">МЕТАЛЛОЛОМ:</span>
+                <span class="hud-scrap-val" id="menu-scrap-balance">0</span>
+              </span>
             </div>
             <h1 class="hud-game-title">IRON RESOLVE</h1>
             <div class="hud-game-subtitle">SURVIVOR PROTOCOL</div>
@@ -627,6 +632,40 @@
             </div>
           </div>
 
+          <!-- Панель награды валюты: Металлолом -->
+          <div id="mc-scrap-panel" class="mc-scrap-panel">
+            <div class="mc-scrap-header">
+              <span class="mc-scrap-badge">ВАЛЮТА // REWARD</span>
+              <span class="mc-scrap-title">ДОБЫТЫЙ МЕТАЛЛОЛОМ</span>
+            </div>
+
+            <div class="mc-scrap-list">
+              <div class="mc-scrap-row">
+                <span class="mc-scrap-label">Сбитые противники:</span>
+                <span id="mc-scrap-enemies" class="mc-scrap-val">+0</span>
+              </div>
+              <div class="mc-scrap-row">
+                <span class="mc-scrap-label">Награда за сектор:</span>
+                <span id="mc-scrap-mission" class="mc-scrap-val">+0</span>
+              </div>
+              <div class="mc-scrap-row hidden" id="mc-scrap-boss-row">
+                <span class="mc-scrap-label">Ликвидация флагмана (босс):</span>
+                <span id="mc-scrap-boss" class="mc-scrap-val">+0</span>
+              </div>
+            </div>
+
+            <div class="mc-scrap-summary">
+              <div class="mc-scrap-summary-item">
+                <span class="mc-scrap-summary-label">ВСЕГО ЗА ВЫЛЕТ</span>
+                <span id="mc-scrap-total" class="mc-scrap-summary-val scrap-total-val">+0</span>
+              </div>
+              <div class="mc-scrap-summary-item balance-item">
+                <span class="mc-scrap-summary-label">БАЛАНС МЕТАЛЛОЛОМА</span>
+                <span id="mc-scrap-balance" class="mc-scrap-summary-val scrap-balance-val">0</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Слот для карточек модулей и тактических улучшений (будущие обновления) -->
           <div id="mission-rewards-slot" class="mission-rewards-slot hidden" aria-label="Тактические модули">
             <!-- Зарезервированный слот для подключения модулей -->
@@ -666,7 +705,7 @@
             ВСЕ 3 СЕКТОРА ОСВОБОЖДЕНЫ! ВЕРХОВНЫЙ ДРЕДНОУТ "АПОКАЛИПСИС" ПОВЕРЖЕН.
           </p>
 
-          <div class="modal-debrief-grid">
+          <div class="modal-debrief-grid" style="grid-template-columns: repeat(4, 1fr);">
             <div class="debrief-card">
               <span class="debrief-label">МИССИЙ ПРОЙДЕНО</span>
               <span class="debrief-value" style="color: #34d399;">15 / 15</span>
@@ -678,6 +717,10 @@
             <div class="debrief-card">
               <span class="debrief-label">ОБЩИЙ СЧЕТ</span>
               <span id="cc-total-score" class="debrief-value score-val">0</span>
+            </div>
+            <div class="debrief-card">
+              <span class="debrief-label">БАЛАНС МЕТАЛЛА</span>
+              <span id="cc-total-scrap" class="debrief-value" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.45);">0</span>
             </div>
           </div>
         </div>

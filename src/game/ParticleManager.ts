@@ -520,6 +520,85 @@ export class ParticleManager {
     });
   }
 
+  /**
+   * Янтарно-золотая вспышка и металлические искры при подбирании металлолома
+   */
+  public spawnScrapPickup(x: number, y: number, scrapValue: number): void {
+    // 1. Расширяющееся янтарное кольцо
+    const ring = this.scene.add.circle(x, y, 14, 0xf59e0b, 0.85);
+    ring.setStrokeStyle(2, 0xfef08a, 1.0);
+    ring.setDepth(16);
+    this.scene.tweens.add({
+      targets: ring,
+      scale: 2.2,
+      alpha: 0,
+      duration: 220,
+      ease: 'Cubic.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+
+    // 2. Искры золотого металлического спектра
+    const sparkCount = Math.min(14, Math.max(7, Math.round(scrapValue * 1.5)));
+    const colors = [0xffffff, 0xfef08a, 0xfde047, 0xfbbf24, 0xf59e0b, 0xd97706];
+    for (let i = 0; i < sparkCount; i++) {
+      const spark = this.scene.add.sprite(x, y, 'spark_particle');
+      spark.setScale(Phaser.Math.FloatBetween(0.8, 1.5));
+      spark.setTint(colors[i % colors.length]);
+      spark.setDepth(16);
+      spark.setBlendMode(Phaser.BlendModes.ADD);
+
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const speed = Phaser.Math.Between(70, 220);
+      this.particles.push({
+        sprite: spark,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1.0,
+        decay: 3.5,
+      });
+    }
+
+    // 3. Всплывающий золотой текст начисления металлолома
+    const scrapText = this.scene.add.text(x, y - 8, `+${scrapValue} МЕТАЛЛОЛОМ`, {
+      fontFamily: "'Orbitron', 'Rajdhani', monospace",
+      fontSize: '13px',
+      fontStyle: 'bold',
+      color: '#fef08a',
+      stroke: '#78350f',
+      strokeThickness: 3,
+    });
+    scrapText.setOrigin(0.5, 0.5);
+    scrapText.setDepth(17);
+
+    this.scene.tweens.add({
+      targets: scrapText,
+      y: y - 36,
+      alpha: 0,
+      scale: 1.15,
+      duration: 650,
+      ease: 'Sine.easeOut',
+      onComplete: () => scrapText.destroy(),
+    });
+  }
+
+  /**
+   * Искры металлической пыли при магнитном полете металлолома к кораблю
+   */
+  public spawnScrapTrailSpark(x: number, y: number): void {
+    const spark = this.scene.add.sprite(x, y, 'spark_particle');
+    spark.setScale(0.7);
+    spark.setTint(0xfbbf24);
+    spark.setDepth(14);
+    spark.setBlendMode(Phaser.BlendModes.ADD);
+    this.particles.push({
+      sprite: spark,
+      vx: Phaser.Math.Between(-15, 15),
+      vy: Phaser.Math.Between(-15, 15),
+      alpha: 0.8,
+      decay: 4.5,
+    });
+  }
+
   public destroy(): void {
     this.reset();
   }

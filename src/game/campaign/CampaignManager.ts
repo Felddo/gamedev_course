@@ -1,5 +1,6 @@
 import { CAMPAIGN_MISSIONS } from './campaignData';
-import { CampaignMission, CampaignSaveData } from './types';
+import { CampaignMission, CampaignSaveData, ScrapVictoryBreakdown } from './types';
+import { SCRAP_CONFIG, rollScrap } from './scrapConfig';
 
 const STORAGE_KEY = 'iron_resolve_campaign_save';
 
@@ -37,6 +38,8 @@ export class CampaignManager {
       state: 'in_progress',
       totalScore: 0,
       missionScores: {},
+      scrapBalance: 0,
+      rewardedMissions: [],
       updatedAt: Date.now(),
     };
 
@@ -52,6 +55,8 @@ export class CampaignManager {
       const state = parsed.state === 'completed' ? 'completed' : 'in_progress';
       const totalScore = typeof parsed.totalScore === 'number' ? parsed.totalScore : 0;
       const missionScores = (parsed.missionScores && typeof parsed.missionScores === 'object') ? parsed.missionScores : {};
+      const scrapBalance = typeof parsed.scrapBalance === 'number' && parsed.scrapBalance >= 0 ? Math.floor(parsed.scrapBalance) : 0;
+      const rewardedMissions = Array.isArray(parsed.rewardedMissions) ? parsed.rewardedMissions : [];
 
       return {
         currentSector: sector,
@@ -60,6 +65,8 @@ export class CampaignManager {
         state,
         totalScore,
         missionScores,
+        scrapBalance,
+        rewardedMissions,
         updatedAt: parsed.updatedAt || Date.now(),
       };
     } catch (e) {
@@ -85,7 +92,29 @@ export class CampaignManager {
    * Получить текущее сохраненное состояние
    */
   public getSaveData(): CampaignSaveData {
-    return { ...this.saveData, completedMissions: [...this.saveData.completedMissions] };
+    return {
+      ...this.saveData,
+      completedMissions: [...this.saveData.completedMissions],
+      rewardedMissions: [...this.saveData.rewardedMissions],
+    };
+  }
+
+  /**
+   * Получить текущий баланс металлолома
+   */
+  public getScrapBalance(): number {
+    return this.saveData.scrapBalance;
+  }
+
+  /**
+   * Начисление металлолома с моментальным сохранением в localStorage
+   */
+  public addScrap(amount: number): number {
+    if (amount > 0) {
+      this.saveData.scrapBalance += Math.floor(amount);
+      this.saveToStorage();
+    }
+    return this.saveData.scrapBalance;
   }
 
   /**
@@ -121,21 +150,29 @@ export class CampaignManager {
   /**
    * Фиксация победы в текущей миссии:
    * 1. Сохраняет очки миссии.
-   * 2. Добавляет текущую миссию в список пройденных.
-   * 3. МГНОВЕННО переводит указатель текущей миссии на следующую в localStorage,
+   * 2. Начисляет валюту «Металлолом» (с поверженных врагов, награда за сектор, бонус за босса).
+   *    Защита от дублирования: начисление происходит ровно один раз за миссию.
+   * 3. Добавляет текущую миссию в список пройденных.
+   * 4. МГНОВЕННО переводит указатель текущей миссии на следующую в localStorage,
    *    чтобы при обновлении экрана игрок не проходил её повторно.
-   * 4. Если завершена миссия 3-5, отмечает всю кампанию как пройденную ('completed').
+   * 5. Если завершена миссия 3-5, отмечает всю кампанию как пройденную ('completed').
    */
   public recordVictory(
     score: number,
     _kills: number,
     _timeSeconds: number,
+    scrapData?: {
+      enemyScrap?: number;
+      isBossMission?: boolean;
+      wasBossKilled?: boolean;
+    },
   ): {
     completedSector: number;
     completedMission: number;
     nextSector: number;
     nextMission: number;
     isCampaignComplete: boolean;
+    scrapBreakdown: ScrapVictoryBreakdown;
   } {
     const currentSector = this.saveData.currentSector;
     const currentMission = this.saveData.currentMission;
@@ -152,6 +189,23 @@ export class CampaignManager {
       this.saveData.missionScores[missionId] = score;
     }
     this.saveData.totalScore += score;
+
+    // Расчет наград валюты «Металлолом»
+    const isBossMission = scrapData?.isBossMission ?? (currentMission === 5);
+    const wasBossKilled = scrapData?.wasBossKilled ?? isBossMission;
+    const enemyScrap = Math.max(0, Math.floor(scrapData?.enemyScrap ?? 0));
+    const missionReward = isBossMission
+      ? rollScrap(SCRAP_CONFIG.missionRewards.bossMission)
+      : rollScrap(SCRAP_CONFIG.missionRewards.regular);
+    const bossBonus = wasBossKilled ? SCRAP_CONFIG.missionRewards.bossKillBonus : 0;
+    const totalEarned = enemyScrap + missionReward + bossBonus;
+
+    // Защита от повторного начисления: проверяем, выдавалась ли награда за эту миссию
+    const alreadyRewarded = this.saveData.rewardedMissions.includes(missionId);
+    if (!alreadyRewarded) {
+      this.saveData.scrapBalance += totalEarned;
+      this.saveData.rewardedMissions.push(missionId);
+    }
 
     // Рассчитываем следующую миссию
     let nextSector = currentSector;
@@ -183,6 +237,14 @@ export class CampaignManager {
       nextSector,
       nextMission,
       isCampaignComplete,
+      scrapBreakdown: {
+        enemyScrap,
+        missionReward,
+        bossBonus,
+        totalEarned,
+        newBalance: this.saveData.scrapBalance,
+        alreadyRewarded,
+      },
     };
   }
 
@@ -205,6 +267,8 @@ export class CampaignManager {
       state: 'in_progress',
       totalScore: 0,
       missionScores: {},
+      scrapBalance: 0,
+      rewardedMissions: [],
       updatedAt: Date.now(),
     };
     this.saveToStorage();

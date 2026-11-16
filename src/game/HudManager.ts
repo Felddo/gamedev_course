@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { PLAYER_MAX_HP, GAME_PHASES } from './constants';
-import { EnemyShip, Meteor, SpaceStation, ExpOrb } from './types';
+import { EnemyShip, Meteor, SpaceStation, ExpOrb, ScrapPickup } from './types';
 import { CampaignMission } from './campaign/types';
 
 const RADAR_SIZE = 170;
@@ -26,6 +26,8 @@ export class HudManager {
   private timerText!: Phaser.GameObjects.Text;
   private killsLabel!: Phaser.GameObjects.Text;
   private killsText!: Phaser.GameObjects.Text;
+  private scrapLabel!: Phaser.GameObjects.Text;
+  private scrapText!: Phaser.GameObjects.Text;
   private phaseLabel!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
 
@@ -128,6 +130,28 @@ export class HudManager {
         fontSize: '16px',
         fontStyle: 'bold',
         color: '#ecfdf5',
+      })
+      .setOrigin(0.5, 0.5)
+      .setScrollFactor(0)
+      .setDepth(32);
+
+    this.scrapLabel = this.scene.add
+      .text(0, 0, 'МЕТАЛЛОЛОМ // SCRAP', {
+        fontFamily: "'Rajdhani', -apple-system, sans-serif",
+        fontSize: '10px',
+        fontStyle: '600',
+        color: '#fde68a',
+      })
+      .setOrigin(0.5, 0.5)
+      .setScrollFactor(0)
+      .setDepth(32);
+
+    this.scrapText = this.scene.add
+      .text(0, 0, '0', {
+        fontFamily: "'Orbitron', 'JetBrains Mono', monospace",
+        fontSize: '16px',
+        fontStyle: 'bold',
+        color: '#fbbf24',
       })
       .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
@@ -262,6 +286,10 @@ export class HudManager {
     this.killsLabel.setPosition(killsX, 12);
     this.killsText.setPosition(killsX, 28);
 
+    const scrapX = centerX + 140;
+    this.scrapLabel.setPosition(scrapX, 12);
+    this.scrapText.setPosition(scrapX, 28);
+
     const phaseX = width - padX - 80;
     this.phaseLabel.setPosition(phaseX, 12);
     this.phaseText.setPosition(phaseX, 28);
@@ -380,6 +408,8 @@ export class HudManager {
     targetedStation: SpaceStation | null = null,
     expOrbs: ExpOrb[] = [],
     activeBoss: EnemyShip | null = null,
+    scrapCount = 0,
+    scrapItems: ScrapPickup[] = [],
   ): void {
     if (!this.isVisible) return;
 
@@ -433,14 +463,15 @@ export class HudManager {
       if (this.bossBarText) this.bossBarText.setVisible(false);
     }
 
-    // 3. Цели
+    // 3. Цели и металлолом
     this.killsText.setText(`${killsCount}`);
+    this.scrapText.setText(`${scrapCount}`);
 
     // 4. Фиолетовая голографическая полоска опыта под верхней панелью
     this.updateExpBar(score, currentPhase);
 
     // 5. Тактический радар
-    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, expOrbs);
+    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, expOrbs, scrapItems);
   }
 
   private renderBossBar(boss: EnemyShip): void {
@@ -528,6 +559,7 @@ export class HudManager {
     stations: SpaceStation[] = [],
     targetedStation: SpaceStation | null = null,
     expOrbs: ExpOrb[] = [],
+    scrapItems: ScrapPickup[] = [],
   ): void {
     this.radarGraphics.clear();
     const half = RADAR_SIZE / 2;
@@ -609,6 +641,19 @@ export class HudManager {
         const ox = (dx / scanRadius) * radarRadius;
         const oy = (dy / scanRadius) * radarRadius;
         this.radarGraphics.fillCircle(ox, oy, 1.8);
+      }
+    }
+
+    // Фрагменты металлолома на радаре (янтарно-золотые маркеры)
+    this.radarGraphics.fillStyle(0xfbbf24, 0.95);
+    for (const item of scrapItems) {
+      const dx = item.x - playerX;
+      const dy = item.y - playerY;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= scanRadius) {
+        const sx = (dx / scanRadius) * radarRadius;
+        const sy = (dy / scanRadius) * radarRadius;
+        this.radarGraphics.fillCircle(sx, sy, 2.0);
       }
     }
 

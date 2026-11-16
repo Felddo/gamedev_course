@@ -829,6 +829,172 @@ canvas {
 }
 
 /* ==========================================================
+   SCRAP CURRENCY (МЕТАЛЛОЛОМ) UI & MISSION REWARDS
+   ========================================================== */
+.hud-scrap-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 14px;
+  padding: 3px 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 3px;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+}
+
+.hud-scrap-icon {
+  font-size: 13px;
+  color: #fbbf24;
+  line-height: 1;
+}
+
+.hud-scrap-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #fde68a;
+  letter-spacing: 1px;
+}
+
+.hud-scrap-val {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fef08a;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.6);
+}
+
+.mc-scrap-panel {
+  margin: 14px 0 6px;
+  padding: 12px 14px;
+  background: rgba(26, 18, 5, 0.65);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 16px rgba(245, 158, 11, 0.08);
+}
+
+.mc-scrap-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fbbf24, transparent);
+}
+
+.mc-scrap-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.mc-scrap-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 2px 6px;
+  background: rgba(245, 158, 11, 0.25);
+  border: 1px solid #f59e0b;
+  color: #fde68a;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.mc-scrap-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fef08a;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.mc-scrap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mc-scrap-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mc-scrap-label {
+  color: #cbd5e1;
+  letter-spacing: 0.5px;
+}
+
+.mc-scrap-val {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fde68a;
+}
+
+.mc-scrap-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.mc-scrap-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  background: rgba(45, 26, 6, 0.6);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 3px;
+}
+
+.mc-scrap-summary-item.balance-item {
+  background: rgba(45, 26, 6, 0.85);
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+.mc-scrap-summary-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fde68a;
+  text-transform: uppercase;
+}
+
+.mc-scrap-summary-val {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.scrap-total-val {
+  color: #facc15;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+}
+
+.scrap-balance-val {
+  color: #fef08a;
+  text-shadow: 0 0 12px rgba(254, 240, 138, 0.7);
+}
+
+/* ==========================================================
    MISSION REWARDS & MODULE CARDS SLOT (Future Expansion)
    ========================================================== */
 .mission-rewards-slot {

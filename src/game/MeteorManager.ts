@@ -377,7 +377,7 @@ export class MeteorManager {
   public checkEnemyCollisions(
     enemyManager: EnemyManager,
     particleManager: ParticleManager,
-    onEnemyKilled?: (score: number, x: number, y: number) => void,
+    onEnemyKilled?: (score: number, x: number, y: number, enemyType?: any, isBoss?: boolean) => void,
   ): void {
     const enemies = enemyManager.getEnemies();
     for (const meteor of this.meteors) {

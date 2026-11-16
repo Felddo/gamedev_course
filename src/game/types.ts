@@ -165,3 +165,19 @@ export interface ExpOrb {
   pulseTimer: number;
   baseScale: number;
 }
+
+/**
+ * Объект выпавшего металлолома (единственная игровая валюта)
+ */
+export interface ScrapPickup {
+  sprite: Phaser.GameObjects.Sprite;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  value: number;
+  isMagnetized: boolean;
+  rotationSpeed: number;
+  baseScale: number;
+  pulseTimer: number;
+}
