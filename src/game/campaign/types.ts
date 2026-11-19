@@ -74,6 +74,8 @@ export interface CampaignSaveData {
   rewardedMissions: string[];   // Список миссий, за которые уже была выдана награда (защита от повторного начисления)
   unlockedModuleIds: string[];  // Разблокированные ID боевых модулей корабля
   rewardedModuleMissions: string[]; // Миссии, за которые уже получен выбор модуля (1-1, 1-3, 2-1, 2-3, 3-1, 3-3)
+  appliedUpgradeIds: string[];  // Выбранные ID тактических улучшений (сохраняются до конца кампании)
+  rewardedTacticalMissions: string[]; // Миссии, за которые уже получен выбор тактического улучшения (1-2, 1-4, 2-2, 2-4, 3-2, 3-4)
   savedShipAssembly?: SavedDroppedPart[]; // Сохраненная кастомная сборка корабля
   updatedAt: number;
 }

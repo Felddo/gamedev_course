@@ -1,7 +1,7 @@
 import './style.css';
 import { createGame } from './game/config';
 import { soundFx } from './game/audio';
-import { getRandomUpgrades, TankUpgrade } from './game/upgrades';
+import { getRandomUpgrades, ShipUpgrade, isTacticalUpgradeRewardMission } from './game/upgrades';
 import { GAME_PHASES } from './game/constants';
 import { GameScene } from './game/GameScene';
 import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
@@ -134,7 +134,7 @@ const appliedUpgradeIds = new Set<string>();
 /**
  * Отрисовка 3 блоков улучшений башни и гусениц
  */
-function renderUpgradeCards(upgrades: TankUpgrade[]): void {
+function renderUpgradeCards(upgrades: ShipUpgrade[]): void {
   if (!phaseUpgradesGrid) return;
   phaseUpgradesGrid.innerHTML = '';
 
@@ -233,41 +233,27 @@ function showPhaseAnnouncement(phaseNumber: number, title?: string, subtitle?: s
         : 'SYS_TACTICAL // ОБНОВЛЕНИЕ БОЕВОГО СЕКТОРА';
   }
 
+  // Переход между фазами больше не выдает карточки улучшений и не приостанавливает бой
+  phaseBanner.classList.remove('has-upgrades');
   if (phaseNumber >= 2) {
     phaseBanner.classList.add('phase-alert');
-    phaseBanner.classList.add('has-upgrades');
-
-    // Во всех фазах кроме первой снизу генерируются 3 блока с улучшениями (башня/гусеницы)
-    if (phaseUpgradesSection && phaseUpgradesGrid) {
-      phaseUpgradesSection.classList.remove('hidden');
-      const selectedUpgrades = getRandomUpgrades(3, appliedUpgradeIds);
-      renderUpgradeCards(selectedUpgrades);
-    }
-
-    // Приостанавливаем игру на время выбора улучшений, чтобы игрока не атаковали
-    if (phaserGame) {
-      const scene = phaserGame.scene.getScene('GameScene');
-      if (scene && scene.scene.isActive()) {
-        scene.scene.pause();
-      }
-    }
   } else {
     phaseBanner.classList.remove('phase-alert');
-    phaseBanner.classList.remove('has-upgrades');
-    if (phaseUpgradesSection) {
-      phaseUpgradesSection.classList.add('hidden');
-    }
-    if (phaseUpgradesGrid) {
-      phaseUpgradesGrid.innerHTML = '';
-    }
-
-    // В первой фазе плашка автоматически скрывается через 3.8 сек
-    phaseBannerTimer = window.setTimeout(() => {
-      phaseBanner.classList.add('hidden');
-      phaseBanner.classList.remove('animate-pulse');
-      phaseBannerTimer = null;
-    }, 3800);
   }
+
+  if (phaseUpgradesSection) {
+    phaseUpgradesSection.classList.add('hidden');
+  }
+  if (phaseUpgradesGrid) {
+    phaseUpgradesGrid.innerHTML = '';
+  }
+
+  // Оповещение автоматически скрывается через 3.5 секунды
+  phaseBannerTimer = window.setTimeout(() => {
+    phaseBanner.classList.add('hidden');
+    phaseBanner.classList.remove('animate-pulse');
+    phaseBannerTimer = null;
+  }, 3500);
 
   phaseBanner.classList.remove('hidden');
   phaseBanner.classList.remove('animate-pulse');
@@ -387,8 +373,6 @@ function launchGame(): void {
   isGamePaused = true;
   isGameStarted = true;
 
-  // Сброс установленных улучшений
-  appliedUpgradeIds.clear();
   hidePhaseAnnouncement();
 
   if (phaserGame) {
@@ -454,7 +438,6 @@ shipBuilderModal.onReturnToMenu = () => {
  */
 function returnToMainMenu(): void {
   shipBuilderModal.close();
-  appliedUpgradeIds.clear();
   hideGameOver();
   hideMissionComplete();
   hideCampaignComplete();
@@ -768,7 +751,6 @@ function restartFromGameOver(): void {
   hideGameOver();
   hidePhaseAnnouncement();
   campaignManager.prepareRetry();
-  appliedUpgradeIds.clear();
   gameContainer?.classList.remove('hidden');
   dashHud?.classList.add('hidden');
   topEscBtn?.classList.add('hidden');
@@ -820,7 +802,8 @@ function getModuleCategoryLabel(category: string): string {
 function renderMissionModuleRewards(
   container: HTMLElement,
   missionId: string,
-  modules: ShipModule[]
+  modules: ShipModule[],
+  onSelect?: () => void
 ): void {
   container.innerHTML = `
     <div class="reward-modules-header">
@@ -884,6 +867,8 @@ function renderMissionModuleRewards(
 
       const btn = card.querySelector('.reward-card-choose-btn');
       if (btn) btn.textContent = '✓ РАЗБЛОКИРОВАНО';
+
+      onSelect?.();
     };
 
     card.addEventListener('click', pickModule);
@@ -891,6 +876,101 @@ function renderMissionModuleRewards(
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         pickModule();
+      }
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+/**
+ * Отрисовка карточек тактических улучшений корабля после победы в миссиях 1-2, 1-4, 2-2, 2-4, 3-2, 3-4
+ */
+function renderMissionTacticalRewards(
+  container: HTMLElement,
+  missionId: string,
+  upgrades: ShipUpgrade[],
+  onSelect?: () => void
+): void {
+  container.innerHTML = `
+    <div class="reward-modules-header">
+      <div class="reward-badge-wrap" style="border-color: rgba(56, 189, 248, 0.5); background: rgba(14, 165, 233, 0.15);">
+        <span class="reward-badge-icon">⚡</span>
+        <span class="reward-modules-badge" style="color: #38bdf8;">ТАКТИЧЕСКАЯ НАГРАДА // ТАКТИЧЕСКОЕ УЛУЧШЕНИЕ</span>
+      </div>
+      <h3 class="reward-modules-title" style="text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);">ВЫБЕРИТЕ 1 ТАКТИЧЕСКОЕ УЛУЧШЕНИЕ</h3>
+      <p class="reward-modules-sub" style="color: #bae6fd;">Улучшение сохраняется и действует во всех последующих миссиях кампании</p>
+    </div>
+    <div class="reward-modules-grid"></div>
+  `;
+
+  const grid = container.querySelector('.reward-modules-grid') as HTMLElement;
+  if (!grid) return;
+
+  upgrades.forEach((upg) => {
+    const card = document.createElement('div');
+    card.className = `reward-module-card reward-tactical-card target-${upg.target}`;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('data-upgrade-id', upg.id);
+
+    card.innerHTML = `
+      <span class="corner-bracket corner-tl"></span>
+      <span class="corner-bracket corner-tr"></span>
+      <span class="corner-bracket corner-bl"></span>
+      <span class="corner-bracket corner-br"></span>
+      <div class="reward-card-category" style="color: ${upg.accentColor}; background: ${upg.accentColor}25; border: 1px solid ${upg.accentColor}50;">
+        ${upg.badgeText}
+      </div>
+      <div class="reward-card-img-wrap" style="border: 1px solid ${upg.accentColor}60; border-radius: 4px; box-shadow: 0 0 12px ${upg.accentColor}30; width: 50px; height: 50px; padding: 4px;">
+        ${upg.iconSvg}
+      </div>
+      <h4 class="reward-card-title">${upg.title}</h4>
+      <div class="reward-card-eng" style="color: ${upg.accentColor}; font-weight: 700;">${upg.shortDesc}</div>
+      <div class="reward-card-desc">${upg.description}</div>
+      <button class="reward-card-choose-btn" type="button" style="background: linear-gradient(135deg, ${upg.secondaryColor} 0%, ${upg.accentColor} 100%);">ВЫБРАТЬ</button>
+    `;
+
+    card.addEventListener('mouseenter', () => soundFx.playUiHover());
+
+    const pickUpgrade = () => {
+      if (card.classList.contains('selected') || card.classList.contains('disabled')) return;
+
+      campaignManager.recordTacticalUpgradeReward(missionId, upg.id);
+      soundFx.playUpgradeSelect();
+
+      // Оповещаем активную сцену для немедленного обновления корабля
+      window.dispatchEvent(
+        new CustomEvent('apply-tank-upgrade', {
+          detail: { id: upg.id },
+        })
+      );
+
+      card.classList.add('selected');
+      const allCards = grid.querySelectorAll('.reward-module-card');
+      allCards.forEach((c) => {
+        if (c !== card) {
+          c.classList.add('disabled');
+        }
+      });
+
+      const btn = card.querySelector('.reward-card-choose-btn') as HTMLElement;
+      if (btn) {
+        btn.textContent = '✓ УСТАНОВЛЕНО';
+        btn.style.background = 'rgba(56, 189, 248, 0.25)';
+        btn.style.color = '#38bdf8';
+        btn.style.border = '1px solid #38bdf8';
+        btn.style.cursor = 'default';
+      }
+
+      onSelect?.();
+    };
+
+    card.addEventListener('click', pickUpgrade);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        pickUpgrade();
       }
     });
 
@@ -945,10 +1025,21 @@ function showMissionComplete(
     if (mcScrapBalance) mcScrapBalance.textContent = currentBalance.toString();
   }
 
-  // Награда модулем за вехи кампании (1-1, 1-3, 2-1, 2-3, 3-1, 3-3)
+  // Награды за вехи кампании: модули (1-1, 1-3, 2-1, 2-3, 3-1, 3-3) или тактические улучшения (1-2, 1-4, 2-2, 2-4, 3-2, 3-4)
   const rewardsSlot = document.getElementById('mission-rewards-slot');
   const shouldOfferModuleReward =
     isModuleRewardMission(missionId) && !campaignManager.isModuleMissionRewarded(missionId);
+  const shouldOfferTacticalReward =
+    isTacticalUpgradeRewardMission(missionId) && !campaignManager.isTacticalMissionRewarded(missionId);
+
+  let hasPendingChoice = false;
+
+  const unlockNextBtn = () => {
+    if (btnMcNext) btnMcNext.disabled = false;
+    if (btnMcNextText) {
+      btnMcNextText.textContent = `СЛЕДУЮЩАЯ МИССИЯ [${nextSector}-${nextMission}]`;
+    }
+  };
 
   if (rewardsSlot) {
     if (shouldOfferModuleReward) {
@@ -958,7 +1049,24 @@ function showMissionComplete(
       );
 
       if (availableModules.length > 0) {
-        renderMissionModuleRewards(rewardsSlot, missionId, availableModules);
+        hasPendingChoice = true;
+        renderMissionModuleRewards(rewardsSlot, missionId, availableModules, () => {
+          unlockNextBtn();
+        });
+        rewardsSlot.classList.remove('hidden');
+      } else {
+        rewardsSlot.classList.add('hidden');
+        rewardsSlot.innerHTML = '';
+      }
+    } else if (shouldOfferTacticalReward) {
+      const appliedSet = new Set(campaignManager.getAppliedUpgradeIds());
+      const availableUpgrades = getRandomUpgrades(3, appliedSet);
+
+      if (availableUpgrades.length > 0) {
+        hasPendingChoice = true;
+        renderMissionTacticalRewards(rewardsSlot, missionId, availableUpgrades, () => {
+          unlockNextBtn();
+        });
         rewardsSlot.classList.remove('hidden');
       } else {
         rewardsSlot.classList.add('hidden');
@@ -970,8 +1078,11 @@ function showMissionComplete(
     }
   }
 
-  if (btnMcNextText) {
-    btnMcNextText.textContent = `СЛЕДУЮЩАЯ МИССИЯ [${nextSector}-${nextMission}]`;
+  if (hasPendingChoice) {
+    if (btnMcNext) btnMcNext.disabled = true;
+    if (btnMcNextText) btnMcNextText.textContent = 'ВЫБЕРИТЕ НАГРАДУ ВЫШЕ';
+  } else {
+    unlockNextBtn();
   }
 
   modalMissionComplete?.classList.remove('hidden');
@@ -1003,9 +1114,18 @@ function hideCampaignComplete(): void {
 }
 
 function startNextMission(): void {
+  // Если на экране завершения отображаются карточки наград и выбор еще не сделан, требуем выбрать
+  const rewardsSlot = document.getElementById('mission-rewards-slot');
+  if (rewardsSlot && !rewardsSlot.classList.contains('hidden')) {
+    const hasSelected = rewardsSlot.querySelector('.reward-module-card.selected');
+    if (!hasSelected) {
+      soundFx.playHit();
+      return;
+    }
+  }
+
   soundFx.playUiClick();
   hideMissionComplete();
-  appliedUpgradeIds.clear();
 
   if (campaignManager.isCampaignCompleted()) {
     showCampaignComplete(campaignManager.getSaveData().totalScore);
@@ -1126,15 +1246,6 @@ window.addEventListener('phase-changed', ((e: CustomEvent) => {
   const detail = e.detail || {};
   showPhaseAnnouncement(detail.phase || 1, detail.title, detail.subtitle);
 }) as EventListener);
-
-// Горячая клавиша [U] для быстрого тестирования апгрейдов
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyU' && !e.repeat) {
-    if (isGameStarted && !gameContainer.classList.contains('hidden')) {
-      showPhaseAnnouncement(2);
-    }
-  }
-});
 
 // Интерактивный клик по плашке ракетного рывка внизу экрана
 dashTriggerCard?.addEventListener('click', () => {

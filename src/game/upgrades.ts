@@ -194,13 +194,24 @@ export const UPGRADE_POOL: ShipUpgrade[] = [
 ];
 
 /**
+ * Миссии кампании, за завершение которых выдается тактическое улучшение на выбор:
+ * 1-2, 1-4, 2-2, 2-4, 3-2, 3-4 (всего 6 выборов за кампанию)
+ */
+export const TACTICAL_UPGRADE_REWARD_MISSIONS = ['1-2', '1-4', '2-2', '2-4', '3-2', '3-4'];
+
+export function isTacticalUpgradeRewardMission(missionId: string): boolean {
+  return TACTICAL_UPGRADE_REWARD_MISSIONS.includes(missionId);
+}
+
+/**
  * Выбрать n случайных уникальных улучшений из пула (исключая уже установленные)
  */
 export function getRandomUpgrades(count = 3, appliedIds: Set<string> = new Set()): ShipUpgrade[] {
-  let available = UPGRADE_POOL.filter((u) => !appliedIds.has(u.id));
+  const available = UPGRADE_POOL.filter((u) => !appliedIds.has(u.id));
 
-  if (available.length < count) {
-    available = [...UPGRADE_POOL];
+  // Если доступных улучшений осталось меньше или равно count, показываем только доступные (без повторов)
+  if (available.length <= count) {
+    return [...available];
   }
 
   const shuffled = [...available];

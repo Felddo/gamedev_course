@@ -853,6 +853,7 @@ export class PlayerShip {
   }
 
   public applyUpgrade(upgradeId: string): void {
+    if (this.appliedUpgrades.has(upgradeId)) return;
     this.appliedUpgrades.add(upgradeId);
     if (upgradeId === 'tracks_turbo') {
       this.speedMultiplier = 1.35;

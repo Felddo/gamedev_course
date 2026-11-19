@@ -359,6 +359,8 @@ export class GameScene extends Phaser.Scene {
       this.hudManager.playerMaxHp = this.playerShip.maxHp;
     }
     this.playerShip.resetUpgrades();
+    this.weaponSystem.resetUpgrades();
+    this.applyCampaignUpgrades();
     this.playerShip.setVisible(true);
     this.playerShip.setAutopilot(false);
 
@@ -402,11 +404,24 @@ export class GameScene extends Phaser.Scene {
       }
       this.hudManager.playerMaxHp = this.playerShip.maxHp;
     }
+    this.applyCampaignUpgrades();
     this.playerShip.setVisible(true);
     this.cameras.main.centerOn(this.playerShip.x, this.playerShip.y);
     this.hudManager.setVisible(true);
     if (this.scene.isPaused()) {
       this.scene.resume();
+    }
+  }
+
+  /**
+   * Применение всех сохраненных тактических улучшений текущей кампании
+   * Каждое улучшение применяется ровно один раз!
+   */
+  public applyCampaignUpgrades(): void {
+    const campaignUpgrades = campaignManager.getAppliedUpgradeIds();
+    for (const upgradeId of campaignUpgrades) {
+      this.playerShip.applyUpgrade(upgradeId);
+      this.weaponSystem.applyUpgrade(upgradeId);
     }
   }
 

@@ -65,6 +65,7 @@ export class WeaponSystem {
   }
 
   public applyUpgrade(upgradeId: string): void {
+    if (this.appliedUpgrades.has(upgradeId)) return;
     this.appliedUpgrades.add(upgradeId);
     if (upgradeId === 'turret_explosive_shells') {
       this.hasExplosiveShells = true;

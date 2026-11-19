@@ -43,6 +43,8 @@ export class CampaignManager {
       rewardedMissions: [],
       unlockedModuleIds: [...DEFAULT_UNLOCKED_MODULES],
       rewardedModuleMissions: [],
+      appliedUpgradeIds: [],
+      rewardedTacticalMissions: [],
       updatedAt: Date.now(),
     };
 
@@ -67,6 +69,8 @@ export class CampaignManager {
       const unlockedModuleIds = Array.from(unlockedSet);
 
       const rewardedModuleMissions = Array.isArray(parsed.rewardedModuleMissions) ? parsed.rewardedModuleMissions : [];
+      const appliedUpgradeIds = Array.isArray(parsed.appliedUpgradeIds) ? parsed.appliedUpgradeIds : [];
+      const rewardedTacticalMissions = Array.isArray(parsed.rewardedTacticalMissions) ? parsed.rewardedTacticalMissions : [];
       const savedShipAssembly = Array.isArray(parsed.savedShipAssembly) ? parsed.savedShipAssembly : undefined;
 
       return {
@@ -80,6 +84,8 @@ export class CampaignManager {
         rewardedMissions,
         unlockedModuleIds,
         rewardedModuleMissions,
+        appliedUpgradeIds,
+        rewardedTacticalMissions,
         savedShipAssembly,
         updatedAt: parsed.updatedAt || Date.now(),
       };
@@ -112,8 +118,37 @@ export class CampaignManager {
       rewardedMissions: [...this.saveData.rewardedMissions],
       unlockedModuleIds: [...this.saveData.unlockedModuleIds],
       rewardedModuleMissions: [...this.saveData.rewardedModuleMissions],
+      appliedUpgradeIds: [...this.saveData.appliedUpgradeIds],
+      rewardedTacticalMissions: [...this.saveData.rewardedTacticalMissions],
       savedShipAssembly: this.saveData.savedShipAssembly ? [...this.saveData.savedShipAssembly] : undefined,
     };
+  }
+
+  /**
+   * Получить список всех установленных тактических улучшений кампании
+   */
+  public getAppliedUpgradeIds(): string[] {
+    return [...this.saveData.appliedUpgradeIds];
+  }
+
+  /**
+   * Проверить, было ли уже выбрано тактическое улучшение за данную миссию
+   */
+  public isTacticalMissionRewarded(missionId: string): boolean {
+    return this.saveData.rewardedTacticalMissions.includes(missionId);
+  }
+
+  /**
+   * Зафиксировать получение тактического улучшения за миссию
+   */
+  public recordTacticalUpgradeReward(missionId: string, upgradeId: string): void {
+    if (!this.saveData.appliedUpgradeIds.includes(upgradeId)) {
+      this.saveData.appliedUpgradeIds.push(upgradeId);
+    }
+    if (!this.saveData.rewardedTacticalMissions.includes(missionId)) {
+      this.saveData.rewardedTacticalMissions.push(missionId);
+    }
+    this.saveToStorage();
   }
 
   /**
@@ -349,6 +384,8 @@ export class CampaignManager {
       rewardedMissions: [],
       unlockedModuleIds: [...DEFAULT_UNLOCKED_MODULES],
       rewardedModuleMissions: [],
+      appliedUpgradeIds: [],
+      rewardedTacticalMissions: [],
       savedShipAssembly: undefined,
       updatedAt: Date.now(),
     };
