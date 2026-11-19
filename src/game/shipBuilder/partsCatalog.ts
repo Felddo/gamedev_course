@@ -1,3 +1,5 @@
+import { SHIP_MODULES_CATALOG } from './modulesCatalog';
+
 export interface PartItem {
   id: string;
   name: string;
@@ -24,13 +26,10 @@ export interface CategoryData {
 }
 
 // Загрузка всех изображений деталей через Vite glob import
-const partImages: Record<string, string> =
-  typeof import.meta.glob === 'function'
-    ? import.meta.glob<string>(
-      '../../assets/Sprites/Parts/**/*.{png,jpg,svg}',
-      { eager: true, import: 'default' }
-    )
-    : {};
+const partImages = import.meta.glob<string>(
+  '../../assets/Sprites/Parts/**/*.{png,jpg,svg}',
+  { eager: true, import: 'default' }
+);
 
 /**
  * Русские человекочитаемые названия для папок подкатегорий
@@ -183,6 +182,46 @@ export function buildPartsCatalog(): CategoryData[] {
     cat.directItems.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     for (const folder of cat.folders) {
       folder.items.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    }
+  }
+
+  // Добавляем специальную вкладку "★ Боевые модули" в начало подпапок для категорий с подпапками
+  for (const cat of catalogMap.values()) {
+    if (cat.hasSubfolders && cat.folders.length > 0) {
+      const moduleItems: PartItem[] = [];
+      const catModules = SHIP_MODULES_CATALOG.filter((m) => m.category === cat.id);
+      for (const mod of catModules) {
+        let found: PartItem | undefined;
+        for (const f of cat.folders) {
+          found = f.items.find((i) => i.id === mod.partId);
+          if (found) break;
+        }
+        if (found) {
+          moduleItems.push({
+            ...found,
+            name: mod.name,
+          });
+        }
+      }
+      if (moduleItems.length > 0) {
+        cat.folders.unshift({
+          name: 'modules',
+          title: '★ Боевые модули',
+          items: moduleItems,
+        });
+      }
+    } else {
+      // Для категорий без подпапок (engines, guns) сортируем так, чтобы модули кампании шли первыми по порядку тиров
+      const modOrder = new Map<string, number>();
+      SHIP_MODULES_CATALOG.filter((m) => m.category === cat.id).forEach((m, idx) => {
+        modOrder.set(m.partId, idx);
+      });
+      cat.directItems.sort((a, b) => {
+        const orderA = modOrder.has(a.id) ? modOrder.get(a.id)! : 999;
+        const orderB = modOrder.has(b.id) ? modOrder.get(b.id)! : 999;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.name.localeCompare(b.name, undefined, { numeric: true });
+      });
     }
   }
 

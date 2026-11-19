@@ -116,7 +116,7 @@ export class ShipBuilderModal {
 
     this.createDom();
     this.bindEvents();
-    if (!this.loadSavedShipAssembly()) {
+    if (!this.loadSavedShipAssembly() || this.droppedParts.length === 0) {
       this.loadDefaultShipPreset();
     }
     this.render();
@@ -527,21 +527,21 @@ export class ShipBuilderModal {
   public loadDefaultShipPreset(): void {
     this.clearAllDroppedParts();
 
-    const findPart = (catId: string, preferredSub = 'blue'): PartItem | null => {
+    const findPart = (catId: string, preferredSub = 'modules'): PartItem | null => {
       const cat = this.catalog.find((c) => c.id === catId);
       if (!cat) return null;
       if (cat.hasSubfolders && cat.folders.length > 0) {
-        const folder = cat.folders.find((f) => f.name.includes(preferredSub)) || cat.folders[0];
+        const folder = cat.folders.find((f) => f.name === preferredSub || f.name.includes(preferredSub)) || cat.folders[0];
         return folder?.items[0] || null;
       }
       return cat.directItems[0] || null;
     };
 
-    const bodyPart = findPart('body', 'blue') || findPart('body', 'black');
-    const pilotPart = findPart('pilot', 'blue') || findPart('pilot', 'black');
-    const wingsPart = findPart('wings', 'blue') || findPart('wings', 'black');
-    const enginesPart = findPart('engines');
-    const gunsPart = findPart('guns');
+    const bodyPart = this.findPartById('body_black_spaceParts_047') || findPart('body', 'modules') || findPart('body', 'black');
+    const pilotPart = this.findPartById('pilot_black_spaceParts_054') || findPart('pilot', 'modules') || findPart('pilot', 'black');
+    const wingsPart = this.findPartById('wings_blue_spaceParts_010') || findPart('wings', 'modules') || findPart('wings', 'blue');
+    const enginesPart = this.findPartById('engines_0') || findPart('engines');
+    const gunsPart = this.findPartById('guns_0') || findPart('guns');
 
     const bayRect = this.centerBayEl ? this.centerBayEl.getBoundingClientRect() : null;
     const cx = bayRect && bayRect.width > 0 ? bayRect.width / 2 : 200;
@@ -1110,11 +1110,13 @@ export class ShipBuilderModal {
 
     items.forEach((part) => {
       const mod = getModuleByPartId(part.id);
-      const isUnlocked = mod ? campaignManager.isModuleUnlocked(mod.id) : false;
+      // Если деталь привязана к открываемому модулю кампании (тир 1, 2, 3), проверяем разблокировку.
+      // Если это стартовый модуль (тир 0) или стандартная деталь каталога (mod === undefined), она доступна сразу!
+      const isUnlocked = mod ? campaignManager.isModuleUnlocked(mod.id) : true;
       const displayName = mod ? mod.name : part.name;
 
       const card = document.createElement('div');
-      card.className = `part-card ${!isUnlocked ? 'part-card-locked' : ''}`;
+      card.className = `part-card ${!isUnlocked ? 'part-card-locked' : ''} ${mod ? `part-card-module tier-${mod.tier}` : ''}`;
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
 
@@ -1166,10 +1168,15 @@ export class ShipBuilderModal {
             : `Перетащите ${part.name} в ангар или кликните для установки`
         );
 
+        const tierBadge = mod
+          ? `<span class="part-tier-tag tier-${mod.tier}">${mod.tier === 0 ? 'СТАРТОВЫЙ' : `ТИР ${mod.tier}`}</span>`
+          : '';
+
         card.innerHTML = `
           <div class="part-card-inner">
             <div class="part-preview-wrap">
               <img src="${part.url}" alt="${displayName}" class="part-preview-img" loading="lazy" draggable="false" />
+              ${tierBadge}
             </div>
             <div class="part-meta">
               <span class="part-name-tag">${displayName}</span>
@@ -1546,6 +1553,8 @@ export class ShipBuilderModal {
         height: s.height || 70,
       });
     }
+
+    if (restored.length === 0) return false;
 
     this.droppedParts = restored;
     if (this.droppedParts.length > 0) {
