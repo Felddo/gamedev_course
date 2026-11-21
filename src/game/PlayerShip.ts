@@ -751,9 +751,14 @@ export class PlayerShip {
           // Корпус плавно ориентируется по вектору движения, маневренность зависит от установленных крыльев
           const targetRotation = moveAngle - Math.PI / 2;
           const diff = Phaser.Math.Angle.Wrap(targetRotation - this.shipSprite.rotation);
-          const baseTurnRate = 14 + (this.installedStats?.turnSpeedBonus || 0);
-          const turnRate = baseTurnRate * (this.installedStats?.turnSpeedMultiplier || 1.0);
-          this.shipSprite.rotation += diff * Math.min(1, turnRate * seconds);
+          const bonusRate = Math.min(8, (this.installedStats?.turnSpeedBonus || 0) * 0.15);
+          const turnMultiplier = this.installedStats?.turnSpeedMultiplier || 1.0;
+          const turnRate = Math.min(24, (14 + bonusRate) * turnMultiplier);
+
+          // Плавное сглаживание: предотвращает любые рывки и резкие скачки даже при нескольких парах крыльев
+          const lerpFactor = 1 - Math.exp(-turnRate * seconds);
+          const smoothLerp = Math.min(0.38, Math.max(0.01, lerpFactor));
+          this.shipSprite.rotation += diff * smoothLerp;
 
           // Плазменный след двигателей при тактическом улучшении
           if (this.hasFireTrail) {

@@ -810,8 +810,9 @@ export function calculateAssemblyStats(
         dashCooldownMultiplier *= st.dashCooldownMultiplier || 1.0;
         dashSpeedMultiplier *= st.dashSpeedMultiplier || 1.0;
       } else if (mod.category === 'wings') {
-        turnSpeedMultiplier *= st.turnSpeedMultiplier || 1.0;
-        turnSpeedBonus += st.maneuverabilityBonus || 0;
+        // Крылья устанавливаются симметрично парами: каждое крыло дает половину бонуса пары (аддитивно)
+        turnSpeedMultiplier += ((st.turnSpeedMultiplier || 1.0) - 1.0) * 0.5;
+        turnSpeedBonus += (st.maneuverabilityBonus || 0) * 0.5;
       } else if (mod.category === 'pilot') {
         superDurationBonus += st.superDurationBonus || 0;
         superCooldownMultiplier *= st.superCooldownMultiplier || 1.0;
@@ -822,6 +823,8 @@ export function calculateAssemblyStats(
 
   // Ограничиваем максимальную броню 45% во избежание бессмертия
   const finalDamageReduction = Math.min(0.45, Math.max(0, damageReduction));
+  const finalTurnSpeedMultiplier = Math.min(2.5, Math.max(0.5, turnSpeedMultiplier));
+  const finalTurnSpeedBonus = Math.min(50, Math.max(0, turnSpeedBonus));
 
   return {
     maxHp: PLAYER_MAX_HP + maxHpBonus,
@@ -829,8 +832,8 @@ export function calculateAssemblyStats(
     speedMultiplier,
     dashCooldownMultiplier,
     dashSpeedMultiplier,
-    turnSpeedMultiplier,
-    turnSpeedBonus,
+    turnSpeedMultiplier: finalTurnSpeedMultiplier,
+    turnSpeedBonus: finalTurnSpeedBonus,
     superDurationBonus,
     superCooldownMultiplier,
     bulletDamageBonus,

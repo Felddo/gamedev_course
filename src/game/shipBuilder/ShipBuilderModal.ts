@@ -106,7 +106,7 @@ export class ShipBuilderModal {
   private partsColEl!: HTMLElement;
   private partsTagEl!: HTMLElement;
   private partsGridEl!: HTMLElement;
-  private partsCounterEl!: HTMLElement;
+  private partsCounterEl: HTMLElement | null = null;
   private limitsGridEl!: HTMLElement;
   private alertToastEl!: HTMLElement;
   private alertMsgEl!: HTMLElement;
@@ -121,6 +121,12 @@ export class ShipBuilderModal {
   private btnRotate90!: HTMLButtonElement;
   private btnFlipX!: HTMLButtonElement;
   private btnDeleteSelected!: HTMLButtonElement;
+
+  // Arrow Nudge Buttons (перемещение детали по 4 направлениям)
+  private btnNudgeLeft!: HTMLButtonElement;
+  private btnNudgeDown!: HTMLButtonElement;
+  private btnNudgeUp!: HTMLButtonElement;
+  private btnNudgeRight!: HTMLButtonElement;
 
   // Touch / Pointer Drag State (каталог -> ангар)
   private touchDragPart: PartItem | null = null;
@@ -252,47 +258,68 @@ export class ShipBuilderModal {
             <div class="hangar-container">
               <div class="hangar-main-row">
 
-                <!-- 1. БЛОК С УКАЗАНИЕМ СКОЛЬКО ЧАСТЕЙ НУЖНО (ЕЩЕ ЛЕВЕЕ) -->
-                <div class="hangar-panel-col hangar-limits-panel" id="hangar-limits-panel">
-                  <div class="panel-col-head">
-                    <span class="panel-col-head-tag">04 // ЧАСТИ</span>
-                  </div>
-                  <div class="panel-col-body">
-                    <div class="hangar-limits-grid" id="hangar-limits-grid" title="Требуемое количество частей">
-                      <!-- Динамически: Кабина, Корпус, Крылья, Двигатели, Пушки -->
+                <!-- ЛЕВАЯ КОЛОНКА: БЛОКИ 04 И 05 + ПОД НИМИ 4 КНОПКИ СО СТРЕЛКАМИ -->
+                <div class="hangar-side-panels" id="hangar-side-panels">
+                  <div class="hangar-side-panels-top">
+                    <!-- 1. БЛОК С УКАЗАНИЕМ СКОЛЬКО ЧАСТЕЙ НУЖНО (04 // ЧАСТИ) -->
+                    <div class="hangar-panel-col hangar-limits-panel" id="hangar-limits-panel">
+                      <div class="panel-col-head">
+                        <span class="panel-col-head-tag">04 // ЧАСТИ</span>
+                      </div>
+                      <div class="panel-col-body">
+                        <div class="hangar-limits-grid" id="hangar-limits-grid" title="Требуемое количество частей">
+                          <!-- Динамически: Кабина, Корпус, Крылья, Двигатели, Пушки -->
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <!-- 2. БЛОК С УПРАВЛЕНИЕМ МОДУЛЯМИ (СЛЕВА ОТ ОКНА КОРАБЛЯ) -->
-                <div class="hangar-panel-col selected-module-toolbar" id="selected-module-toolbar">
-                  <div class="panel-col-head">
-                    <span class="panel-col-head-tag">05 // УПРАВЛЕНИЕ</span>
-                  </div>
-                  <div class="panel-col-body">
-                    <div class="sel-tools">
-                      <button id="btn-layer-up" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой вперед" disabled>
-                        <span class="tool-icon">▲</span> Слой +1
-                      </button>
-                      <button id="btn-layer-down" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой назад" disabled>
-                        <span class="tool-icon">▼</span> Слой -1
-                      </button>
-                      <button id="btn-rotate-45" class="sel-tool-btn" type="button" title="Повернуть модуль на +45 градусов" disabled>
-                        <span class="tool-icon">⟳</span> +45°
-                      </button>
-                      <button id="btn-rotate-minus-45" class="sel-tool-btn" type="button" title="Повернуть модуль на -45 градусов" disabled>
-                        <span class="tool-icon">⟲</span> -45°
-                      </button>
-                      <button id="btn-rotate-90" class="sel-tool-btn" type="button" title="Повернуть модуль на 90 градусов" disabled>
-                        <span class="tool-icon">↷</span> +90°
-                      </button>
-                      <button id="btn-flip-x" class="sel-tool-btn" type="button" title="Отразить модуль по горизонтали" disabled>
-                        <span class="tool-icon">⇄</span> Отразить
-                      </button>
-                      <button id="btn-delete-selected" class="sel-tool-btn btn-danger" type="button" title="Удалить выбранный модуль" disabled>
-                        <span class="tool-icon">✕</span> Удалить
-                      </button>
+                    <!-- 2. БЛОК С УПРАВЛЕНИЕМ МОДУЛЯМИ (05 // УПРАВЛЕНИЕ) -->
+                    <div class="hangar-panel-col selected-module-toolbar" id="selected-module-toolbar">
+                      <div class="panel-col-head">
+                        <span class="panel-col-head-tag">05 // УПРАВЛЕНИЕ</span>
+                      </div>
+                      <div class="panel-col-body">
+                        <div class="sel-tools">
+                          <button id="btn-layer-up" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой вперед" disabled>
+                            <span class="tool-icon">▲</span> Слой +1
+                          </button>
+                          <button id="btn-layer-down" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой назад" disabled>
+                            <span class="tool-icon">▼</span> Слой -1
+                          </button>
+                          <button id="btn-rotate-45" class="sel-tool-btn" type="button" title="Повернуть модуль на +45 градусов" disabled>
+                            <span class="tool-icon">⟳</span> +45°
+                          </button>
+                          <button id="btn-rotate-minus-45" class="sel-tool-btn" type="button" title="Повернуть модуль на -45 градусов" disabled>
+                            <span class="tool-icon">⟲</span> -45°
+                          </button>
+                          <button id="btn-rotate-90" class="sel-tool-btn" type="button" title="Повернуть модуль на 90 градусов" disabled>
+                            <span class="tool-icon">↷</span> +90°
+                          </button>
+                          <button id="btn-flip-x" class="sel-tool-btn" type="button" title="Отразить модуль по горизонтали" disabled>
+                            <span class="tool-icon">⇄</span> Отразить
+                          </button>
+                          <button id="btn-delete-selected" class="sel-tool-btn btn-danger" type="button" title="Удалить выбранный модуль" disabled>
+                            <span class="tool-icon">✕</span> Удалить
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  </div>
+
+                  <!-- 4 ГОРИЗОНТАЛЬНЫЕ КНОПКИ-СТРЕЛКИ ПОД БЛОКАМИ 04 И 05 -->
+                  <div class="hangar-nudge-bar" id="hangar-nudge-bar">
+                    <button id="btn-nudge-left" class="nudge-btn" type="button" title="Сдвинуть деталь влево" disabled>
+                      <span class="nudge-arrow">◀</span>
+                    </button>
+                    <button id="btn-nudge-down" class="nudge-btn" type="button" title="Сдвинуть деталь вниз" disabled>
+                      <span class="nudge-arrow">▼</span>
+                    </button>
+                    <button id="btn-nudge-up" class="nudge-btn" type="button" title="Сдвинуть деталь вверх" disabled>
+                      <span class="nudge-arrow">▲</span>
+                    </button>
+                    <button id="btn-nudge-right" class="nudge-btn" type="button" title="Сдвинуть деталь вправо" disabled>
+                      <span class="nudge-arrow">▶</span>
+                    </button>
                   </div>
                 </div>
 
@@ -339,9 +366,6 @@ export class ShipBuilderModal {
                     <button id="shipyard-btn-clear" class="hangar-tool-btn" type="button" title="Очистить все детали из отсека сборки">
                       ✕ ОЧИСТИТЬ ВСЕ
                     </button>
-                    <div id="shipyard-parts-counter" class="hangar-parts-counter">
-                      ДЕТАЛЕЙ: 0 / 7
-                    </div>
                   </div>
                 </div>
 
@@ -379,7 +403,7 @@ export class ShipBuilderModal {
     this.partsColEl = modal.querySelector('#col-parts') as HTMLElement;
     this.partsTagEl = modal.querySelector('#parts-head-tag') as HTMLElement;
     this.partsGridEl = modal.querySelector('#shipyard-parts-grid') as HTMLElement;
-    this.partsCounterEl = modal.querySelector('#shipyard-parts-counter') as HTMLElement;
+    this.partsCounterEl = modal.querySelector('#shipyard-parts-counter') as HTMLElement | null;
     this.limitsGridEl = modal.querySelector('#hangar-limits-grid') as HTMLElement;
     this.alertToastEl = modal.querySelector('#shipyard-alert-toast') as HTMLElement;
     this.alertMsgEl = modal.querySelector('#shipyard-alert-msg') as HTMLElement;
@@ -393,6 +417,11 @@ export class ShipBuilderModal {
     this.btnRotate90 = modal.querySelector('#btn-rotate-90') as HTMLButtonElement;
     this.btnFlipX = modal.querySelector('#btn-flip-x') as HTMLButtonElement;
     this.btnDeleteSelected = modal.querySelector('#btn-delete-selected') as HTMLButtonElement;
+
+    this.btnNudgeLeft = modal.querySelector('#btn-nudge-left') as HTMLButtonElement;
+    this.btnNudgeDown = modal.querySelector('#btn-nudge-down') as HTMLButtonElement;
+    this.btnNudgeUp = modal.querySelector('#btn-nudge-up') as HTMLButtonElement;
+    this.btnNudgeRight = modal.querySelector('#btn-nudge-right') as HTMLButtonElement;
   }
 
   private bindEvents(): void {
@@ -478,10 +507,54 @@ export class ShipBuilderModal {
       }
     });
 
+    // 4 кнопки перемещения выбранной детали (влево, вниз, вверх, вправо)
+    const bindNudge = (btn: HTMLButtonElement, dx: number, dy: number) => {
+      let repeatTimer: number | null = null;
+      let delayTimer: number | null = null;
+
+      const stopRepeat = () => {
+        if (delayTimer) {
+          window.clearTimeout(delayTimer);
+          delayTimer = null;
+        }
+        if (repeatTimer) {
+          window.clearInterval(repeatTimer);
+          repeatTimer = null;
+        }
+      };
+
+      btn.addEventListener('pointerdown', (e: PointerEvent) => {
+        if (btn.disabled || !this.selectedPartUid) return;
+        e.preventDefault();
+        soundFx.playUiClick();
+        this.nudgeSelectedPart(dx, dy);
+
+        stopRepeat();
+        delayTimer = window.setTimeout(() => {
+          repeatTimer = window.setInterval(() => {
+            if (btn.disabled || !this.selectedPartUid) {
+              stopRepeat();
+              return;
+            }
+            this.nudgeSelectedPart(dx, dy);
+          }, 70);
+        }, 280);
+      });
+
+      btn.addEventListener('pointerup', stopRepeat);
+      btn.addEventListener('pointerleave', stopRepeat);
+      btn.addEventListener('pointercancel', stopRepeat);
+    };
+
+    bindNudge(this.btnNudgeLeft, -5, 0);
+    bindNudge(this.btnNudgeDown, 0, 5);
+    bindNudge(this.btnNudgeUp, 0, -5);
+    bindNudge(this.btnNudgeRight, 5, 0);
+
     // Клик по свободной области ангара для сброса выделения
     this.centerBayEl.addEventListener('pointerdown', (e: PointerEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.dropped-part-item') && !target.closest('.selected-module-toolbar')) {
+      if (!target.closest('.dropped-part-item') && !target.closest('.selected-module-toolbar') && !target.closest('.hangar-nudge-bar')) {
         this.selectPart(null);
       }
     });
@@ -631,7 +704,7 @@ export class ShipBuilderModal {
         part: bodyPart,
         x: cx,
         y: cy,
-        zIndex: 1,
+        zIndex: 2,
         rotation: 0,
         flipX: false,
         width: 70,
@@ -654,12 +727,12 @@ export class ShipBuilderModal {
       });
     }
 
-    // 3. Крылья левое и правое
+    // 3. Крылья левое и правое (подвинуты ближе к телу)
     if (wingsPart) {
       this.droppedParts.push({
         uid: 'preset_wing_l_' + Math.random().toString(36).substr(2, 6),
         part: wingsPart,
-        x: cx - 44,
+        x: cx - 28,
         y: cy + 4,
         zIndex: 2,
         rotation: 0,
@@ -670,7 +743,7 @@ export class ShipBuilderModal {
       this.droppedParts.push({
         uid: 'preset_wing_r_' + Math.random().toString(36).substr(2, 6),
         part: wingsPart,
-        x: cx + 44,
+        x: cx + 28,
         y: cy + 4,
         zIndex: 2,
         rotation: 0,
@@ -680,13 +753,13 @@ export class ShipBuilderModal {
       });
     }
 
-    // 4. Кабина (сверху корпуса)
+    // 4. Кабина (запихнута прямо в тело)
     if (pilotPart) {
       this.droppedParts.push({
         uid: 'preset_pilot_' + Math.random().toString(36).substr(2, 6),
         part: pilotPart,
         x: cx,
-        y: cy - 36,
+        y: cy - 4,
         zIndex: 3,
         rotation: 0,
         flipX: false,
@@ -695,14 +768,14 @@ export class ShipBuilderModal {
       });
     }
 
-    // 5. Пушка (на носу)
+    // 5. Пушка (опущена чуть ниже, чтобы выглядывала из-за тела)
     if (gunsPart) {
       this.droppedParts.push({
         uid: 'preset_gun_' + Math.random().toString(36).substr(2, 6),
         part: gunsPart,
         x: cx,
-        y: cy - 64,
-        zIndex: 4,
+        y: cy - 34,
+        zIndex: 1,
         rotation: 0,
         flipX: false,
         width: 70,
@@ -1677,6 +1750,10 @@ export class ShipBuilderModal {
       this.btnRotate90.disabled = true;
       this.btnFlipX.disabled = true;
       this.btnDeleteSelected.disabled = true;
+      if (this.btnNudgeLeft) this.btnNudgeLeft.disabled = true;
+      if (this.btnNudgeDown) this.btnNudgeDown.disabled = true;
+      if (this.btnNudgeUp) this.btnNudgeUp.disabled = true;
+      if (this.btnNudgeRight) this.btnNudgeRight.disabled = true;
       this.selectedToolbarEl.classList.remove('has-selection');
       return;
     }
@@ -1688,7 +1765,32 @@ export class ShipBuilderModal {
     this.btnRotate90.disabled = false;
     this.btnFlipX.disabled = false;
     this.btnDeleteSelected.disabled = false;
+    if (this.btnNudgeLeft) this.btnNudgeLeft.disabled = false;
+    if (this.btnNudgeDown) this.btnNudgeDown.disabled = false;
+    if (this.btnNudgeUp) this.btnNudgeUp.disabled = false;
+    if (this.btnNudgeRight) this.btnNudgeRight.disabled = false;
     this.selectedToolbarEl.classList.add('has-selection');
+  }
+
+  /**
+   * Сдвиг выбранной детали на заданное смещение (dx, dy)
+   */
+  public nudgeSelectedPart(dx: number, dy: number): void {
+    if (!this.selectedPartUid) return;
+
+    const part = this.droppedParts.find((p) => p.uid === this.selectedPartUid);
+    if (!part) return;
+
+    this.clearDisconnectedMarks();
+    const bayRect = this.centerBayEl ? this.centerBayEl.getBoundingClientRect() : null;
+    const maxW = bayRect && bayRect.width > 0 ? bayRect.width : 400;
+    const maxH = bayRect && bayRect.height > 0 ? bayRect.height : 400;
+
+    part.x = Math.max(15, Math.min(maxW - 15, part.x + dx));
+    part.y = Math.max(15, Math.min(maxH - 15, part.y + dy));
+
+    this.updateDroppedPartElement(part);
+    this.persistAssembly();
   }
 
   /**
