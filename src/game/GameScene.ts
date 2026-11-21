@@ -474,7 +474,9 @@ export class GameScene extends Phaser.Scene {
       !this.isGameOver &&
       !this.isMissionWon
     ) {
-      const targetKills = this.currentMission.targetKills ?? 25;
+      const targetKills =
+        this.currentMission.targetKills ??
+        (15 + ((this.currentMission.sector - 1) * 5 + (this.currentMission.mission - 1)) * 5);
       if (this.killsCount >= targetKills) {
         this.triggerMissionVictory();
       }
@@ -520,7 +522,9 @@ export class GameScene extends Phaser.Scene {
       !this.isGameOver &&
       !this.isMissionWon
     ) {
-      const targetKills = this.currentMission.targetKills ?? 25;
+      const targetKills =
+        this.currentMission.targetKills ??
+        (15 + ((this.currentMission.sector - 1) * 5 + (this.currentMission.mission - 1)) * 5);
       if (this.killsCount >= targetKills) {
         this.triggerMissionVictory();
         return;

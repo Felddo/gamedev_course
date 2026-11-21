@@ -101,7 +101,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_black_spaceParts_054',
     rarity: 'common',
     tier: 0,
-    price: 50,
+    price: 100,
     statsLines: ['+15% овердрайва', '+10% урона'],
     stats: {
       superDurationBonus: 1.5,
@@ -115,7 +115,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_white_spaceParts_058',
     rarity: 'common',
     tier: 0,
-    price: 50,
+    price: 100,
     statsLines: ['+20% овердрайва', '+5% урона'],
     stats: {
       superDurationBonus: 2.0,
@@ -129,7 +129,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_black_spaceParts_059',
     rarity: 'common',
     tier: 0,
-    price: 60,
+    price: 120,
     statsLines: ['+15% урона', '-10% отката ульты'],
     stats: {
       pilotBonusDamage: 3,
@@ -143,7 +143,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_white_spaceParts_060',
     rarity: 'common',
     tier: 0,
-    price: 60,
+    price: 120,
     statsLines: ['+25% овердрайва', '+5% брони'],
     stats: {
       superDurationBonus: 2.5,
@@ -158,7 +158,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_black_spaceParts_057',
     rarity: 'rare',
     tier: 2,
-    price: 140,
+    price: 280,
     statsLines: ['+35% овердрайва', '+20% урона'],
     stats: {
       superDurationBonus: 3.5,
@@ -172,7 +172,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_white_spaceParts_064',
     rarity: 'rare',
     tier: 2,
-    price: 150,
+    price: 300,
     statsLines: ['+30% урона', '-25% отката ульты'],
     stats: {
       pilotBonusDamage: 6,
@@ -186,7 +186,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_black_spaceParts_065',
     rarity: 'rare',
     tier: 2,
-    price: 150,
+    price: 300,
     statsLines: ['+40% овердрайва', '+15% скорости'],
     stats: {
       superDurationBonus: 4.0,
@@ -201,7 +201,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_white_spaceParts_062',
     rarity: 'legendary',
     tier: 3,
-    price: 360,
+    price: 720,
     statsLines: ['+60% овердрайва', '+45% урона'],
     stats: {
       superDurationBonus: 6.0,
@@ -215,7 +215,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'pilot_black_spaceParts_069',
     rarity: 'legendary',
     tier: 3,
-    price: 380,
+    price: 760,
     statsLines: ['+50% урона', '-45% отката ульты'],
     stats: {
       pilotBonusDamage: 12,
@@ -234,7 +234,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_black_spaceParts_047',
     rarity: 'common',
     tier: 0,
-    price: 50,
+    price: 100,
     statsLines: ['+15% здоровья', '+5% брони'],
     stats: {
       maxHpBonus: 30,
@@ -248,7 +248,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_white_spaceParts_034',
     rarity: 'common',
     tier: 0,
-    price: 60,
+    price: 120,
     statsLines: ['+20% здоровья', '+8% брони'],
     stats: {
       maxHpBonus: 40,
@@ -262,7 +262,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_black_spaceParts_049',
     rarity: 'common',
     tier: 0,
-    price: 60,
+    price: 120,
     statsLines: ['+25% здоровья', '+5% скорости'],
     stats: {
       maxHpBonus: 50,
@@ -276,7 +276,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_white_spaceParts_035',
     rarity: 'common',
     tier: 0,
-    price: 65,
+    price: 130,
     statsLines: ['+15% здоровья', '+12% брони'],
     stats: {
       maxHpBonus: 30,
@@ -291,7 +291,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_black_spaceParts_048',
     rarity: 'rare',
     tier: 2,
-    price: 150,
+    price: 300,
     statsLines: ['+45% здоровья', '+18% брони'],
     stats: {
       maxHpBonus: 90,
@@ -305,7 +305,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_white_spaceParts_036',
     rarity: 'rare',
     tier: 2,
-    price: 160,
+    price: 320,
     statsLines: ['+55% здоровья', '+15% брони'],
     stats: {
       maxHpBonus: 110,
@@ -319,7 +319,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_black_spaceParts_050',
     rarity: 'rare',
     tier: 2,
-    price: 170,
+    price: 340,
     statsLines: ['+40% здоровья', '+25% брони'],
     stats: {
       maxHpBonus: 80,
@@ -334,7 +334,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_black_spaceParts_055',
     rarity: 'legendary',
     tier: 3,
-    price: 380,
+    price: 760,
     statsLines: ['+80% здоровья', '+30% брони'],
     stats: {
       maxHpBonus: 160,
@@ -348,7 +348,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'body_white_spaceParts_042',
     rarity: 'legendary',
     tier: 3,
-    price: 400,
+    price: 800,
     statsLines: ['+100% здоровья', '+35% брони'],
     stats: {
       maxHpBonus: 200,
@@ -367,7 +367,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_blue_spaceParts_010',
     rarity: 'common',
     tier: 0,
-    price: 35,
+    price: 70,
     statsLines: ['+15% поворота', '+10% скорости'],
     stats: {
       turnSpeedMultiplier: 1.15,
@@ -381,7 +381,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_green_spaceParts_011',
     rarity: 'common',
     tier: 0,
-    price: 35,
+    price: 70,
     statsLines: ['+20% поворота', '+15% маневра'],
     stats: {
       turnSpeedMultiplier: 1.2,
@@ -395,7 +395,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_blue_spaceParts_014',
     rarity: 'common',
     tier: 0,
-    price: 40,
+    price: 80,
     statsLines: ['+25% поворота', '+5% скорости'],
     stats: {
       turnSpeedMultiplier: 1.25,
@@ -409,7 +409,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_green_spaceParts_015',
     rarity: 'common',
     tier: 0,
-    price: 40,
+    price: 80,
     statsLines: ['+15% скорости', '+15% поворота'],
     stats: {
       speedMultiplier: 1.15,
@@ -423,7 +423,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_blue_spaceParts_016',
     rarity: 'common',
     tier: 0,
-    price: 45,
+    price: 90,
     statsLines: ['+20% маневра', '+20% поворота'],
     stats: {
       maneuverabilityBonus: 15,
@@ -437,7 +437,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_green_spaceParts_017',
     rarity: 'common',
     tier: 0,
-    price: 45,
+    price: 90,
     statsLines: ['+30% поворота', '+10% маневра'],
     stats: {
       turnSpeedMultiplier: 1.3,
@@ -452,7 +452,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_green_spaceParts_013',
     rarity: 'rare',
     tier: 2,
-    price: 110,
+    price: 220,
     statsLines: ['+45% поворота', '+20% скорости'],
     stats: {
       turnSpeedMultiplier: 1.45,
@@ -466,7 +466,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_blue_spaceParts_018',
     rarity: 'rare',
     tier: 2,
-    price: 115,
+    price: 230,
     statsLines: ['+50% поворота', '+25% маневра'],
     stats: {
       turnSpeedMultiplier: 1.5,
@@ -480,7 +480,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_green_spaceParts_019',
     rarity: 'rare',
     tier: 2,
-    price: 120,
+    price: 240,
     statsLines: ['+55% поворота', '+15% скорости'],
     stats: {
       turnSpeedMultiplier: 1.55,
@@ -494,7 +494,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_blue_spaceParts_012',
     rarity: 'rare',
     tier: 2,
-    price: 125,
+    price: 250,
     statsLines: ['+60% поворота', '+30% маневра'],
     stats: {
       turnSpeedMultiplier: 1.6,
@@ -509,7 +509,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_red_spaceParts_001',
     rarity: 'legendary',
     tier: 3,
-    price: 280,
+    price: 560,
     statsLines: ['+90% поворота', '+40% скорости'],
     stats: {
       turnSpeedMultiplier: 1.9,
@@ -523,7 +523,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'wings_red_spaceParts_002',
     rarity: 'legendary',
     tier: 3,
-    price: 300,
+    price: 600,
     statsLines: ['+100% поворота', '+50% маневра'],
     stats: {
       turnSpeedMultiplier: 2.0,
@@ -542,7 +542,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'engines_0',
     rarity: 'common',
     tier: 0,
-    price: 45,
+    price: 90,
     statsLines: ['+15% скорости', '-15% отката рывка'],
     stats: {
       speedMultiplier: 1.15,
@@ -557,7 +557,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'engines_1',
     rarity: 'common',
     tier: 0,
-    price: 55,
+    price: 110,
     statsLines: ['+20% скорости', '+20% силы рывка'],
     stats: {
       speedMultiplier: 1.2,
@@ -573,7 +573,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'engines_2',
     rarity: 'rare',
     tier: 2,
-    price: 130,
+    price: 260,
     statsLines: ['+35% скорости', '-30% отката рывка'],
     stats: {
       speedMultiplier: 1.35,
@@ -589,7 +589,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'engines_3',
     rarity: 'legendary',
     tier: 3,
-    price: 320,
+    price: 640,
     statsLines: ['+60% скорости', '-50% отката рывка'],
     stats: {
       speedMultiplier: 1.6,
@@ -609,7 +609,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'guns_0',
     rarity: 'common',
     tier: 0,
-    price: 50,
+    price: 100,
     statsLines: ['+15% урона', '+15% скорострельности'],
     stats: {
       bulletDamageBonus: 2,
@@ -624,7 +624,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'guns_1',
     rarity: 'common',
     tier: 0,
-    price: 60,
+    price: 120,
     statsLines: ['+10% урона', '+35% скорострельности'],
     stats: {
       bulletDamageBonus: 1,
@@ -640,7 +640,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'guns_2',
     rarity: 'rare',
     tier: 2,
-    price: 150,
+    price: 300,
     statsLines: ['+40% урона', '+20% скорострельности'],
     stats: {
       bulletDamageBonus: 6,
@@ -656,7 +656,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     partId: 'guns_3',
     rarity: 'legendary',
     tier: 3,
-    price: 350,
+    price: 700,
     statsLines: ['+80% урона', '+45% скорострельности'],
     stats: {
       bulletDamageBonus: 12,

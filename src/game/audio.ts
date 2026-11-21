@@ -87,18 +87,18 @@ class SoundFx {
       const osc = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(200, now);
-      osc.frequency.exponentialRampToValueAtTime(32, now + 0.22);
-      oscGain.gain.setValueAtTime(0.35, now);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(32, now + 0.20);
+      oscGain.gain.setValueAtTime(0.18, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
       osc.connect(oscGain);
       oscGain.connect(dest);
       osc.start(now);
-      osc.stop(now + 0.22);
+      osc.stop(now + 0.20);
 
       // 2. Взрывной хлопок газов и лязг механизма
       const sampleRate = this.ctx.sampleRate;
-      const duration = 0.26;
+      const duration = 0.22;
       const buffer = this.ctx.createBuffer(1, Math.floor(sampleRate * duration), sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < data.length; i++) {
@@ -109,11 +109,11 @@ class SoundFx {
 
       const filter = this.ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(850, now);
-      filter.frequency.exponentialRampToValueAtTime(100, now + duration);
+      filter.frequency.setValueAtTime(750, now);
+      filter.frequency.exponentialRampToValueAtTime(90, now + duration);
 
       const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.28, now);
+      noiseGain.gain.setValueAtTime(0.12, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       noise.connect(filter);
@@ -139,17 +139,17 @@ class SoundFx {
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
 
-      osc.frequency.setValueAtTime(260, now);
-      osc.frequency.exponentialRampToValueAtTime(70, now + 0.08);
+      osc.frequency.setValueAtTime(240, now);
+      osc.frequency.exponentialRampToValueAtTime(70, now + 0.07);
 
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
 
       osc.connect(gain);
       gain.connect(dest);
 
       osc.start(now);
-      osc.stop(now + 0.08);
+      osc.stop(now + 0.07);
     } catch {
       // Игнорируем ошибки воспроизведения
     }
@@ -206,11 +206,11 @@ class SoundFx {
 
       const filter = this.ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(650, this.ctx.currentTime);
-      filter.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + duration);
+      filter.frequency.setValueAtTime(550, this.ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + duration);
 
       const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.22, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.14, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
 
       noise.connect(filter);
@@ -282,7 +282,7 @@ class SoundFx {
   }
 
   /**
-   * Выстрел плазменного орудия вражеского крейсера.
+   * Мягкий плазменный выстрел обычного вражеского корабля.
    */
   playTerminatorShoot(): void {
     try {
@@ -291,33 +291,76 @@ class SoundFx {
       if (!this.ctx || !dest || this.muted) return;
       const now = this.ctx.currentTime;
 
-      // 1. Пьезо-электрический лазерный импульс
+      // Мягкий треугольный импульс без резкого скрежета
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(540, now);
-      osc.frequency.exponentialRampToValueAtTime(110, now + 0.16);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(360, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.14);
 
-      gain.gain.setValueAtTime(0.20, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
 
       osc.connect(gain);
       gain.connect(dest);
       osc.start(now);
-      osc.stop(now + 0.16);
+      osc.stop(now + 0.14);
 
-      // 2. Металлический лязг сервопривода затвора
+      // Очень тихий мягкий щелчок затвора
       const clankOsc = this.ctx.createOscillator();
       const clankGain = this.ctx.createGain();
-      clankOsc.type = 'triangle';
-      clankOsc.frequency.setValueAtTime(880, now);
-      clankOsc.frequency.exponentialRampToValueAtTime(220, now + 0.07);
-      clankGain.gain.setValueAtTime(0.14, now);
-      clankGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+      clankOsc.type = 'sine';
+      clankOsc.frequency.setValueAtTime(440, now);
+      clankOsc.frequency.exponentialRampToValueAtTime(180, now + 0.05);
+      clankGain.gain.setValueAtTime(0.03, now);
+      clankGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
       clankOsc.connect(clankGain);
       clankGain.connect(dest);
       clankOsc.start(now);
-      clankOsc.stop(now + 0.07);
+      clankOsc.stop(now + 0.05);
+    } catch {
+      // Игнорируем ошибки воспроизведения
+    }
+  }
+
+  /**
+   * Сбалансированный глубокий залп босса (без резких высоких частот и без оглушения).
+   */
+  playBossShoot(): void {
+    try {
+      this.init();
+      const dest = this.getMasterDestination();
+      if (!this.ctx || !dest || this.muted) return;
+      const now = this.ctx.currentTime;
+
+      // 1. Плавный футуристический плазменный импульс
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(240, now);
+      osc.frequency.exponentialRampToValueAtTime(75, now + 0.22);
+
+      gain.gain.setValueAtTime(0.10, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      osc.connect(gain);
+      gain.connect(dest);
+      osc.start(now);
+      osc.stop(now + 0.22);
+
+      // 2. Теплый глубокий бас без искажений
+      const subOsc = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(120, now);
+      subOsc.frequency.exponentialRampToValueAtTime(45, now + 0.20);
+      subGain.gain.setValueAtTime(0.07, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+
+      subOsc.connect(subGain);
+      subGain.connect(dest);
+      subOsc.start(now);
+      subOsc.stop(now + 0.20);
     } catch {
       // Игнорируем ошибки воспроизведения
     }
@@ -332,18 +375,18 @@ class SoundFx {
       const dest = this.getMasterDestination();
       if (!this.ctx || !dest || this.muted) return;
       const now = this.ctx.currentTime;
-      const duration = 0.42;
+      const duration = 0.35;
 
       // 1. Низкочастотный импульс и нарастающий рев ракетного двигателя
       const osc = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(140, now);
-      osc.frequency.linearRampToValueAtTime(320, now + 0.08);
-      osc.frequency.exponentialRampToValueAtTime(65, now + duration);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.linearRampToValueAtTime(260, now + 0.08);
+      osc.frequency.exponentialRampToValueAtTime(60, now + duration);
 
       oscGain.gain.setValueAtTime(0.01, now);
-      oscGain.gain.linearRampToValueAtTime(0.32, now + 0.06);
+      oscGain.gain.linearRampToValueAtTime(0.14, now + 0.06);
       oscGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       osc.connect(oscGain);
@@ -363,13 +406,13 @@ class SoundFx {
 
       const filter = this.ctx.createBiquadFilter();
       filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(450, now);
-      filter.frequency.linearRampToValueAtTime(1600, now + 0.12);
-      filter.frequency.exponentialRampToValueAtTime(250, now + duration);
-      filter.Q.setValueAtTime(2.2, now);
+      filter.frequency.setValueAtTime(420, now);
+      filter.frequency.linearRampToValueAtTime(1200, now + 0.10);
+      filter.frequency.exponentialRampToValueAtTime(220, now + duration);
+      filter.Q.setValueAtTime(1.8, now);
 
       const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.38, now);
+      noiseGain.gain.setValueAtTime(0.16, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       noise.connect(filter);
@@ -423,11 +466,11 @@ class SoundFx {
       // 1. Механический раскручивающийся гул сирены овердрайва
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(140, now);
-      osc.frequency.exponentialRampToValueAtTime(640, now + 0.35);
+      osc.frequency.exponentialRampToValueAtTime(540, now + 0.35);
 
-      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.setValueAtTime(0.12, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
 
       osc.connect(gain);
@@ -442,7 +485,7 @@ class SoundFx {
       subOsc.frequency.setValueAtTime(95, now);
       subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
 
-      subGain.gain.setValueAtTime(0.35, now);
+      subGain.gain.setValueAtTime(0.16, now);
       subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
 
       subOsc.connect(subGain);
@@ -470,7 +513,7 @@ class SoundFx {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(160, now);
       osc.frequency.exponentialRampToValueAtTime(25, now + 0.28);
-      oscGain.gain.setValueAtTime(0.42, now);
+      oscGain.gain.setValueAtTime(0.20, now);
       oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
       osc.connect(oscGain);
       oscGain.connect(dest);
@@ -481,9 +524,9 @@ class SoundFx {
       const ringOsc = this.ctx.createOscillator();
       const ringGain = this.ctx.createGain();
       ringOsc.type = 'triangle';
-      ringOsc.frequency.setValueAtTime(480, now);
+      ringOsc.frequency.setValueAtTime(420, now);
       ringOsc.frequency.exponentialRampToValueAtTime(110, now + 0.16);
-      ringGain.gain.setValueAtTime(0.24, now);
+      ringGain.gain.setValueAtTime(0.10, now);
       ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
       ringOsc.connect(ringGain);
       ringGain.connect(dest);
@@ -640,21 +683,21 @@ class SoundFx {
       if (!this.ctx || !dest || this.muted) return;
       const now = this.ctx.currentTime;
 
-      // Металлический звонкий перкуссионный резонанс с высокой гармоникой
+      // Мягкий металлический резонанс с умеренной громкостью
       const osc1 = this.ctx.createOscillator();
       const osc2 = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
       osc1.type = 'triangle';
-      osc1.frequency.setValueAtTime(1480, now);
-      osc1.frequency.exponentialRampToValueAtTime(2200, now + 0.08);
+      osc1.frequency.setValueAtTime(1200, now);
+      osc1.frequency.exponentialRampToValueAtTime(1800, now + 0.08);
 
       osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(2960, now);
-      osc2.frequency.exponentialRampToValueAtTime(3700, now + 0.06);
+      osc2.frequency.setValueAtTime(2400, now);
+      osc2.frequency.exponentialRampToValueAtTime(2800, now + 0.06);
 
-      gain.gain.setValueAtTime(0.22, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
 
       osc1.connect(gain);
       osc2.connect(gain);
@@ -662,8 +705,8 @@ class SoundFx {
 
       osc1.start(now);
       osc2.start(now);
-      osc1.stop(now + 0.18);
-      osc2.stop(now + 0.18);
+      osc1.stop(now + 0.14);
+      osc2.stop(now + 0.14);
     } catch {
       // Игнорируем
     }

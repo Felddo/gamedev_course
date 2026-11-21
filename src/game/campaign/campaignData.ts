@@ -21,6 +21,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Оцените обстановку на внешнем рубеже. Отразите первую разведывательную волну дронов противника.',
     isBoss: false,
     targetDuration: 120, // 2:00
+    targetKills: 15,
     enemyConfig: {
       spawnIntensity: 0.45,
       healthMultiplier: 1.0,
@@ -44,6 +45,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Вражеские звенья усиливают давление. На рубеже замечены звенья тяжёлых штурмовиков.',
     isBoss: false,
     targetDuration: 120, // 2:00
+    targetKills: 20,
     enemyConfig: {
       spawnIntensity: 0.55,
       healthMultiplier: 1.1,
@@ -67,6 +69,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Корабль входит в плотный метеоритный пояс. Избегайте столкновений с астероидами и сдерживайте напор врагов.',
     isBoss: false,
     targetDuration: 130, // 2:10
+    targetKills: 25,
     enemyConfig: {
       spawnIntensity: 0.65,
       healthMultiplier: 1.2,
@@ -90,6 +93,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Главные силы первого эшелона противника выходят на перехват. Высокая плотность скоростных перехватчиков и штурмовиков.',
     isBoss: false,
     targetDuration: 140, // 2:20
+    targetKills: 30,
     enemyConfig: {
       spawnIntensity: 0.75,
       healthMultiplier: 1.3,
@@ -113,6 +117,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Внимание: в сектор входит тяжёлый Ракетный крейсер, стреляющий веером из пяти снарядов. Уничтожьте его, чтобы открыть путь во второй сектор!',
     isBoss: true,
     targetDuration: 180, // 3:00
+    targetKills: 35,
     enemyConfig: {
       spawnIntensity: 0.85,
       healthMultiplier: 1.4,
@@ -138,6 +143,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
       bulletDamage: 16,
       bulletSpeed: 380,
       spawnDelay: 60,
+      spawnKills: 35,
       spreadCount: 5,
       tint: 0xff8844,
     },
@@ -158,6 +164,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Вход во второй сектор. Противник применяет ракетные фрегаты с дальнобойными плазменными орудиями.',
     isBoss: false,
     targetDuration: 130, // 2:10
+    targetKills: 40,
     enemyConfig: {
       spawnIntensity: 0.9,
       healthMultiplier: 1.5,
@@ -181,6 +188,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Вражеские эскадрильи пытаются зажать корабль в кольцо. Усиленный натиск стреляющих фрегатов и тяжелых эсминцев.',
     isBoss: false,
     targetDuration: 135, // 2:15
+    targetKills: 45,
     enemyConfig: {
       spawnIntensity: 1.0,
       healthMultiplier: 1.65,
@@ -204,6 +212,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Экстремальная концентрация астероидов и плазменных залпов. Растёт доля тяжёлых эсминцев с веерным огнём.',
     isBoss: false,
     targetDuration: 140, // 2:20
+    targetKills: 50,
     enemyConfig: {
       spawnIntensity: 1.1,
       healthMultiplier: 1.8,
@@ -227,6 +236,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Массированная атака вражеского флота перед подходом Ударного авианосца.',
     isBoss: false,
     targetDuration: 150, // 2:30
+    targetKills: 55,
     enemyConfig: {
       spawnIntensity: 1.2,
       healthMultiplier: 1.95,
@@ -250,6 +260,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Тревога! В сектор входит Ударный авианосец, ведущий огонь компактными параллельными группами из 4 снарядов. Ликвидируйте босса для прорыва к Цитадели!',
     isBoss: true,
     targetDuration: 200, // 3:20
+    targetKills: 60,
     enemyConfig: {
       spawnIntensity: 1.3,
       healthMultiplier: 2.1,
@@ -275,6 +286,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
       bulletDamage: 20,
       bulletSpeed: 410,
       spawnDelay: 65,
+      spawnKills: 60,
       spreadCount: 4,
       tint: 0xff3366,
     },
@@ -295,6 +307,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Вы вошли в центральный сектор вражеской армады. Враги предельно агрессивны, броня кораблей максимальна.',
     isBoss: false,
     targetDuration: 140, // 2:20
+    targetKills: 65,
     enemyConfig: {
       spawnIntensity: 1.4,
       healthMultiplier: 2.3,
@@ -318,6 +331,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Пробивайтесь сквозь эшелонированную оборону главного боевого ретранслятора.',
     isBoss: false,
     targetDuration: 145, // 2:25
+    targetKills: 70,
     enemyConfig: {
       spawnIntensity: 1.5,
       healthMultiplier: 2.5,
@@ -341,6 +355,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Непрерывные волны фрегатов и эсминцев. Не останавливайтесь ни на секунду.',
     isBoss: false,
     targetDuration: 150, // 2:30
+    targetKills: 75,
     enemyConfig: {
       spawnIntensity: 1.6,
       healthMultiplier: 2.7,
@@ -364,6 +379,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'Преддверие финальной битвы. Враг бросает в бой все резервы: максимальная концентрация тяжелых эсминцев. Выдержите этот натиск!',
     isBoss: false,
     targetDuration: 155, // 2:35
+    targetKills: 80,
     enemyConfig: {
       spawnIntensity: 1.75,
       healthMultiplier: 2.9,
@@ -387,6 +403,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
     briefing: 'ФИНАЛ: Флагманский линкор армады лично возглавил оборону ядра. Уничтожьте его, чтобы завершить кампанию и освободить все 3 сектора!',
     isBoss: true,
     targetDuration: 220, // 3:40
+    targetKills: 85,
     enemyConfig: {
       spawnIntensity: 1.85,
       healthMultiplier: 3.1,
@@ -413,6 +430,7 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
       bulletDamage: 26,
       bulletSpeed: 440,
       spawnDelay: 70,
+      spawnKills: 85,
       spreadCount: 7,
       tint: 0xff1144,
     },

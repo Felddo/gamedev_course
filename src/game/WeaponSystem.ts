@@ -88,7 +88,7 @@ export class WeaponSystem {
     } else if (upgradeId === 'turret_piercing_slugs') {
       this.hasPiercing = true;
     } else if (upgradeId === 'overclocked_capacitor') {
-      this.modFireRateMultiplier *= 1.15;
+      this.modFireRateMultiplier *= 1.35;
     } else if (upgradeId === 'reinforced_barrels') {
       this.modDamageMultiplier *= 1.2;
       this.modFireRateMultiplier *= 0.9;

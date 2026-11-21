@@ -364,7 +364,9 @@ export class HudManager {
     } else {
       this.timerLabel.setText('ВРЕМЯ БОЯ');
       this.timerText.setText('00:00');
-      const targetKills = mission.targetKills ?? 25;
+      const targetKills =
+        mission.targetKills ??
+        (15 + ((mission.sector - 1) * 5 + (mission.mission - 1)) * 5);
       this.killsLabel.setText('🎯 ЦЕЛИ');
       this.killsText.setText(`0 / ${targetKills}`);
       this.killsText.setColor('#fef08a');
@@ -436,7 +438,9 @@ export class HudManager {
           if (this.bossBarText) this.bossBarText.setVisible(false);
         }
       } else {
-        const targetKills = this.currentMission.targetKills ?? 25;
+        const targetKills =
+          this.currentMission.targetKills ??
+          (15 + ((this.currentMission.sector - 1) * 5 + (this.currentMission.mission - 1)) * 5);
         this.timerLabel.setText('ВРЕМЯ БОЯ');
         this.timerText.setText(this.formatTime(survivalTime));
         this.phaseLabel.setText('СЕКТОР ' + this.currentMission.sector);

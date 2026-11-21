@@ -459,7 +459,9 @@ export class EnemyManager {
       // Плавное покачивание кораблей при полете
       enemy.animPhase = (enemy.animPhase ?? 0) + seconds * 4.2;
       const flySway = Math.sin(enemy.animPhase) * 0.04;
-      enemy.sprite.rotation = (angle - Math.PI / 2) + flySway;
+      // Боссы развернуты на 180 градусов, чтобы смотреть носовой частью вперед
+      const baseRotation = enemy.isBoss ? (angle + Math.PI / 2) : (angle - Math.PI / 2);
+      enemy.sprite.rotation = baseRotation + flySway;
 
       // Логика стрельбы босса и обычных стреляющих противников (фрегат, эсминец)
       if (enemy.isBoss) {
@@ -541,6 +543,11 @@ export class EnemyManager {
     damage: number,
     particleManager?: ParticleManager,
   ): void {
+    if (enemy.isBoss) {
+      soundFx.playBossShoot();
+    } else {
+      soundFx.playTerminatorShoot();
+    }
     const muzzleDist = enemy.radius * 0.7;
     const muzzleX = enemy.sprite.x + Math.cos(angle) * muzzleDist;
     const muzzleY = enemy.sprite.y + Math.sin(angle) * muzzleDist;
@@ -556,6 +563,12 @@ export class EnemyManager {
     damage: number,
     particleManager?: ParticleManager,
   ): void {
+    // Звук выстрела воспроизводится один раз на весь залп, а не на каждый отдельный снаряд
+    if (enemy.isBoss) {
+      soundFx.playBossShoot();
+    } else {
+      soundFx.playTerminatorShoot();
+    }
     const startAngle = centerAngle - ((count - 1) / 2) * spreadStep;
     const muzzleDist = enemy.radius * 0.7;
 
@@ -576,6 +589,12 @@ export class EnemyManager {
     damage: number,
     particleManager?: ParticleManager,
   ): void {
+    // Звук выстрела воспроизводится один раз на весь залп
+    if (enemy.isBoss) {
+      soundFx.playBossShoot();
+    } else {
+      soundFx.playTerminatorShoot();
+    }
     // Вектор, перпендикулярный направлению на игрока
     const perpX = -Math.sin(angle);
     const perpY = Math.cos(angle);
@@ -600,8 +619,6 @@ export class EnemyManager {
     damage: number,
     particleManager?: ParticleManager,
   ): void {
-    soundFx.playTerminatorShoot();
-
     const bulletSprite = this.scene.add.sprite(x, y, 'enemy_bullet_red');
     bulletSprite.setDepth(11);
 
@@ -714,8 +731,8 @@ export class EnemyManager {
             }
           }
 
-          // Электромагнитный разряд: 15% шанс вызвать электрическую дугу по ближайшему другому врагу
-          if (weaponSystem.hasEmpDischarge && Math.random() < 0.15) {
+          // Электромагнитный разряд: 35% шанс вызвать электрическую дугу по ближайшему другому врагу
+          if (weaponSystem.hasEmpDischarge && Math.random() < 0.35) {
             let nearestOther: EnemyShip | null = null;
             let minOtherDist = 320;
             for (let o = 0; o < this.enemies.length; o++) {

@@ -1067,9 +1067,9 @@ export class PlayerShip {
       this.attackRadiusMultiplier = 1.25;
       this.drawAttackRangeCircle();
     } else if (upgradeId === 'reinforced_armor') {
-      this.modDamageReduction = 0.15;
+      this.modDamageReduction = 0.35;
     } else if (upgradeId === 'afterburner_thrusters') {
-      this.modMoveSpeedMultiplier = 1.15;
+      this.modMoveSpeedMultiplier = 1.35;
     }
   }
 

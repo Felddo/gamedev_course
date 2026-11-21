@@ -117,6 +117,7 @@ export class ShipBuilderModal {
   private btnLayerUp!: HTMLButtonElement;
   private btnLayerDown!: HTMLButtonElement;
   private btnRotate45!: HTMLButtonElement;
+  private btnRotateMinus45!: HTMLButtonElement;
   private btnRotate90!: HTMLButtonElement;
   private btnFlipX!: HTMLButtonElement;
   private btnDeleteSelected!: HTMLButtonElement;
@@ -240,7 +241,7 @@ export class ShipBuilderModal {
                 <div class="parts-grid" id="shipyard-parts-grid"></div>
               </div>
               <div class="parts-col-footer-hint">
-                <span>ПЕРЕТАЩИТЕ В АНГАР ИЛИ КЛИКНИТЕ</span>
+                <span>ПЕРЕТАЩИТЕ МОДУЛЬ В АНГАР</span>
               </div>
             </div>
 
@@ -276,8 +277,11 @@ export class ShipBuilderModal {
                       <button id="btn-layer-down" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой назад" disabled>
                         <span class="tool-icon">▼</span> Слой -1
                       </button>
-                      <button id="btn-rotate-45" class="sel-tool-btn" type="button" title="Повернуть модуль на 45 градусов" disabled>
+                      <button id="btn-rotate-45" class="sel-tool-btn" type="button" title="Повернуть модуль на +45 градусов" disabled>
                         <span class="tool-icon">⟳</span> +45°
+                      </button>
+                      <button id="btn-rotate-minus-45" class="sel-tool-btn" type="button" title="Повернуть модуль на -45 градусов" disabled>
+                        <span class="tool-icon">⟲</span> -45°
                       </button>
                       <button id="btn-rotate-90" class="sel-tool-btn" type="button" title="Повернуть модуль на 90 градусов" disabled>
                         <span class="tool-icon">↷</span> +90°
@@ -385,6 +389,7 @@ export class ShipBuilderModal {
     this.btnLayerUp = modal.querySelector('#btn-layer-up') as HTMLButtonElement;
     this.btnLayerDown = modal.querySelector('#btn-layer-down') as HTMLButtonElement;
     this.btnRotate45 = modal.querySelector('#btn-rotate-45') as HTMLButtonElement;
+    this.btnRotateMinus45 = modal.querySelector('#btn-rotate-minus-45') as HTMLButtonElement;
     this.btnRotate90 = modal.querySelector('#btn-rotate-90') as HTMLButtonElement;
     this.btnFlipX = modal.querySelector('#btn-flip-x') as HTMLButtonElement;
     this.btnDeleteSelected = modal.querySelector('#btn-delete-selected') as HTMLButtonElement;
@@ -446,6 +451,12 @@ export class ShipBuilderModal {
     this.btnRotate45.addEventListener('click', () => {
       soundFx.playUiClick();
       this.rotateSelected(45);
+    });
+
+    // Поворот на -45 градусов
+    this.btnRotateMinus45.addEventListener('click', () => {
+      soundFx.playUiClick();
+      this.rotateSelected(-45);
     });
 
     // Поворот на 90 градусов
@@ -1286,13 +1297,11 @@ export class ShipBuilderModal {
 
       card.addEventListener('mouseenter', () => soundFx.playUiHover());
 
-      // Быстрый клик для добавления
+      // При клике на карточку подсказываем, что модуль нужно перетащить в ангар
       card.addEventListener('click', () => {
         if (this.hasMovedSignificantly) return;
-        const bayRect = this.centerBayEl.getBoundingClientRect();
-        const dropX = bayRect.width > 0 ? bayRect.width / 2 + (Math.random() * 30 - 15) : 200;
-        const dropY = bayRect.height > 0 ? bayRect.height / 2 + (Math.random() * 30 - 15) : 200;
-        this.tryAddPart(part, dropX, dropY);
+        soundFx.playUiHover();
+        this.showAlert(`👆 ПЕРЕТАЩИТЕ МОДУЛЬ «${displayName.toUpperCase()}» В АНГАР`);
       });
 
       // HTML5 DragStart
@@ -1607,11 +1616,6 @@ export class ShipBuilderModal {
       const dropX = e.clientX - bayRect.left;
       const dropY = e.clientY - bayRect.top;
       this.tryAddPart(draggedPart, dropX, dropY);
-    } else if (!hasMoved) {
-      // Быстрый тап по карточке добавляет деталь в центр ангара
-      const dropX = bayRect.width / 2;
-      const dropY = bayRect.height / 2;
-      this.tryAddPart(draggedPart, dropX, dropY);
     }
   };
 
@@ -1669,6 +1673,7 @@ export class ShipBuilderModal {
       this.btnLayerUp.disabled = true;
       this.btnLayerDown.disabled = true;
       this.btnRotate45.disabled = true;
+      this.btnRotateMinus45.disabled = true;
       this.btnRotate90.disabled = true;
       this.btnFlipX.disabled = true;
       this.btnDeleteSelected.disabled = true;
@@ -1679,6 +1684,7 @@ export class ShipBuilderModal {
     this.btnLayerUp.disabled = false;
     this.btnLayerDown.disabled = false;
     this.btnRotate45.disabled = false;
+    this.btnRotateMinus45.disabled = false;
     this.btnRotate90.disabled = false;
     this.btnFlipX.disabled = false;
     this.btnDeleteSelected.disabled = false;
@@ -1713,9 +1719,9 @@ export class ShipBuilderModal {
   }
 
   /**
-   * Поворот выбранного модуля на заданное количество градусов (45° или 90°)
+   * Поворот выбранного модуля на заданное количество градусов (например, +45°, -45°, +90°)
    */
-  public rotateSelected(degrees: 45 | 90): void {
+  public rotateSelected(degrees: number): void {
     if (!this.selectedPartUid) return;
 
     const part = this.droppedParts.find((p) => p.uid === this.selectedPartUid);
@@ -1723,6 +1729,9 @@ export class ShipBuilderModal {
 
     this.clearDisconnectedMarks();
     part.rotation = (part.rotation + degrees) % 360;
+    if (part.rotation < 0) {
+      part.rotation += 360;
+    }
     this.updateDroppedPartElement(part);
     this.updateSelectedToolbar();
     this.persistAssembly();
