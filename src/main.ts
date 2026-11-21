@@ -665,19 +665,55 @@ function showMissionComplete(
   if (mcKills) mcKills.textContent = kills.toString();
   if (mcScore) mcScore.textContent = score.toString();
 
-  // Выделенное уведомление о разблокировке покупки редких / легендарных деталей
+  // Выделенное уведомление о разблокировке деталей и лимитов верфи
   if (mcUnlockBanner && mcUnlockText) {
-    if (missionId === '1-5') {
-      mcUnlockBanner.className = 'mc-unlock-banner unlock-rare';
-      mcUnlockText.textContent = 'ДОСТУПНЫ РЕДКИЕ ЧАСТИ КОРАБЛЯ';
+    if (missionId === '1-3') {
+      mcUnlockBanner.className = 'mc-unlock-banner unlock-guns';
+      if (mcUnlockIcon) mcUnlockIcon.textContent = '⚡';
+      mcUnlockText.innerHTML = `
+        <div class="mc-unlock-body">
+          <div class="mc-unlock-headline">МОДЕРНИЗАЦИЯ ОРУЖИЯ</div>
+          <div class="mc-unlock-subtext">ЛИМИТ ПУШЕК УВЕЛИЧЕН НА 1 <span class="mc-limit-tag">МАКС: 2 ПУШКИ</span></div>
+        </div>
+      `;
+    } else if (missionId === '1-5') {
+      mcUnlockBanner.className = 'mc-unlock-banner unlock-rare-engine';
       if (mcUnlockIcon) mcUnlockIcon.textContent = '⭐';
+      mcUnlockText.innerHTML = `
+        <div class="mc-unlock-body">
+          <div class="mc-unlock-headline">ДОСТУПНЫ РЕДКИЕ ЧАСТИ КОРАБЛЯ</div>
+          <div class="mc-unlock-subtext mc-subtext-engine">🚀 ЛИМИТ ДВИГАТЕЛЕЙ УВЕЛИЧЕН НА 1 <span class="mc-limit-tag">МАКС: 2 ДВИГАТЕЛЯ</span></div>
+        </div>
+      `;
+    } else if (missionId === '2-2') {
+      mcUnlockBanner.className = 'mc-unlock-banner unlock-body';
+      if (mcUnlockIcon) mcUnlockIcon.textContent = '🛡️';
+      mcUnlockText.innerHTML = `
+        <div class="mc-unlock-body">
+          <div class="mc-unlock-headline">МОДЕРНИЗАЦИЯ КАРКАСА</div>
+          <div class="mc-unlock-subtext">ЛИМИТ ТЕЛА УВЕЛИЧЕН НА 1 <span class="mc-limit-tag">МАКС: 2 КОРПУСА</span></div>
+        </div>
+      `;
+    } else if (missionId === '2-4') {
+      mcUnlockBanner.className = 'mc-unlock-banner unlock-wings';
+      if (mcUnlockIcon) mcUnlockIcon.textContent = '🪽';
+      mcUnlockText.innerHTML = `
+        <div class="mc-unlock-body">
+          <div class="mc-unlock-headline">АЭРОДИНАМИЧЕСКИЙ ПРОРЫВ</div>
+          <div class="mc-unlock-subtext">ЛИМИТ КРЫЛЬЕВ УВЕЛИЧЕН НА 2 <span class="mc-limit-tag">ТО ЕСТЬ 4 КРЫЛА</span></div>
+        </div>
+      `;
     } else if (missionId === '2-5') {
       mcUnlockBanner.className = 'mc-unlock-banner unlock-legendary';
-      mcUnlockText.textContent = 'ДОСТУПНЫ ЛЕГЕНДАРНЫЕ ЧАСТИ КОРАБЛЯ';
       if (mcUnlockIcon) mcUnlockIcon.textContent = '👑';
+      mcUnlockText.innerHTML = `
+        <div class="mc-unlock-body">
+          <div class="mc-unlock-headline">ДОСТУПНЫ ЛЕГЕНДАРНЫЕ ЧАСТИ КОРАБЛЯ</div>
+        </div>
+      `;
     } else {
       mcUnlockBanner.className = 'mc-unlock-banner hidden';
-      mcUnlockText.textContent = '';
+      mcUnlockText.innerHTML = '';
     }
   }
 

@@ -957,14 +957,14 @@ canvas {
 }
 
 /* ==========================================================
-   УВЕДОМЛЕНИЯ О РАЗБЛОКИРОВКЕ РЕДКИХ И ЛЕГЕНДАРНЫХ ДЕТАЛЕЙ
+   УВЕДОМЛЕНИЯ О РАЗБЛОКИРОВКЕ ДЕТАЛЕЙ И ЛИМИТОВ ВЕРФИ
    ========================================================== */
 .mc-unlock-banner {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 16px 26px;
+  padding: 14px 24px;
   margin-bottom: 22px;
   border-radius: 8px;
   position: relative;
@@ -972,6 +972,46 @@ canvas {
   box-shadow: 0 6px 30px rgba(0, 0, 0, 0.7);
   animation: unlockBannerPulse 2s ease-in-out infinite;
   backdrop-filter: blur(10px);
+}
+
+.mc-unlock-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.mc-unlock-headline {
+  font-family: var(--font-display, 'Orbitron', monospace);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+}
+
+.mc-unlock-subtext {
+  font-family: var(--font-display, 'Orbitron', monospace);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mc-limit-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid currentColor;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1px;
 }
 
 .mc-unlock-banner::before {
@@ -996,29 +1036,105 @@ canvas {
   display: none !important;
 }
 
-.mc-unlock-banner.unlock-rare {
-  background: linear-gradient(90deg, rgba(234, 179, 8, 0.22) 0%, rgba(245, 158, 11, 0.45) 50%, rgba(234, 179, 8, 0.22) 100%);
-  border: 2.5px solid #facc15;
-  box-shadow: 0 0 35px rgba(250, 204, 21, 0.6), inset 0 0 25px rgba(250, 204, 21, 0.3);
+/* 1-3: Пушки - плазменно-огненный стиль */
+.mc-unlock-banner.unlock-guns {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.26) 0%, rgba(249, 115, 22, 0.52) 50%, rgba(239, 68, 68, 0.26) 100%);
+  border: 2.5px solid #f97316;
+  box-shadow: 0 0 35px rgba(249, 115, 22, 0.7), inset 0 0 25px rgba(249, 115, 22, 0.35);
 }
 
-.mc-unlock-banner.unlock-rare .mc-unlock-text {
-  font-family: var(--font-display, 'Orbitron', monospace);
-  font-size: 17px;
-  font-weight: 900;
-  letter-spacing: 2.5px;
+.mc-unlock-banner.unlock-guns .mc-unlock-headline {
+  color: #fff7ed;
+  text-shadow: 0 0 12px rgba(249, 115, 22, 1), 0 0 28px rgba(239, 68, 68, 0.9);
+}
+
+.mc-unlock-banner.unlock-guns .mc-unlock-subtext {
+  color: #fed7aa;
+  text-shadow: 0 0 10px rgba(249, 115, 22, 0.85);
+}
+
+.mc-unlock-banner.unlock-guns .mc-unlock-icon {
+  color: #fb923c;
+  filter: drop-shadow(0 0 14px #f97316);
+}
+
+/* 1-5: Редкие детали + Двигатели - золотой гипердрайв */
+.mc-unlock-banner.unlock-rare,
+.mc-unlock-banner.unlock-rare-engine {
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.26) 0%, rgba(245, 158, 11, 0.52) 50%, rgba(234, 179, 8, 0.26) 100%);
+  border: 2.5px solid #facc15;
+  box-shadow: 0 0 35px rgba(250, 204, 21, 0.7), inset 0 0 25px rgba(250, 204, 21, 0.35);
+}
+
+.mc-unlock-banner.unlock-rare .mc-unlock-headline,
+.mc-unlock-banner.unlock-rare-engine .mc-unlock-headline {
   color: #fffbeb;
   text-shadow: 0 0 12px rgba(250, 204, 21, 1), 0 0 28px rgba(245, 158, 11, 0.85);
-  text-transform: uppercase;
 }
 
+.mc-unlock-banner.unlock-rare-engine .mc-subtext-engine {
+  color: #fef08a;
+  text-shadow: 0 0 10px rgba(234, 179, 8, 0.9);
+}
+
+.mc-unlock-banner.unlock-rare .mc-unlock-icon,
+.mc-unlock-banner.unlock-rare-engine .mc-unlock-icon {
+  color: #facc15;
+  filter: drop-shadow(0 0 14px #eab308);
+}
+
+/* 2-2: Корпус / Тело - изумрудно-титановый силовой щит */
+.mc-unlock-banner.unlock-body {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.26) 0%, rgba(6, 182, 212, 0.48) 50%, rgba(16, 185, 129, 0.26) 100%);
+  border: 2.5px solid #10b981;
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.65), inset 0 0 25px rgba(6, 182, 212, 0.35);
+}
+
+.mc-unlock-banner.unlock-body .mc-unlock-headline {
+  color: #ecfdf5;
+  text-shadow: 0 0 12px rgba(16, 185, 129, 1), 0 0 28px rgba(6, 182, 212, 0.85);
+}
+
+.mc-unlock-banner.unlock-body .mc-unlock-subtext {
+  color: #a7f3d0;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+}
+
+.mc-unlock-banner.unlock-body .mc-unlock-icon {
+  color: #34d399;
+  filter: drop-shadow(0 0 14px #10b981);
+}
+
+/* 2-4: Крылья - сверхзвуковой лазурно-индиговый импульс */
+.mc-unlock-banner.unlock-wings {
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.26) 0%, rgba(99, 102, 241, 0.5) 50%, rgba(14, 165, 233, 0.26) 100%);
+  border: 2.5px solid #38bdf8;
+  box-shadow: 0 0 35px rgba(56, 189, 248, 0.65), inset 0 0 25px rgba(99, 102, 241, 0.35);
+}
+
+.mc-unlock-banner.unlock-wings .mc-unlock-headline {
+  color: #f0f9ff;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 1), 0 0 28px rgba(99, 102, 241, 0.85);
+}
+
+.mc-unlock-banner.unlock-wings .mc-unlock-subtext {
+  color: #bae6fd;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+}
+
+.mc-unlock-banner.unlock-wings .mc-unlock-icon {
+  color: #38bdf8;
+  filter: drop-shadow(0 0 14px #0284c7);
+}
+
+/* 2-5: Легендарные детали */
 .mc-unlock-banner.unlock-legendary {
   background: linear-gradient(90deg, rgba(239, 68, 68, 0.28) 0%, rgba(244, 63, 94, 0.5) 50%, rgba(239, 68, 68, 0.28) 100%);
   border: 2.5px solid #ef4444;
   box-shadow: 0 0 40px rgba(239, 68, 68, 0.7), inset 0 0 28px rgba(239, 68, 68, 0.35);
 }
 
-.mc-unlock-banner.unlock-legendary .mc-unlock-text {
+.mc-unlock-banner.unlock-legendary .mc-unlock-headline {
   font-family: var(--font-display, 'Orbitron', monospace);
   font-size: 17px;
   font-weight: 900;

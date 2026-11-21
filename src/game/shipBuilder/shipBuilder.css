@@ -1092,6 +1092,34 @@
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
 }
 
+.limit-chip.missing {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fca5a5;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+.limit-val.missing-val {
+  color: #f87171;
+}
+
+.limit-missing-warn {
+  color: #f87171;
+  font-size: 11px;
+  animation: limitWarnPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes limitWarnPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.category-col-btn .cat-count-badge.badge-missing {
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.18);
+}
+
 .limit-icon {
   font-size: 13px;
   flex-shrink: 0;

@@ -45,14 +45,47 @@ export interface CohesionValidationResult {
   disconnectedUids?: string[];
 }
 
-// Лимиты на установку модулей по категориям
-export const CATEGORY_LIMITS: Record<string, { max: number; title: string; icon: string }> = {
-  pilot: { max: 1, title: 'Кабина', icon: '👤' },
-  body: { max: 1, title: 'Корпус', icon: '🛡️' },
-  wings: { max: 2, title: 'Крылья', icon: '🪽' },
-  engines: { max: 1, title: 'Двигатели', icon: '🚀' },
-  guns: { max: 2, title: 'Пушки', icon: '⚡' },
+const CATEGORY_LIMIT_METADATA: Record<string, { title: string; icon: string }> = {
+  pilot: { title: 'Кабина', icon: '👤' },
+  body: { title: 'Корпус', icon: '🛡️' },
+  wings: { title: 'Крылья', icon: '🪽' },
+  engines: { title: 'Двигатели', icon: '🚀' },
+  guns: { title: 'Пушки', icon: '⚡' },
 };
+
+export function getCategoryMaxLimit(catId: string): number {
+  return campaignManager.getShipPartLimit(catId);
+}
+
+// Лимиты на установку модулей по категориям (рассчитываются динамически от прогресса кампании)
+export const CATEGORY_LIMITS = new Proxy(CATEGORY_LIMIT_METADATA as any, {
+  get(_target, prop: string) {
+    if (typeof prop !== 'string') return undefined;
+    const meta = CATEGORY_LIMIT_METADATA[prop] || { title: prop, icon: '' };
+    return {
+      max: campaignManager.getShipPartLimit(prop),
+      title: meta.title,
+      icon: meta.icon,
+    };
+  },
+  has(_target, prop: string) {
+    return prop in CATEGORY_LIMIT_METADATA;
+  },
+  ownKeys() {
+    return Object.keys(CATEGORY_LIMIT_METADATA);
+  },
+  getOwnPropertyDescriptor(_target, prop: string) {
+    return {
+      configurable: true,
+      enumerable: true,
+      value: {
+        max: campaignManager.getShipPartLimit(prop),
+        title: (CATEGORY_LIMIT_METADATA[prop] || { title: prop }).title,
+        icon: (CATEGORY_LIMIT_METADATA[prop] || { icon: '' }).icon,
+      },
+    };
+  },
+}) as Record<string, { max: number; title: string; icon: string }>;
 
 export class ShipBuilderModal {
   private container: HTMLElement;
@@ -902,9 +935,55 @@ export class ShipBuilderModal {
   }
 
   /**
-   * Запуск боевого вылета с валидацией связности/цельности корабля
+   * Проверка обязательной комплектации корабля:
+   * Для выхода в бой необходимо минимум по одной детали из каждой категории:
+   * Кабина, Корпус, Крылья, Двигатель, Пушка.
+   */
+  public validateShipComposition(): { isValid: boolean; errorMessage?: string; missingNames?: string[] } {
+    const requiredCategories: Array<{ id: string; name: string }> = [
+      { id: 'body', name: 'Корпус' },
+      { id: 'pilot', name: 'Кабина' },
+      { id: 'wings', name: 'Крылья' },
+      { id: 'engines', name: 'Двигатель' },
+      { id: 'guns', name: 'Пушка' },
+    ];
+
+    const missing = requiredCategories.filter((cat) => this.getCategoryCount(cat.id) < 1);
+    if (missing.length > 0) {
+      const names = missing.map((m) => m.name).join(', ');
+      return {
+        isValid: false,
+        missingNames: missing.map((m) => m.name),
+        errorMessage: `ДЛЯ ВЫХОДА В БОЙ НУЖНО ХОТЯ БЫ ПО 1 ДЕТАЛИ ИЗ КАЖДОЙ ЧАСТИ! Не хватает: ${names}`,
+      };
+    }
+
+    // Проверка, что ни по одной категории не превышен лимит
+    for (const cat of requiredCategories) {
+      const count = this.getCategoryCount(cat.id);
+      const limit = CATEGORY_LIMITS[cat.id]?.max || 1;
+      if (count > limit) {
+        return {
+          isValid: false,
+          errorMessage: `ПРЕВЫШЕН ЛИМИТ: ${cat.name.toUpperCase()} (${count}/${limit})! Удалите лишнюю деталь.`,
+        };
+      }
+    }
+
+    return { isValid: true };
+  }
+
+  /**
+   * Запуск боевого вылета с валидацией связности/цельности корабля и обязательной комплектации
    */
   public tryLaunch(): boolean {
+    const compCheck = this.validateShipComposition();
+    if (!compCheck.isValid) {
+      soundFx.playHit();
+      this.showAlert(compCheck.errorMessage || 'НЕ ХВАТАЕТ ОБЯЗАТЕЛЬНЫХ ДЕТАЛЕЙ ДЛЯ ВЫЛЕТА!');
+      return false;
+    }
+
     const check = this.validateShipCohesion();
     if (!check.isValid) {
       soundFx.playHit();
@@ -974,7 +1053,7 @@ export class ShipBuilderModal {
 
   /**
    * Рендеринг тактических индикаторов лимитов:
-   * Кабина 0/1, Корпус 0/1, Крылья 0/2, Двигатели 0/1, Пушки 0/1
+   * Кабина, Корпус, Крылья, Двигатели, Пушки
    */
   private renderLimitsGrid(): void {
     if (!this.limitsGridEl) return;
@@ -988,9 +1067,13 @@ export class ShipBuilderModal {
 
       const current = this.getCategoryCount(catId);
       const isFull = current >= cfg.max;
+      const isMissing = current < 1;
       const badge = document.createElement('div');
-      badge.className = `limit-chip ${isFull ? 'full' : 'available'}`;
-      badge.setAttribute('title', `${cfg.title}: установлено ${current} из ${cfg.max}`);
+      badge.className = `limit-chip ${isFull ? 'full' : isMissing ? 'missing' : 'available'}`;
+      badge.setAttribute(
+        'title',
+        `${cfg.title}: установлено ${current} из ${cfg.max}${isMissing ? ' (ОБЯЗАТЕЛЬНО: минимум 1 для вылета)' : ''}`
+      );
 
       badge.innerHTML = `
         <div class="limit-chip-left">
@@ -998,8 +1081,8 @@ export class ShipBuilderModal {
           <span class="limit-label">${cfg.title}</span>
         </div>
         <div class="limit-chip-right">
-          <span class="limit-val ${isFull ? 'full-val' : ''}">${current}/${cfg.max}</span>
-          ${isFull ? '<span class="limit-check">✓</span>' : ''}
+          <span class="limit-val ${isFull ? 'full-val' : isMissing ? 'missing-val' : ''}">${current}/${cfg.max}</span>
+          ${isFull ? '<span class="limit-check">✓</span>' : isMissing ? '<span class="limit-missing-warn" title="Требуется минимум 1 деталь">⚠️</span>' : ''}
         </div>
       `;
 
@@ -1008,7 +1091,11 @@ export class ShipBuilderModal {
 
     if (this.partsCounterEl) {
       const total = this.droppedParts.length;
-      this.partsCounterEl.textContent = `ДЕТАЛЕЙ: ${total} / 7`;
+      let maxTotal = 0;
+      catOrder.forEach((id) => {
+        maxTotal += CATEGORY_LIMITS[id]?.max || 1;
+      });
+      this.partsCounterEl.textContent = `ДЕТАЛЕЙ: ${total} / ${maxTotal}`;
     }
   }
 
@@ -1024,8 +1111,9 @@ export class ShipBuilderModal {
       const count = this.getCategoryCount(cat.id);
       const limit = CATEGORY_LIMITS[cat.id]?.max || 1;
       const isFull = count >= limit;
+      const isMissing = count < 1;
 
-      btn.className = `category-col-btn ${isActive ? 'active' : ''} ${isFull ? 'category-full' : ''}`;
+      btn.className = `category-col-btn ${isActive ? 'active' : ''} ${isFull ? 'category-full' : ''} ${isMissing ? 'category-missing' : ''}`;
       btn.type = 'button';
       btn.setAttribute('data-category', cat.id);
 
@@ -1034,7 +1122,7 @@ export class ShipBuilderModal {
           <div class="cat-icon-box">${cat.iconSvg}</div>
           <div class="cat-text-box">
             <span class="cat-title">${cat.title}</span>
-            <span class="cat-count-badge ${isFull ? 'badge-full' : ''}">${count}/${limit}</span>
+            <span class="cat-count-badge ${isFull ? 'badge-full' : isMissing ? 'badge-missing' : ''}">${count}/${limit}</span>
           </div>
           <span class="active-chevron">▶</span>
         </div>
@@ -1099,11 +1187,11 @@ export class ShipBuilderModal {
       count: number;
       color?: string;
     }> = [
-      { id: 'all', name: 'Все детали', icon: '📂', count: items.length },
-      { id: 'common', name: 'Обычные', icon: '⚪', count: commonCount, color: '#94a3b8' },
-      { id: 'rare', name: 'Редкие', icon: '🟡', count: rareCount, color: '#facc15' },
-      { id: 'legendary', name: 'Легендарные', icon: '🔴', count: legendaryCount, color: '#ef4444' },
-    ];
+        { id: 'all', name: 'Все детали', icon: '📂', count: items.length },
+        { id: 'common', name: 'Обычные', icon: '⚪', count: commonCount, color: '#94a3b8' },
+        { id: 'rare', name: 'Редкие', icon: '🟡', count: rareCount, color: '#facc15' },
+        { id: 'legendary', name: 'Легендарные', icon: '🔴', count: legendaryCount, color: '#ef4444' },
+      ];
 
     filterOptions.forEach((opt) => {
       const btn = document.createElement('button');
@@ -1162,8 +1250,8 @@ export class ShipBuilderModal {
     const statusClass = isUnlocked
       ? 'part-card-owned'
       : isAvailable
-      ? 'part-card-purchasable'
-      : 'part-card-locked';
+        ? 'part-card-purchasable'
+        : 'part-card-locked';
     card.className = `part-card rarity-${rarity.type} ${statusClass}`;
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
@@ -1716,6 +1804,7 @@ export class ShipBuilderModal {
     if (!saved || saved.length === 0) return false;
 
     const restored: DroppedPartInstance[] = [];
+    const catCounts: Record<string, number> = {};
     for (const s of saved) {
       const part = this.findPartById(s.partId);
       if (!part) return false;
@@ -1725,6 +1814,14 @@ export class ShipBuilderModal {
       if (mod && !campaignManager.isModuleUnlocked(mod.id)) {
         return false;
       }
+
+      // Не восстанавливаем детали сверх текущего лимита категории
+      const currentCatCount = catCounts[part.category] || 0;
+      const maxLimit = CATEGORY_LIMITS[part.category]?.max || 1;
+      if (currentCatCount >= maxLimit) {
+        continue;
+      }
+      catCounts[part.category] = currentCatCount + 1;
 
       restored.push({
         uid: s.uid,

@@ -282,6 +282,30 @@ export class CampaignManager {
   }
 
   /**
+   * Получить максимальный лимит деталей для верфи по категории на основе прогресса кампании:
+   * - pilot: 1
+   * - body: 1 (начальный) -> 2 после прохождения миссии 2-2
+   * - wings: 2 (начальный) -> 4 (+2) после прохождения миссии 2-4
+   * - engines: 1 (начальный) -> 2 после прохождения миссии 1-5
+   * - guns: 1 (начальный) -> 2 после прохождения миссии 1-3
+   */
+  public getShipPartLimit(category: string): number {
+    switch (category) {
+      case 'guns':
+        return 1 + (this.isMissionCompleted('1-3') ? 1 : 0);
+      case 'engines':
+        return 1 + (this.isMissionCompleted('1-5') ? 1 : 0);
+      case 'body':
+        return 1 + (this.isMissionCompleted('2-2') ? 1 : 0);
+      case 'wings':
+        return 2 + (this.isMissionCompleted('2-4') ? 2 : 0);
+      case 'pilot':
+      default:
+        return 1;
+    }
+  }
+
+  /**
    * Начисление металлолома с моментальным сохранением в localStorage
    */
   public addScrap(amount: number): number {
