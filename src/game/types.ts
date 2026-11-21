@@ -38,8 +38,16 @@ export interface EnemyBullet {
   damage: number;
 }
 
+export type EnemyType =
+  | 'scout'
+  | 'interceptor'
+  | 'assault'
+  | 'frigate'
+  | 'destroyer'
+  | 'boss';
+
 /**
- * Вражеский космический корабль (разведчик, перехватчик, тяжелый крейсер)
+ * Вражеский космический корабль (разведчик, перехватчик, штурмовик, фрегат, эсминец, босс)
  */
 export interface EnemyShip {
   sprite: Phaser.GameObjects.Sprite;
@@ -49,19 +57,22 @@ export interface EnemyShip {
   scoreValue: number;
   radius: number;
   isHitFlash: number;
-  type?: 'scout' | 'interceptor' | 'gunship' | 'zaku' | 'dom' | 'terminator' | 'boss';
+  type?: EnemyType;
   shootCooldown?: number;
   shootTimer?: number;
+  secondaryCooldown?: number;
+  secondaryShootTimer?: number;
   animPhase?: number;
   recoil?: number;
   isInvulnerable?: boolean;
   isBoss?: boolean;
   bossName?: string;
   spreadCount?: number;
+  collisionDamage?: number;
+  shootPattern?: 'single' | 'spread' | 'compact' | 'flagship';
+  bulletSpeed?: number;
+  bulletDamage?: number;
 }
-
-// Алиас для обратной совместимости
-export type EnemyMech = EnemyShip;
 
 /**
  * Частицы взрывов, искр и световых вспышек

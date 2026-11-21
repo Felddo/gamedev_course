@@ -14,9 +14,10 @@ export interface ScrapRewardConfig {
    */
   enemyDrops: {
     scout: ScrapDropRange;         // Обычный легкий противник (2–4)
-    interceptor: ScrapDropRange;   // Обычный скоростной противник (2–4)
-    gunship: ScrapDropRange;       // Тяжёлый крейсер (6–10)
-    terminator: ScrapDropRange;    // Тяжёлый бронированный крейсер (6–10)
+    interceptor: ScrapDropRange;   // Обычный скоростной противник (3–5)
+    assault: ScrapDropRange;       // Тяжёлый штурмовик (4–7)
+    frigate: ScrapDropRange;       // Ракетный фрегат (6–10)
+    destroyer: ScrapDropRange;     // Тяжёлый эсминец (повышенная награда 12–18)
     boss: ScrapDropRange;          // Босс миссии (отдельная повышенная награда при взрыве, 30–50)
     defaultRegular: ScrapDropRange;// Значение по умолчанию для обычных противников (2–4)
   };
@@ -37,9 +38,10 @@ export interface ScrapRewardConfig {
 export const SCRAP_CONFIG: ScrapRewardConfig = {
   enemyDrops: {
     scout: { min: 2, max: 4 },
-    interceptor: { min: 2, max: 4 },
-    gunship: { min: 6, max: 10 },
-    terminator: { min: 6, max: 10 },
+    interceptor: { min: 3, max: 5 },
+    assault: { min: 4, max: 7 },
+    frigate: { min: 6, max: 10 },
+    destroyer: { min: 12, max: 18 },
     boss: { min: 30, max: 50 },
     defaultRegular: { min: 2, max: 4 },
   },
@@ -70,13 +72,16 @@ export function getEnemyScrapDrop(enemyType?: string, isBoss?: boolean): number 
   }
 
   switch (enemyType) {
-    case 'gunship':
-    case 'terminator':
-      return rollScrap(SCRAP_CONFIG.enemyDrops.gunship);
-    case 'scout':
-      return rollScrap(SCRAP_CONFIG.enemyDrops.scout);
+    case 'destroyer':
+      return rollScrap(SCRAP_CONFIG.enemyDrops.destroyer);
+    case 'frigate':
+      return rollScrap(SCRAP_CONFIG.enemyDrops.frigate);
+    case 'assault':
+      return rollScrap(SCRAP_CONFIG.enemyDrops.assault);
     case 'interceptor':
       return rollScrap(SCRAP_CONFIG.enemyDrops.interceptor);
+    case 'scout':
+      return rollScrap(SCRAP_CONFIG.enemyDrops.scout);
     default:
       return rollScrap(SCRAP_CONFIG.enemyDrops.defaultRegular);
   }

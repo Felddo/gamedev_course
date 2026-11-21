@@ -30,69 +30,173 @@ export const BLASTER_SPEED = 740;
 export const BLASTER_RANGE = 330; // дальность полета плазменного заряда (покрывает радиус поражения)
 export const BLASTER_DAMAGE = 1.5;
 
-// Параметры легкого вражеского корабля-разведчика (spaceShips_005)
-export const ENEMY_SCOUT_HP = 2;
-export const ENEMY_SCOUT_SPEED = 115;
-export const ENEMY_SCOUT_SCORE = 10;
-export const ENEMY_SCOUT_SCALE = 0.34;
-export const ENEMY_SCOUT_RADIUS = 26; // Увеличенный хитбокс (ранее 14, визуальный размах крыльев ~46px)
+// Общее время жизни вражеского снаряда
+export const ENEMY_BULLET_LIFETIME = 2.8;
 
-export const ENEMY_ZAKU_HP = ENEMY_SCOUT_HP;
-export const ENEMY_ZAKU_SPEED = ENEMY_SCOUT_SPEED;
-export const ENEMY_ZAKU_SCORE = ENEMY_SCOUT_SCORE;
-export const ENEMY_ZAKU_SCALE = ENEMY_SCOUT_SCALE;
-export const ENEMY_ZAKU_RADIUS = ENEMY_SCOUT_RADIUS;
+// --- Параметры 5 типов обычных противников ---
 
-// Параметры среднего вражеского перехватчика (spaceShips_004)
-export const ENEMY_INTERCEPTOR_HP = 6;
-export const ENEMY_INTERCEPTOR_SPEED = 75;
-export const ENEMY_INTERCEPTOR_SCORE = 30;
-export const ENEMY_INTERCEPTOR_SCALE = 0.38;
-export const ENEMY_INTERCEPTOR_RADIUS = 30; // Увеличенный хитбокс (ранее 18, визуальный размер 48x41px)
+// 1. Разведчик (spaceShips_001.png)
+// Очень мало здоровья, высокая скорость, не стреляет, небольшой урон при столкновении
+export const ENEMY_SCOUT_HP = 3;
+export const ENEMY_SCOUT_SPEED = 170;
+export const ENEMY_SCOUT_COLLISION_DAMAGE = 8;
+export const ENEMY_SCOUT_SCORE = 15;
+export const ENEMY_SCOUT_SCALE = 0.38;
+export const ENEMY_SCOUT_RADIUS = 20;
 
-export const ENEMY_DOM_HP = ENEMY_INTERCEPTOR_HP;
-export const ENEMY_DOM_SPEED = ENEMY_INTERCEPTOR_SPEED;
-export const ENEMY_DOM_SCORE = ENEMY_INTERCEPTOR_SCORE;
-export const ENEMY_DOM_SCALE = ENEMY_INTERCEPTOR_SCALE;
-export const ENEMY_DOM_RADIUS = ENEMY_INTERCEPTOR_RADIUS;
+// 2. Перехватчик (spaceShips_002.png)
+// Здоровья немного больше, чем у разведчика, очень высокая скорость, не стреляет, урон выше разведчика
+export const ENEMY_INTERCEPTOR_HP = 7;
+export const ENEMY_INTERCEPTOR_SPEED = 215;
+export const ENEMY_INTERCEPTOR_COLLISION_DAMAGE = 14;
+export const ENEMY_INTERCEPTOR_SCORE = 35;
+export const ENEMY_INTERCEPTOR_SCALE = 0.40;
+export const ENEMY_INTERCEPTOR_RADIUS = 22;
 
-// Параметры тяжелого стреляющего крейсера врагов (spaceShips_006)
-export const ENEMY_GUNSHIP_HP = 20;
-export const ENEMY_GUNSHIP_SPEED = 62;
-export const ENEMY_GUNSHIP_SCORE = 120;
-export const ENEMY_GUNSHIP_SCALE = 0.42;
-export const ENEMY_GUNSHIP_RADIUS = 36; // Увеличенный хитбокс (ранее 22, визуальный корпус 40x62px)
-export const ENEMY_GUNSHIP_SHOOT_COOLDOWN = 1.9;
-export const ENEMY_GUNSHIP_SHOOT_RANGE = 680;
-export const ENEMY_GUNSHIP_BULLET_SPEED = 340;
-export const ENEMY_GUNSHIP_BULLET_DAMAGE = 14;
-export const ENEMY_GUNSHIP_BULLET_LIFETIME = 2.4;
+// 3. Тяжёлый штурмовик (spaceShips_003.png)
+// Среднее количество здоровья, низкая скорость, не стреляет, высокий урон при столкновении
+export const ENEMY_ASSAULT_HP = 18;
+export const ENEMY_ASSAULT_SPEED = 75;
+export const ENEMY_ASSAULT_COLLISION_DAMAGE = 25;
+export const ENEMY_ASSAULT_SCORE = 65;
+export const ENEMY_ASSAULT_SCALE = 0.44;
+export const ENEMY_ASSAULT_RADIUS = 26;
 
-export const ENEMY_TERMINATOR_HP = ENEMY_GUNSHIP_HP;
-export const ENEMY_TERMINATOR_SPEED = ENEMY_GUNSHIP_SPEED;
-export const ENEMY_TERMINATOR_SCORE = ENEMY_GUNSHIP_SCORE;
-export const ENEMY_TERMINATOR_SCALE = ENEMY_GUNSHIP_SCALE;
-export const ENEMY_TERMINATOR_RADIUS = ENEMY_GUNSHIP_RADIUS;
-export const ENEMY_TERMINATOR_SHOOT_COOLDOWN = ENEMY_GUNSHIP_SHOOT_COOLDOWN;
-export const ENEMY_TERMINATOR_SHOOT_RANGE = ENEMY_GUNSHIP_SHOOT_RANGE;
-export const ENEMY_TERMINATOR_BULLET_SPEED = ENEMY_GUNSHIP_BULLET_SPEED;
-export const ENEMY_TERMINATOR_BULLET_DAMAGE = ENEMY_GUNSHIP_BULLET_DAMAGE;
-export const ENEMY_TERMINATOR_BULLET_LIFETIME = ENEMY_GUNSHIP_BULLET_LIFETIME;
+// 4. Ракетный фрегат (spaceShips_004.png)
+// Достаточно много здоровья, средняя скорость, стреляет одиночными снарядами в сторону игрока
+export const ENEMY_FRIGATE_HP = 32;
+export const ENEMY_FRIGATE_SPEED = 95;
+export const ENEMY_FRIGATE_COLLISION_DAMAGE = 18;
+export const ENEMY_FRIGATE_SCORE = 120;
+export const ENEMY_FRIGATE_SCALE = 0.44;
+export const ENEMY_FRIGATE_RADIUS = 28;
+export const ENEMY_FRIGATE_SHOOT_COOLDOWN = 1.8;
+export const ENEMY_FRIGATE_SHOOT_RANGE = 520;
+export const ENEMY_FRIGATE_BULLET_SPEED = 350;
+export const ENEMY_FRIGATE_BULLET_DAMAGE = 12;
+
+// 5. Тяжёлый эсминец (spaceShips_005.png)
+// Очень много здоровья, низкая скорость, веер из 3 снарядов, большая перезарядка, высокий урон при столкновении
+export const ENEMY_DESTROYER_HP = 60;
+export const ENEMY_DESTROYER_SPEED = 60;
+export const ENEMY_DESTROYER_COLLISION_DAMAGE = 30;
+export const ENEMY_DESTROYER_SCORE = 260;
+export const ENEMY_DESTROYER_SCALE = 0.50;
+export const ENEMY_DESTROYER_RADIUS = 36;
+export const ENEMY_DESTROYER_SHOOT_COOLDOWN = 3.5;
+export const ENEMY_DESTROYER_SPREAD_COUNT = 3;
+export const ENEMY_DESTROYER_SHOOT_RANGE = 560;
+export const ENEMY_DESTROYER_BULLET_SPEED = 330;
+export const ENEMY_DESTROYER_BULLET_DAMAGE = 15;
+
+export type RegularEnemyType = 'scout' | 'interceptor' | 'assault' | 'frigate' | 'destroyer';
+
+/**
+ * Единая конфигурация характеристик 5 типов обычных противников
+ */
+export interface RegularEnemyDef {
+  type: RegularEnemyType;
+  texture: string;
+  name: string;
+  hp: number;
+  speed: number;
+  collisionDamage: number;
+  scoreValue: number;
+  radius: number;
+  scale: number;
+  canShoot: boolean;
+  shootPattern?: 'single' | 'spread';
+  spreadCount?: number;
+  shootCooldown?: number;
+  bulletSpeed?: number;
+  bulletDamage?: number;
+}
+
+export const REGULAR_ENEMY_DEFS: Record<RegularEnemyType, RegularEnemyDef> = {
+  scout: {
+    type: 'scout',
+    texture: 'enemy_ship_001',
+    name: 'Разведчик',
+    hp: ENEMY_SCOUT_HP,
+    speed: ENEMY_SCOUT_SPEED,
+    collisionDamage: ENEMY_SCOUT_COLLISION_DAMAGE,
+    scoreValue: ENEMY_SCOUT_SCORE,
+    radius: ENEMY_SCOUT_RADIUS,
+    scale: ENEMY_SCOUT_SCALE,
+    canShoot: false,
+  },
+  interceptor: {
+    type: 'interceptor',
+    texture: 'enemy_ship_002',
+    name: 'Перехватчик',
+    hp: ENEMY_INTERCEPTOR_HP,
+    speed: ENEMY_INTERCEPTOR_SPEED,
+    collisionDamage: ENEMY_INTERCEPTOR_COLLISION_DAMAGE,
+    scoreValue: ENEMY_INTERCEPTOR_SCORE,
+    radius: ENEMY_INTERCEPTOR_RADIUS,
+    scale: ENEMY_INTERCEPTOR_SCALE,
+    canShoot: false,
+  },
+  assault: {
+    type: 'assault',
+    texture: 'enemy_ship_003',
+    name: 'Тяжёлый штурмовик',
+    hp: ENEMY_ASSAULT_HP,
+    speed: ENEMY_ASSAULT_SPEED,
+    collisionDamage: ENEMY_ASSAULT_COLLISION_DAMAGE,
+    scoreValue: ENEMY_ASSAULT_SCORE,
+    radius: ENEMY_ASSAULT_RADIUS,
+    scale: ENEMY_ASSAULT_SCALE,
+    canShoot: false,
+  },
+  frigate: {
+    type: 'frigate',
+    texture: 'enemy_ship_004',
+    name: 'Ракетный фрегат',
+    hp: ENEMY_FRIGATE_HP,
+    speed: ENEMY_FRIGATE_SPEED,
+    collisionDamage: ENEMY_FRIGATE_COLLISION_DAMAGE,
+    scoreValue: ENEMY_FRIGATE_SCORE,
+    radius: ENEMY_FRIGATE_RADIUS,
+    scale: ENEMY_FRIGATE_SCALE,
+    canShoot: true,
+    shootPattern: 'single',
+    shootCooldown: ENEMY_FRIGATE_SHOOT_COOLDOWN,
+    bulletSpeed: ENEMY_FRIGATE_BULLET_SPEED,
+    bulletDamage: ENEMY_FRIGATE_BULLET_DAMAGE,
+  },
+  destroyer: {
+    type: 'destroyer',
+    texture: 'enemy_ship_005',
+    name: 'Тяжёлый эсминец',
+    hp: ENEMY_DESTROYER_HP,
+    speed: ENEMY_DESTROYER_SPEED,
+    collisionDamage: ENEMY_DESTROYER_COLLISION_DAMAGE,
+    scoreValue: ENEMY_DESTROYER_SCORE,
+    radius: ENEMY_DESTROYER_RADIUS,
+    scale: ENEMY_DESTROYER_SCALE,
+    canShoot: true,
+    shootPattern: 'spread',
+    spreadCount: ENEMY_DESTROYER_SPREAD_COUNT,
+    shootCooldown: ENEMY_DESTROYER_SHOOT_COOLDOWN,
+    bulletSpeed: ENEMY_DESTROYER_BULLET_SPEED,
+    bulletDamage: ENEMY_DESTROYER_BULLET_DAMAGE,
+  },
+};
 
 // --- Константы фаз игры ---
-export const PHASE_2_SCORE_THRESHOLD = 1000; // Порог очков для перехода на 2 фазу
+export const PHASE_2_SCORE_THRESHOLD = 1000;
 
 export interface PhaseInfo {
   number: number;
   title: string;
   scoreThreshold: number;
   subtitle: string;
-  allowTerminator: boolean;
-  spawnIntensity: number; // Множитель частоты появления врагов
-  healthMultiplier: number; // Множитель прочности врагов
-  maxMeteors: number; // Максимальное количество активных метеоритов в данной фазе
-  meteorSpawnInterval: number; // Интервал появления новых метеоритов в секундах
-  initialMeteorCount: number; // Начальное количество метеоритов на карте при входе в фазу
+  spawnIntensity: number;
+  healthMultiplier: number;
+  maxMeteors: number;
+  meteorSpawnInterval: number;
+  initialMeteorCount: number;
 }
 
 export const GAME_PHASES: PhaseInfo[] = [
@@ -101,7 +205,6 @@ export const GAME_PHASES: PhaseInfo[] = [
     title: 'Фаза 1',
     scoreThreshold: 0,
     subtitle: 'ПРОТОКОЛ: ЗАЧИСТКА СЕКТОРА',
-    allowTerminator: false,
     spawnIntensity: 0.4,
     healthMultiplier: 1.0,
     maxMeteors: 10,
@@ -113,7 +216,6 @@ export const GAME_PHASES: PhaseInfo[] = [
     title: 'Фаза 2',
     scoreThreshold: 200,
     subtitle: 'ВНИМАНИЕ: МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
-    allowTerminator: true,
     spawnIntensity: 0.5,
     healthMultiplier: 1.5,
     maxMeteors: 22,
@@ -125,8 +227,7 @@ export const GAME_PHASES: PhaseInfo[] = [
     title: 'Фаза 3',
     scoreThreshold: 1000,
     subtitle: 'ВНИМАНИЕ: СИЛЬНЫЙ МЕТЕОРИТНЫЙ ПОТОК И ТЯЖЕЛЫЕ БОЕВЫЕ КРЕЙСЕРЫ!',
-    allowTerminator: true,
-    spawnIntensity: 0.75, // Плавное нарастание плотности вражеских звеньев
+    spawnIntensity: 0.75,
     healthMultiplier: 1.5,
     maxMeteors: 25,
     meteorSpawnInterval: 1.05,
@@ -137,8 +238,7 @@ export const GAME_PHASES: PhaseInfo[] = [
     title: 'Фаза 4',
     scoreThreshold: 2000,
     subtitle: 'ТРЕВОГА: МАССИРОВАННЫЙ НАЛЕТ И ВЫСОКАЯ ПЛОТНОСТЬ АСТЕРОИДОВ!',
-    allowTerminator: true,
-    spawnIntensity: 0.95, // Увеличенный натиск вражеской эскадры
+    spawnIntensity: 0.95,
     healthMultiplier: 1.55,
     maxMeteors: 24,
     meteorSpawnInterval: 1.0,
@@ -149,8 +249,7 @@ export const GAME_PHASES: PhaseInfo[] = [
     title: 'Фаза 5',
     scoreThreshold: 3000,
     subtitle: 'КРИТИЧЕСКАЯ УГРОЗА: ЭКСТРЕМАЛЬНЫЙ ШТОРМ И АРМАДА ПРОТИВНИКА!',
-    allowTerminator: true,
-    spawnIntensity: 1.15, // Финальная пиковая сложность сектора
+    spawnIntensity: 1.15,
     healthMultiplier: 1.65,
     maxMeteors: 26,
     meteorSpawnInterval: 0.95,

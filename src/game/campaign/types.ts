@@ -8,15 +8,16 @@ export interface MissionEnemyConfig {
   speedMultiplier: number;      // Множитель скорости врагов
   scoutRatio: number;           // Доля легких разведчиков (0.0 - 1.0)
   interceptorRatio: number;     // Доля скоростных перехватчиков (0.0 - 1.0)
-  gunshipRatio: number;         // Доля тяжелых крейсеров (0.0 - 1.0)
-  allowGunship: boolean;        // Разрешено ли появление тяжелых стреляющих крейсеров
+  assaultRatio: number;         // Доля тяжелых штурмовиков (0.0 - 1.0)
+  frigateRatio: number;         // Доля ракетных фрегатов (0.0 - 1.0)
+  destroyerRatio: number;       // Доля тяжелых эсминцев (0.0 - 1.0)
   maxMeteors: number;           // Максимум метеоритов на карте
   meteorSpawnInterval: number;  // Интервал появления метеоритов в секундах
   initialMeteorCount: number;   // Начальное количество метеоритов
 }
 
 export interface MissionBossConfig {
-  name: string;                 // Имя босса (например, 'Дредноут-1')
+  name: string;                 // Имя босса (например, 'Ракетный крейсер')
   title: string;                // Тактическое обозначение босса
   hp: number;                   // Запас прочности босса
   speed: number;                // Скорость перемещения
@@ -28,6 +29,9 @@ export interface MissionBossConfig {
   spawnKills?: number;          // Порог сбитых врагов для раннего вызова босса
   spreadCount: number;          // Количество снарядов в залпе (3, 5 и т.д.)
   tint?: number;                // Цветовой оттенок спрайта
+  texture?: string;             // Ключ текстуры спрайта босса
+  pattern?: 'spread' | 'compact' | 'flagship'; // Паттерн залпов босса
+  rapidCooldown?: number;       // Интервал частых направленных выстрелов (для босса 3)
 }
 
 export interface CampaignMission {

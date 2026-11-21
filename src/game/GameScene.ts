@@ -20,9 +20,14 @@ import station020Url from '../assets/Sprites/Station/spaceStation_020.png';
 import station021Url from '../assets/Sprites/Station/spaceStation_021.png';
 import station024Url from '../assets/Sprites/Station/spaceStation_024.png';
 import playerMissileUrl from '../assets/Sprites/Missiles/spaceMissiles_039.png';
-import evilShip005Url from '../assets/Sprites/EvilShips/spaceShips_005.png';
+import evilShip001Url from '../assets/Sprites/EvilShips/spaceShips_001.png';
+import evilShip002Url from '../assets/Sprites/EvilShips/spaceShips_002.png';
+import evilShip003Url from '../assets/Sprites/EvilShips/spaceShips_003.png';
 import evilShip004Url from '../assets/Sprites/EvilShips/spaceShips_004.png';
-import evilShip006Url from '../assets/Sprites/EvilShips/spaceShips_006.png';
+import evilShip005Url from '../assets/Sprites/EvilShips/spaceShips_005.png';
+import bossRocket001Url from '../assets/Sprites/Rockets/spaceRockets_001.png';
+import bossRocket002Url from '../assets/Sprites/Rockets/spaceRockets_002.png';
+import bossRocket003Url from '../assets/Sprites/Rockets/spaceRockets_003.png';
 
 import {
   MAP_WIDTH,
@@ -99,9 +104,18 @@ export class GameScene extends Phaser.Scene {
     ensureGameTextures(this);
     this.load.image('player_ship', playerShipUrl);
     this.load.image('player_missile', playerMissileUrl);
-    this.load.image('enemy_ship_weak', evilShip005Url);
-    this.load.image('enemy_ship_medium', evilShip004Url);
-    this.load.image('enemy_ship_shooter', evilShip006Url);
+
+    // 5 типов обычных противников (spaceShips_001 - spaceShips_005)
+    this.load.image('enemy_ship_001', evilShip001Url);
+    this.load.image('enemy_ship_002', evilShip002Url);
+    this.load.image('enemy_ship_003', evilShip003Url);
+    this.load.image('enemy_ship_004', evilShip004Url);
+    this.load.image('enemy_ship_005', evilShip005Url);
+
+    // 3 уникальных босса (spaceRockets_001 - spaceRockets_003)
+    this.load.image('boss_rocket_001', bossRocket001Url);
+    this.load.image('boss_rocket_002', bossRocket002Url);
+    this.load.image('boss_rocket_003', bossRocket003Url);
     this.load.image('meteor_001', meteor001Url);
     this.load.image('meteor_002', meteor002Url);
     this.load.image('meteor_003', meteor003Url);

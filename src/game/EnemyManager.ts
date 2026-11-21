@@ -1,35 +1,21 @@
 import Phaser from 'phaser';
 import { soundFx } from './audio';
 import {
-  BLASTER_RANGE,
   BLASTER_DAMAGE,
   PLAYER_ATTACK_RADIUS,
-  ENEMY_SCOUT_HP,
-  ENEMY_SCOUT_SPEED,
-  ENEMY_SCOUT_SCORE,
-  ENEMY_SCOUT_SCALE,
-  ENEMY_SCOUT_RADIUS,
-  ENEMY_INTERCEPTOR_HP,
-  ENEMY_INTERCEPTOR_SPEED,
-  ENEMY_INTERCEPTOR_SCORE,
-  ENEMY_INTERCEPTOR_SCALE,
-  ENEMY_INTERCEPTOR_RADIUS,
-  ENEMY_GUNSHIP_HP,
-  ENEMY_GUNSHIP_SPEED,
-  ENEMY_GUNSHIP_SCORE,
-  ENEMY_GUNSHIP_SCALE,
-  ENEMY_GUNSHIP_RADIUS,
-  ENEMY_GUNSHIP_SHOOT_COOLDOWN,
-  ENEMY_GUNSHIP_SHOOT_RANGE,
-  ENEMY_GUNSHIP_BULLET_SPEED,
-  ENEMY_GUNSHIP_BULLET_DAMAGE,
-  ENEMY_GUNSHIP_BULLET_LIFETIME,
-  GAME_PHASES,
-  PhaseInfo,
   MAP_WIDTH,
   MAP_HEIGHT,
+  GAME_PHASES,
+  PhaseInfo,
+  REGULAR_ENEMY_DEFS,
+  RegularEnemyDef,
+  ENEMY_BULLET_LIFETIME,
+  ENEMY_FRIGATE_SHOOT_RANGE,
+  ENEMY_DESTROYER_SHOOT_RANGE,
 } from './constants';
-import { EnemyShip, EnemyBullet } from './types';
+export type { RegularEnemyDef };
+export { REGULAR_ENEMY_DEFS };
+import { EnemyShip, EnemyBullet, EnemyType } from './types';
 import { PlayerShip } from './PlayerShip';
 import { WeaponSystem } from './WeaponSystem';
 import { ParticleManager } from './ParticleManager';
@@ -262,7 +248,8 @@ export class EnemyManager {
         break;
     }
 
-    const sprite = this.scene.add.sprite(x, y, 'enemy_ship_shooter');
+    const textureKey = bossConfig.texture || 'boss_rocket_001';
+    const sprite = this.scene.add.sprite(x, y, textureKey);
     sprite.setOrigin(0.5, 0.5);
     sprite.setScale(bossConfig.scale);
     if (bossConfig.tint) {
@@ -278,14 +265,20 @@ export class EnemyManager {
       speed: bossConfig.speed,
       scoreValue: 3000,
       radius: Math.round(54 * (bossConfig.scale / 0.95)),
+      collisionDamage: 35,
       isHitFlash: 0,
       isInvulnerable: false,
       isBoss: true,
       bossName: bossConfig.name,
       shootCooldown: bossConfig.shootCooldown,
-      shootTimer: 0.6,
+      shootTimer: 0.5,
+      secondaryCooldown: bossConfig.rapidCooldown,
+      secondaryShootTimer: bossConfig.rapidCooldown ? 0.3 : undefined,
       animPhase: 0,
       spreadCount: bossConfig.spreadCount,
+      shootPattern: bossConfig.pattern || 'spread',
+      bulletSpeed: bossConfig.bulletSpeed,
+      bulletDamage: bossConfig.bulletDamage,
     };
 
     this.activeBoss = bossEnemy;
@@ -331,121 +324,91 @@ export class EnemyManager {
 
     if (this.currentMission) {
       const cfg = this.currentMission.enemyConfig;
-      const roll = Math.random();
-      const gunshipThreshold = cfg.allowGunship ? cfg.gunshipRatio : 0;
-      const interceptorThreshold = gunshipThreshold + cfg.interceptorRatio;
+      const s = cfg.scoutRatio ?? 0;
+      const i = cfg.interceptorRatio ?? 0;
+      const a = cfg.assaultRatio ?? 0;
+      const f = cfg.frigateRatio ?? 0;
+      const d = cfg.destroyerRatio ?? 0;
 
-      if (roll < gunshipThreshold) {
-        this.spawnGunship(x, y);
-      } else if (roll < interceptorThreshold) {
-        this.spawnInterceptorShip(x, y);
+      const total = s + i + a + f + d;
+      const roll = Math.random() * (total > 0 ? total : 1);
+
+      let threshold = 0;
+      if (roll < (threshold += s)) {
+        this.spawnEnemyByType('scout', x, y);
+      } else if (roll < (threshold += i)) {
+        this.spawnEnemyByType('interceptor', x, y);
+      } else if (roll < (threshold += a)) {
+        this.spawnEnemyByType('assault', x, y);
+      } else if (roll < (threshold += f)) {
+        this.spawnEnemyByType('frigate', x, y);
       } else {
-        this.spawnScoutShip(x, y);
+        this.spawnEnemyByType('destroyer', x, y);
       }
       return;
     }
 
+    // Режим бесконечной игры / фаз
     const phaseInfo = this.getCurrentPhaseInfo();
-    const allowGunship = phaseInfo.allowTerminator;
-    const gunshipChance = allowGunship
-      ? Math.min(0.28, 0.14 + survivalTime * 0.003)
-      : 0;
-    const interceptorChance = allowGunship
-      ? Math.min(0.32, 0.20 + survivalTime * 0.002)
-      : Math.min(0.38, 0.25 + survivalTime * 0.002);
-
+    const phase = phaseInfo.number;
     const roll = Math.random();
-    if (gunshipChance > 0 && roll < gunshipChance) {
-      this.spawnGunship(x, y);
-    } else if (roll < gunshipChance + interceptorChance) {
-      this.spawnInterceptorShip(x, y);
+
+    if (phase >= 4) {
+      if (roll < 0.20) this.spawnEnemyByType('destroyer', x, y);
+      else if (roll < 0.45) this.spawnEnemyByType('frigate', x, y);
+      else if (roll < 0.65) this.spawnEnemyByType('assault', x, y);
+      else if (roll < 0.85) this.spawnEnemyByType('interceptor', x, y);
+      else this.spawnEnemyByType('scout', x, y);
+    } else if (phase >= 2) {
+      if (roll < 0.10) this.spawnEnemyByType('destroyer', x, y);
+      else if (roll < 0.30) this.spawnEnemyByType('frigate', x, y);
+      else if (roll < 0.55) this.spawnEnemyByType('assault', x, y);
+      else if (roll < 0.80) this.spawnEnemyByType('interceptor', x, y);
+      else this.spawnEnemyByType('scout', x, y);
     } else {
-      this.spawnScoutShip(x, y);
+      if (roll < 0.15) this.spawnEnemyByType('assault', x, y);
+      else if (roll < 0.50) this.spawnEnemyByType('interceptor', x, y);
+      else this.spawnEnemyByType('scout', x, y);
     }
   }
 
-  private spawnGunship(x: number, y: number): void {
-    // Тяжелый стреляющий крейсер (spaceShips_006.png)
-    const sprite = this.scene.add.sprite(x, y, 'enemy_ship_shooter');
+  public spawnEnemyByType(
+    type: 'scout' | 'interceptor' | 'assault' | 'frigate' | 'destroyer',
+    x: number,
+    y: number,
+  ): void {
+    const def = REGULAR_ENEMY_DEFS[type] || REGULAR_ENEMY_DEFS.scout;
+
+    const sprite = this.scene.add.sprite(x, y, def.texture);
     sprite.setOrigin(0.5, 0.5);
-    sprite.setScale(ENEMY_GUNSHIP_SCALE);
+    sprite.setScale(def.scale);
     sprite.setDepth(7);
 
     const hpMult = this.currentMission
       ? this.currentMission.enemyConfig.healthMultiplier
       : Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
     const speedMult = this.currentMission ? this.currentMission.enemyConfig.speedMultiplier : 1.0;
-    const gunshipHp = Math.max(1, Math.round(ENEMY_GUNSHIP_HP * hpMult));
+    const enemyHp = Math.max(1, Math.round(def.hp * hpMult));
 
     this.enemies.push({
-      type: 'gunship',
+      type: def.type,
       sprite,
-      hp: gunshipHp,
-      maxHp: gunshipHp,
-      speed: ENEMY_GUNSHIP_SPEED * speedMult,
-      scoreValue: ENEMY_GUNSHIP_SCORE,
-      radius: ENEMY_GUNSHIP_RADIUS,
+      hp: enemyHp,
+      maxHp: enemyHp,
+      speed: def.speed * speedMult,
+      scoreValue: def.scoreValue,
+      radius: def.radius,
+      collisionDamage: def.collisionDamage,
       isHitFlash: 0,
       isInvulnerable: false,
-      shootCooldown: ENEMY_GUNSHIP_SHOOT_COOLDOWN,
-      shootTimer: Phaser.Math.FloatBetween(0.4, ENEMY_GUNSHIP_SHOOT_COOLDOWN),
+      shootCooldown: def.shootCooldown,
+      shootTimer: def.shootCooldown ? Phaser.Math.FloatBetween(0.3, def.shootCooldown) : undefined,
+      shootPattern: def.shootPattern,
+      spreadCount: def.spreadCount,
+      bulletSpeed: def.bulletSpeed,
+      bulletDamage: def.bulletDamage,
       animPhase: Math.random() * Math.PI * 2,
       recoil: 0,
-    });
-  }
-
-  private spawnInterceptorShip(x: number, y: number): void {
-    // Средний скоростной перехватчик (spaceShips_004.png)
-    const sprite = this.scene.add.sprite(x, y, 'enemy_ship_medium');
-    sprite.setOrigin(0.5, 0.5);
-    sprite.setScale(ENEMY_INTERCEPTOR_SCALE);
-    sprite.setDepth(7);
-
-    const hpMult = this.currentMission
-      ? this.currentMission.enemyConfig.healthMultiplier
-      : Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
-    const speedMult = this.currentMission ? this.currentMission.enemyConfig.speedMultiplier : 1.0;
-    const interceptorHp = Math.max(1, Math.round(ENEMY_INTERCEPTOR_HP * hpMult));
-
-    this.enemies.push({
-      type: 'interceptor',
-      sprite,
-      hp: interceptorHp,
-      maxHp: interceptorHp,
-      speed: ENEMY_INTERCEPTOR_SPEED * speedMult,
-      scoreValue: ENEMY_INTERCEPTOR_SCORE,
-      radius: ENEMY_INTERCEPTOR_RADIUS,
-      isHitFlash: 0,
-      isInvulnerable: false,
-      animPhase: Math.random() * Math.PI * 2,
-      recoil: 0,
-    });
-  }
-
-  private spawnScoutShip(x: number, y: number): void {
-    // Легкий маневренный разведчик (spaceShips_005.png)
-    const sprite = this.scene.add.sprite(x, y, 'enemy_ship_weak');
-    sprite.setOrigin(0.5, 0.5);
-    sprite.setScale(ENEMY_SCOUT_SCALE);
-    sprite.setDepth(7);
-
-    const hpMult = this.currentMission
-      ? this.currentMission.enemyConfig.healthMultiplier
-      : Math.max(0.1, this.getCurrentPhaseInfo().healthMultiplier || 1.0);
-    const speedMult = this.currentMission ? this.currentMission.enemyConfig.speedMultiplier : 1.0;
-    const scoutHp = Math.max(1, Math.round(ENEMY_SCOUT_HP * hpMult));
-
-    this.enemies.push({
-      type: 'scout',
-      sprite,
-      hp: scoutHp,
-      maxHp: scoutHp,
-      speed: ENEMY_SCOUT_SPEED * speedMult,
-      scoreValue: ENEMY_SCOUT_SCORE,
-      radius: ENEMY_SCOUT_RADIUS,
-      isHitFlash: 0,
-      isInvulnerable: false,
-      animPhase: Math.random() * Math.PI * 2,
     });
   }
 
@@ -498,35 +461,52 @@ export class EnemyManager {
       const flySway = Math.sin(enemy.animPhase) * 0.04;
       enemy.sprite.rotation = (angle - Math.PI / 2) + flySway;
 
-      // Логика стрельбы босса (веерный залп) и тяжелого крейсера
+      // Логика стрельбы босса и обычных стреляющих противников (фрегат, эсминец)
       if (enemy.isBoss) {
-        if (distToPlayer <= 950) {
-          enemy.shootTimer = (enemy.shootTimer ?? 0) + seconds;
-          if (enemy.shootTimer >= (enemy.shootCooldown ?? 1.5)) {
-            enemy.shootTimer = 0;
-            const spreadCount = enemy.spreadCount || 3;
-            const spreadStep = 0.16;
-            const startAngle = angle - ((spreadCount - 1) / 2) * spreadStep;
-            const bDmg = this.currentMission?.bossConfig?.bulletDamage ?? 18;
-            const bSpd = this.currentMission?.bossConfig?.bulletSpeed ?? 400;
+        if (distToPlayer <= 1000) {
+          const bDmg = enemy.bulletDamage ?? (this.currentMission?.bossConfig?.bulletDamage ?? 18);
+          const bSpd = enemy.bulletSpeed ?? (this.currentMission?.bossConfig?.bulletSpeed ?? 400);
 
-            for (let s = 0; s < spreadCount; s++) {
-              const currentAngle = startAngle + s * spreadStep;
-              const muzzleDist = enemy.radius * 0.7;
-              const muzzleX = enemy.sprite.x + Math.cos(currentAngle) * muzzleDist;
-              const muzzleY = enemy.sprite.y + Math.sin(currentAngle) * muzzleDist;
-              this.fireEnemyBulletWithParams(muzzleX, muzzleY, currentAngle, bSpd, bDmg, particleManager);
+          // 1. Основной залп босса
+          enemy.shootTimer = (enemy.shootTimer ?? 0) + seconds;
+          if (enemy.shootTimer >= (enemy.shootCooldown ?? 2.0)) {
+            enemy.shootTimer = 0;
+
+            if (enemy.shootPattern === 'compact') {
+              // Босс 2 (Ударный авианосец): 4 компактных снаряда параллельно в сторону игрока
+              this.fireCompactSalvo(enemy, angle, 4, 16, bSpd, bDmg, particleManager);
+            } else {
+              // Босс 1 (Ракетный крейсер - веер из 5) и Босс 3 (Флагманский линкор - широкий веер)
+              const count = enemy.spreadCount ?? (enemy.shootPattern === 'flagship' ? 7 : 5);
+              const step = enemy.shootPattern === 'flagship' ? 0.20 : 0.16;
+              this.fireSpreadSalvo(enemy, angle, count, step, bSpd, bDmg, particleManager);
+            }
+          }
+
+          // 2. Дополнительные частые направленные залпы (Босс 3: Флагманский линкор)
+          if (enemy.secondaryCooldown) {
+            enemy.secondaryShootTimer = (enemy.secondaryShootTimer ?? 0) + seconds;
+            if (enemy.secondaryShootTimer >= enemy.secondaryCooldown) {
+              enemy.secondaryShootTimer = 0;
+              this.fireSingleShot(enemy, angle, bSpd * 1.05, bDmg, particleManager);
             }
           }
         }
-      } else if (enemy.type === 'gunship' || enemy.type === 'terminator') {
-        if (distToPlayer <= ENEMY_GUNSHIP_SHOOT_RANGE) {
+      } else if (enemy.shootPattern) {
+        // Обычные стреляющие корабли: Ракетный фрегат (одиночный) и Тяжёлый эсминец (веер из 3)
+        const range = enemy.type === 'destroyer' ? ENEMY_DESTROYER_SHOOT_RANGE : ENEMY_FRIGATE_SHOOT_RANGE;
+        if (distToPlayer <= range) {
           enemy.shootTimer = (enemy.shootTimer ?? 0) + seconds;
-          if (enemy.shootTimer >= (enemy.shootCooldown ?? ENEMY_GUNSHIP_SHOOT_COOLDOWN)) {
+          if (enemy.shootTimer >= (enemy.shootCooldown ?? 2.0)) {
             enemy.shootTimer = 0;
-            const muzzleX = enemy.sprite.x + Math.cos(angle) * 24;
-            const muzzleY = enemy.sprite.y + Math.sin(angle) * 24;
-            this.fireEnemyBullet(muzzleX, muzzleY, angle, particleManager);
+            const bSpd = enemy.bulletSpeed ?? 340;
+            const bDmg = enemy.bulletDamage ?? 12;
+
+            if (enemy.shootPattern === 'spread') {
+              this.fireSpreadSalvo(enemy, angle, enemy.spreadCount ?? 3, 0.18, bSpd, bDmg, particleManager);
+            } else {
+              this.fireSingleShot(enemy, angle, bSpd, bDmg, particleManager);
+            }
           }
         }
       }
@@ -554,30 +534,61 @@ export class EnemyManager {
     }
   }
 
-  private fireEnemyBullet(
-    x: number,
-    y: number,
+  private fireSingleShot(
+    enemy: EnemyShip,
     angle: number,
+    speed: number,
+    damage: number,
     particleManager?: ParticleManager,
   ): void {
-    soundFx.playTerminatorShoot();
+    const muzzleDist = enemy.radius * 0.7;
+    const muzzleX = enemy.sprite.x + Math.cos(angle) * muzzleDist;
+    const muzzleY = enemy.sprite.y + Math.sin(angle) * muzzleDist;
+    this.fireEnemyBulletWithParams(muzzleX, muzzleY, angle, speed, damage, particleManager);
+  }
 
-    const bulletSprite = this.scene.add.sprite(x, y, 'enemy_bullet_red');
-    bulletSprite.setDepth(11);
+  private fireSpreadSalvo(
+    enemy: EnemyShip,
+    centerAngle: number,
+    count: number,
+    spreadStep: number,
+    speed: number,
+    damage: number,
+    particleManager?: ParticleManager,
+  ): void {
+    const startAngle = centerAngle - ((count - 1) / 2) * spreadStep;
+    const muzzleDist = enemy.radius * 0.7;
 
-    const vx = Math.cos(angle) * ENEMY_GUNSHIP_BULLET_SPEED;
-    const vy = Math.sin(angle) * ENEMY_GUNSHIP_BULLET_SPEED;
+    for (let s = 0; s < count; s++) {
+      const shotAngle = startAngle + s * spreadStep;
+      const muzzleX = enemy.sprite.x + Math.cos(shotAngle) * muzzleDist;
+      const muzzleY = enemy.sprite.y + Math.sin(shotAngle) * muzzleDist;
+      this.fireEnemyBulletWithParams(muzzleX, muzzleY, shotAngle, speed, damage, particleManager);
+    }
+  }
 
-    this.enemyBullets.push({
-      sprite: bulletSprite,
-      vx,
-      vy,
-      lifetime: ENEMY_GUNSHIP_BULLET_LIFETIME,
-      damage: ENEMY_GUNSHIP_BULLET_DAMAGE,
-    });
+  private fireCompactSalvo(
+    enemy: EnemyShip,
+    angle: number,
+    count: number,
+    spacing: number,
+    speed: number,
+    damage: number,
+    particleManager?: ParticleManager,
+  ): void {
+    // Вектор, перпендикулярный направлению на игрока
+    const perpX = -Math.sin(angle);
+    const perpY = Math.cos(angle);
+    const muzzleDist = enemy.radius * 0.7;
+    const baseX = enemy.sprite.x + Math.cos(angle) * muzzleDist;
+    const baseY = enemy.sprite.y + Math.sin(angle) * muzzleDist;
 
-    if (particleManager) {
-      particleManager.spawnEnemyMuzzleFlash(x, y, angle);
+    for (let i = 0; i < count; i++) {
+      const offset = (i - (count - 1) / 2) * spacing;
+      const muzzleX = baseX + perpX * offset;
+      const muzzleY = baseY + perpY * offset;
+      // Все снаряды летят строго параллельно под одним углом к игроку
+      this.fireEnemyBulletWithParams(muzzleX, muzzleY, angle, speed, damage, particleManager);
     }
   }
 
@@ -601,7 +612,7 @@ export class EnemyManager {
       sprite: bulletSprite,
       vx,
       vy,
-      lifetime: ENEMY_GUNSHIP_BULLET_LIFETIME * 1.2,
+      lifetime: ENEMY_BULLET_LIFETIME,
       damage,
     });
 
@@ -807,7 +818,7 @@ export class EnemyManager {
       if (this.onBossDestroyed) {
         this.onBossDestroyed(enemy);
       }
-    } else if (enemy.type === 'gunship' || enemy.type === 'terminator') {
+    } else if (enemy.type === 'destroyer' || enemy.type === 'frigate') {
       particleManager.spawnBigExplosion(enemy.sprite.x, enemy.sprite.y);
     } else {
       particleManager.spawnExplosion(enemy.sprite.x, enemy.sprite.y);
@@ -889,7 +900,8 @@ export class EnemyManager {
       );
 
       if (dist < enemy.radius + 10) {
-        const isDead = player.takeDamage(15);
+        const damage = enemy.collisionDamage ?? 15;
+        const isDead = player.takeDamage(damage);
         soundFx.playHit();
         this.scene.cameras.main.shake(140, 0.007);
         particleManager.spawnHitSparks(player.x, player.y);
