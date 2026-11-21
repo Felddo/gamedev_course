@@ -2,7 +2,11 @@ import { buildPartsCatalog, CategoryData, FolderNode, PartItem } from './partsCa
 import { soundFx } from '../audio';
 import { campaignManager } from '../campaign/CampaignManager';
 import { SavedDroppedPart } from '../campaign/types';
-import { getModuleByPartId } from './modulesCatalog';
+import {
+  getModuleByPartId,
+  getModuleRarity,
+  getModuleStatsLines,
+} from './modulesCatalog';
 
 export interface DroppedPartInstance {
   uid: string;
@@ -55,6 +59,7 @@ export class ShipBuilderModal {
   private catalog: CategoryData[];
   private activeCategoryId: string;
   private activeSubfolderName: string | null = null;
+  private activeRarityFilter: 'all' | 'common' | 'rare' | 'legendary' = 'all';
   private droppedParts: DroppedPartInstance[] = [];
   private selectedPartUid: string | null = null;
 
@@ -73,7 +78,7 @@ export class ShipBuilderModal {
   private alertToastEl!: HTMLElement;
   private alertMsgEl!: HTMLElement;
   private selectedToolbarEl!: HTMLElement;
-  private selectedPartTagEl!: HTMLElement;
+  private scrapValEl!: HTMLElement;
 
   // Toolbar Action Buttons
   private btnLayerUp!: HTMLButtonElement;
@@ -147,11 +152,14 @@ export class ShipBuilderModal {
         <!-- Шапка конструктора -->
         <header class="shipyard-header">
           <div class="shipyard-title-wrap">
-            <div class="shipyard-badge">
-              <span class="shipyard-dot"></span>
-              <span class="shipyard-code">SYS_SHIPYARD // ПРОТОКОЛ СБОРКИ V2.0</span>
+            <div class="shipyard-title-row">
+              <h2 class="shipyard-title">КОНСТРУКТОР КОРАБЛЯ</h2>
+              <div class="shipyard-scrap-badge" id="shipyard-scrap-badge" title="Запас металлолома">
+                <span class="shipyard-scrap-icon">⚙</span>
+                <span class="shipyard-scrap-label">ЛОМ:</span>
+                <span class="shipyard-scrap-val" id="shipyard-scrap-val">0</span>
+              </div>
             </div>
-            <h2 class="shipyard-title">КОНСТРУКТОР КОРАБЛЯ</h2>
           </div>
           <div class="shipyard-header-actions">
             <button id="shipyard-btn-launch-top" class="shipyard-action-btn btn-launch" type="button" title="Завершить сборку и начать бой">
@@ -205,80 +213,101 @@ export class ShipBuilderModal {
 
           </div>
 
-          <!-- ЦЕНТРАЛЬНОЕ ОКНО СБОРКИ КОРАБЛЯ (ШИРОКИЙ АНГАР) -->
+          <!-- ЦЕНТРАЛЬНОЕ ОКНО СБОРКИ КОРАБЛЯ -->
           <section class="shipyard-center-col" aria-label="Сборочный ангар корабля">
             <div class="hangar-container">
-              
-              <!-- Индикаторы лимитов по 5 категориям -->
-              <div class="hangar-limits-grid" id="hangar-limits-grid" title="Лимиты на установку модулей">
-                <!-- Генерируется динамически: Кабина 0/1, Корпус 0/1, Крылья 0/2, Двигатели 0/1, Пушки 0/1 -->
-              </div>
+              <div class="hangar-main-row">
 
-              <!-- Панель управления выбранным модулем (Слой, Поворот, Отражение, Удаление) -->
-              <div class="selected-module-toolbar" id="selected-module-toolbar">
-                <div class="sel-meta">
-                  <span class="sel-tag" id="sel-part-tag">ВЫБЕРИТЕ МОДУЛЬ ДЛЯ НАСТРОЙКИ</span>
-                </div>
-                <div class="sel-tools">
-                  <button id="btn-layer-up" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой вперед" disabled>
-                    <span class="tool-icon">▲</span> Слой +1
-                  </button>
-                  <button id="btn-layer-down" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой назад" disabled>
-                    <span class="tool-icon">▼</span> Слой -1
-                  </button>
-                  <button id="btn-rotate-45" class="sel-tool-btn" type="button" title="Повернуть модуль на 45 градусов" disabled>
-                    <span class="tool-icon">⟳</span> +45°
-                  </button>
-                  <button id="btn-rotate-90" class="sel-tool-btn" type="button" title="Повернуть модуль на 90 градусов" disabled>
-                    <span class="tool-icon">↷</span> +90°
-                  </button>
-                  <button id="btn-flip-x" class="sel-tool-btn" type="button" title="Отразить модуль по горизонтали" disabled>
-                    <span class="tool-icon">⇄</span> Отразить
-                  </button>
-                  <button id="btn-delete-selected" class="sel-tool-btn btn-danger" type="button" title="Удалить выбранный модуль" disabled>
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              <!-- Просторное специальное окно сбора корабля с тактической сеткой -->
-              <div class="shipyard-center-bay" id="shipyard-center-bay" role="region" aria-label="Отсек сборки корабля">
-                <div class="hangar-grid-lines"></div>
-                <div class="hangar-reticle"></div>
-                <span class="corner-bracket corner-tl"></span>
-                <span class="corner-bracket corner-tr"></span>
-                <span class="corner-bracket corner-bl"></span>
-                <span class="corner-bracket corner-br"></span>
-
-                <!-- Плейсхолдер при пустом отсеке -->
-                <div class="hangar-empty-hint" id="hangar-empty-hint">
-                  <div class="hangar-ghost-silhouette">
-                    <svg viewBox="0 0 100 100" class="ghost-ship-svg">
-                      <polygon points="50,15 65,40 60,82 50,75 40,82 35,40" fill="none" stroke="rgba(52,211,153,0.3)" stroke-width="1.5" stroke-dasharray="4 3"/>
-                      <polygon points="50,25 58,45 50,65 42,45" fill="none" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
-                      <line x1="20" y1="50" x2="80" y2="50" stroke="rgba(52,211,153,0.2)" stroke-dasharray="2 3"/>
-                      <line x1="50" y1="20" x2="50" y2="80" stroke="rgba(52,211,153,0.2)" stroke-dasharray="2 3"/>
-                    </svg>
+                <!-- 1. БЛОК С УКАЗАНИЕМ СКОЛЬКО ЧАСТЕЙ НУЖНО (ЕЩЕ ЛЕВЕЕ) -->
+                <div class="hangar-panel-col hangar-limits-panel" id="hangar-limits-panel">
+                  <div class="panel-col-head">
+                    <span class="panel-col-head-tag">04 // ЧАСТИ</span>
                   </div>
-                  <span class="hangar-hint-text">ПЕРЕТАЩИТЕ МОДУЛИ В АНГАР</span>
-                  <span class="hangar-hint-sub">1 Корпус, 1 Кабина, 2 Крыла, 1 Двигатель, до 2 Пушек</span>
+                  <div class="panel-col-body">
+                    <div class="hangar-limits-grid" id="hangar-limits-grid" title="Требуемое количество частей">
+                      <!-- Динамически: Кабина, Корпус, Крылья, Двигатели, Пушки -->
+                    </div>
+                  </div>
                 </div>
 
-                <!-- Поверхность для размещения сброшенных деталей -->
-                <div class="hangar-drop-surface" id="hangar-drop-surface"></div>
-              </div>
-
-              <!-- Панель управления отсеком -->
-              <div class="hangar-controls-bar">
-                <button id="shipyard-btn-preset" class="hangar-tool-btn btn-preset" type="button" title="Загрузить готовую сбалансированную сборку корабля">
-                  ⚡ БАЗОВЫЙ СБОР
-                </button>
-                <button id="shipyard-btn-clear" class="hangar-tool-btn" type="button" title="Очистить все детали из отсека сборки">
-                  ✕ ОЧИСТИТЬ ВСЕ
-                </button>
-                <div id="shipyard-parts-counter" class="hangar-parts-counter">
-                  ДЕТАЛЕЙ: 0 / 7
+                <!-- 2. БЛОК С УПРАВЛЕНИЕМ МОДУЛЯМИ (СЛЕВА ОТ ОКНА КОРАБЛЯ) -->
+                <div class="hangar-panel-col selected-module-toolbar" id="selected-module-toolbar">
+                  <div class="panel-col-head">
+                    <span class="panel-col-head-tag">05 // УПРАВЛЕНИЕ</span>
+                  </div>
+                  <div class="panel-col-body">
+                    <div class="sel-tools">
+                      <button id="btn-layer-up" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой вперед" disabled>
+                        <span class="tool-icon">▲</span> Слой +1
+                      </button>
+                      <button id="btn-layer-down" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой назад" disabled>
+                        <span class="tool-icon">▼</span> Слой -1
+                      </button>
+                      <button id="btn-rotate-45" class="sel-tool-btn" type="button" title="Повернуть модуль на 45 градусов" disabled>
+                        <span class="tool-icon">⟳</span> +45°
+                      </button>
+                      <button id="btn-rotate-90" class="sel-tool-btn" type="button" title="Повернуть модуль на 90 градусов" disabled>
+                        <span class="tool-icon">↷</span> +90°
+                      </button>
+                      <button id="btn-flip-x" class="sel-tool-btn" type="button" title="Отразить модуль по горизонтали" disabled>
+                        <span class="tool-icon">⇄</span> Отразить
+                      </button>
+                      <button id="btn-delete-selected" class="sel-tool-btn btn-danger" type="button" title="Удалить выбранный модуль" disabled>
+                        <span class="tool-icon">✕</span> Удалить
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+                <!-- 3. БЛОК С КОРАБЛЕМ (СВЕРХУ НАДПИСЬ, В ЦЕНТРЕ АНГАР, СНИЗУ КНОПКИ) -->
+                <div class="hangar-ship-column">
+                  <!-- Заметная выделенная надпись над блоком с кораблем -->
+                  <div class="shipyard-field-prompt">
+                    <span class="prompt-icon">🚀</span>
+                    <span class="prompt-text">Создай свой корабль, перемещая его части в это поле</span>
+                  </div>
+
+                  <!-- Просторное специальное окно сбора корабля с тактической сеткой -->
+                  <div class="shipyard-center-bay" id="shipyard-center-bay" role="region" aria-label="Отсек сборки корабля">
+                    <div class="hangar-grid-lines"></div>
+                    <div class="hangar-reticle"></div>
+                    <span class="corner-bracket corner-tl"></span>
+                    <span class="corner-bracket corner-tr"></span>
+                    <span class="corner-bracket corner-bl"></span>
+                    <span class="corner-bracket corner-br"></span>
+
+                    <!-- Плейсхолдер при пустом отсеке -->
+                    <div class="hangar-empty-hint" id="hangar-empty-hint">
+                      <div class="hangar-ghost-silhouette">
+                        <svg viewBox="0 0 100 100" class="ghost-ship-svg">
+                          <polygon points="50,15 65,40 60,82 50,75 40,82 35,40" fill="none" stroke="rgba(52,211,153,0.3)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                          <polygon points="50,25 58,45 50,65 42,45" fill="none" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
+                          <line x1="20" y1="50" x2="80" y2="50" stroke="rgba(52,211,153,0.2)" stroke-dasharray="2 3"/>
+                          <line x1="50" y1="20" x2="50" y2="80" stroke="rgba(52,211,153,0.2)" stroke-dasharray="2 3"/>
+                        </svg>
+                      </div>
+                      <span class="hangar-hint-text">ПЕРЕТАЩИТЕ МОДУЛИ В АНГАР</span>
+                      <span class="hangar-hint-sub">1 Корпус, 1 Кабина, 2 Крыла, 1 Двигатель, до 2 Пушек</span>
+                    </div>
+
+                    <!-- Поверхность для размещения сброшенных деталей -->
+                    <div class="hangar-drop-surface" id="hangar-drop-surface"></div>
+                  </div>
+
+                  <!-- Панель управления отсеком -->
+                  <div class="hangar-controls-bar">
+                    <button id="shipyard-btn-preset" class="hangar-tool-btn btn-preset" type="button" title="Загрузить готовую сбалансированную сборку корабля">
+                      ⚡ БАЗОВЫЙ СБОР
+                    </button>
+                    <button id="shipyard-btn-clear" class="hangar-tool-btn" type="button" title="Очистить все детали из отсека сборки">
+                      ✕ ОЧИСТИТЬ ВСЕ
+                    </button>
+                    <div id="shipyard-parts-counter" class="hangar-parts-counter">
+                      ДЕТАЛЕЙ: 0 / 7
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </section>
@@ -318,7 +347,7 @@ export class ShipBuilderModal {
     this.alertToastEl = modal.querySelector('#shipyard-alert-toast') as HTMLElement;
     this.alertMsgEl = modal.querySelector('#shipyard-alert-msg') as HTMLElement;
     this.selectedToolbarEl = modal.querySelector('#selected-module-toolbar') as HTMLElement;
-    this.selectedPartTagEl = modal.querySelector('#sel-part-tag') as HTMLElement;
+    this.scrapValEl = modal.querySelector('#shipyard-scrap-val') as HTMLElement;
 
     this.btnLayerUp = modal.querySelector('#btn-layer-up') as HTMLButtonElement;
     this.btnLayerDown = modal.querySelector('#btn-layer-down') as HTMLButtonElement;
@@ -479,7 +508,13 @@ export class ShipBuilderModal {
     const mod = getModuleByPartId(part.id);
     if (mod && !campaignManager.isModuleUnlocked(mod.id)) {
       soundFx.playHit();
-      this.showAlert(`МОДУЛЬ ЗАБЛОКИРОВАН: ${mod.name.toUpperCase()} (${mod.unlockMission.toUpperCase()})`);
+      const isAvailable = campaignManager.isModuleAvailableForPurchase(mod.id);
+      if (isAvailable) {
+        this.showAlert(`🛒 ДЕТАЛЬ НЕ КУПЛЕНА: нажмите «КУПИТЬ» (${mod.price} ⚙)`);
+      } else {
+        const reqStage = mod.tier === 3 ? '2-5' : '1-5';
+        this.showAlert(`🔒 ДЕТАЛЬ НЕДОСТУПНА: завершите этап ${reqStage} для открытия покупки!`);
+      }
       return false;
     }
 
@@ -527,19 +562,17 @@ export class ShipBuilderModal {
   public loadDefaultShipPreset(): void {
     this.clearAllDroppedParts();
 
-    const findPart = (catId: string, preferredSub = 'modules'): PartItem | null => {
+    const findPart = (catId: string): PartItem | null => {
       const cat = this.catalog.find((c) => c.id === catId);
       if (!cat) return null;
-      if (cat.hasSubfolders && cat.folders.length > 0) {
-        const folder = cat.folders.find((f) => f.name === preferredSub || f.name.includes(preferredSub)) || cat.folders[0];
-        return folder?.items[0] || null;
-      }
-      return cat.directItems[0] || null;
+      if (cat.directItems.length > 0) return cat.directItems[0];
+      if (cat.folders.length > 0 && cat.folders[0].items.length > 0) return cat.folders[0].items[0];
+      return null;
     };
 
-    const bodyPart = this.findPartById('body_black_spaceParts_047') || findPart('body', 'modules') || findPart('body', 'black');
-    const pilotPart = this.findPartById('pilot_black_spaceParts_054') || findPart('pilot', 'modules') || findPart('pilot', 'black');
-    const wingsPart = this.findPartById('wings_blue_spaceParts_010') || findPart('wings', 'modules') || findPart('wings', 'blue');
+    const bodyPart = this.findPartById('body_black_spaceParts_047') || findPart('body');
+    const pilotPart = this.findPartById('pilot_black_spaceParts_054') || findPart('pilot');
+    const wingsPart = this.findPartById('wings_blue_spaceParts_010') || findPart('wings');
     const enginesPart = this.findPartById('engines_0') || findPart('engines');
     const gunsPart = this.findPartById('guns_0') || findPart('guns');
 
@@ -899,6 +932,7 @@ export class ShipBuilderModal {
     this.modalEl.classList.remove('hidden');
     const flowEl = this.modalEl.querySelector('#shipyard-columns-flow');
     if (flowEl) flowEl.scrollLeft = 0;
+    this.updateScrapDisplay();
     this.render();
   }
 
@@ -917,9 +951,20 @@ export class ShipBuilderModal {
   }
 
   /**
+   * Обновление отображения баланса лома в шапке
+   */
+  public updateScrapDisplay(): void {
+    if (this.scrapValEl) {
+      const balance = campaignManager.getScrapBalance();
+      this.scrapValEl.textContent = balance.toLocaleString('ru-RU');
+    }
+  }
+
+  /**
    * Полный рендеринг интерфейса
    */
   private render(): void {
+    this.updateScrapDisplay();
     this.renderCategoriesColumn();
     this.renderSubfoldersAndParts();
     this.renderLimitsGrid();
@@ -948,10 +993,14 @@ export class ShipBuilderModal {
       badge.setAttribute('title', `${cfg.title}: установлено ${current} из ${cfg.max}`);
 
       badge.innerHTML = `
-        <span class="limit-icon">${cfg.icon}</span>
-        <span class="limit-label">${cfg.title}:</span>
-        <span class="limit-val ${isFull ? 'full-val' : ''}">${current}/${cfg.max}</span>
-        ${isFull ? '<span class="limit-check">✓</span>' : ''}
+        <div class="limit-chip-left">
+          <span class="limit-icon">${cfg.icon}</span>
+          <span class="limit-label">${cfg.title}</span>
+        </div>
+        <div class="limit-chip-right">
+          <span class="limit-val ${isFull ? 'full-val' : ''}">${current}/${cfg.max}</span>
+          ${isFull ? '<span class="limit-check">✓</span>' : ''}
+        </div>
       `;
 
       this.limitsGridEl.appendChild(badge);
@@ -1007,13 +1056,7 @@ export class ShipBuilderModal {
    */
   private selectCategory(categoryId: string): void {
     this.activeCategoryId = categoryId;
-    const cat = this.catalog.find((c) => c.id === categoryId);
-
-    if (cat && cat.hasSubfolders && cat.folders.length > 0) {
-      this.activeSubfolderName = cat.folders[0].name;
-    } else {
-      this.activeSubfolderName = null;
-    }
+    this.activeRarityFilter = 'all';
 
     this.renderCategoriesColumn();
     this.renderSubfoldersAndParts();
@@ -1030,191 +1073,323 @@ export class ShipBuilderModal {
     const activeCat = this.catalog.find((c) => c.id === this.activeCategoryId);
     if (!activeCat) return;
 
-    if (activeCat.hasSubfolders && activeCat.folders.length > 0) {
-      // Показываем второй столбец (Разделение на цвета/подпапки)
-      this.subfoldersColEl.style.display = 'flex';
-      this.subfoldersTagEl.textContent = `02 // РАЗДЕЛЕНИЕ`;
-      this.subfoldersListEl.innerHTML = '';
+    const items = activeCat.directItems;
+    const commonCount = items.filter((p) => {
+      const m = getModuleByPartId(p.id);
+      return getModuleRarity(m).type === 'common';
+    }).length;
+    const rareCount = items.filter((p) => {
+      const m = getModuleByPartId(p.id);
+      return getModuleRarity(m).type === 'rare';
+    }).length;
+    const legendaryCount = items.filter((p) => {
+      const m = getModuleByPartId(p.id);
+      return getModuleRarity(m).type === 'legendary';
+    }).length;
 
-      activeCat.folders.forEach((folder) => {
-        const btn = document.createElement('button');
-        const isFolderActive = folder.name === this.activeSubfolderName;
-        btn.className = `subfolder-col-btn ${isFolderActive ? 'active' : ''}`;
-        btn.type = 'button';
+    // Столбец 2: Разделение по редкости (Все / Обычные / Редкие / Легендарные)
+    this.subfoldersColEl.style.display = 'flex';
+    this.subfoldersTagEl.textContent = `02 // РАЗДЕЛЕНИЕ`;
+    this.subfoldersListEl.innerHTML = '';
 
-        btn.innerHTML = `
-          <div class="subfolder-btn-inner">
-            <span class="subfolder-icon">${isFolderActive ? '📂' : '📁'}</span>
-            <div class="subfolder-text-wrap">
-              <span class="subfolder-name">${folder.title}</span>
-              <span class="subfolder-count">${folder.items.length} дет.</span>
-            </div>
-            <span class="active-chevron">▶</span>
-          </div>
-        `;
+    const filterOptions: Array<{
+      id: 'all' | 'common' | 'rare' | 'legendary';
+      name: string;
+      icon: string;
+      count: number;
+      color?: string;
+    }> = [
+      { id: 'all', name: 'Все детали', icon: '📂', count: items.length },
+      { id: 'common', name: 'Обычные', icon: '⚪', count: commonCount, color: '#94a3b8' },
+      { id: 'rare', name: 'Редкие', icon: '🟡', count: rareCount, color: '#facc15' },
+      { id: 'legendary', name: 'Легендарные', icon: '🔴', count: legendaryCount, color: '#ef4444' },
+    ];
 
-        btn.addEventListener('mouseenter', () => soundFx.playUiHover());
-
-        btn.addEventListener('click', () => {
-          soundFx.playUiClick();
-          this.activeSubfolderName = folder.name;
-          this.renderSubfoldersAndParts();
-        });
-
-        this.subfoldersListEl.appendChild(btn);
-      });
-
-      // Третий столбец: Фотографии деталей из выбранной подпапки
-      const activeFolder = activeCat.folders.find((f) => f.name === this.activeSubfolderName) || activeCat.folders[0];
-      const items = activeFolder ? activeFolder.items : [];
-
-      this.partsColEl.style.display = 'flex';
-      this.partsTagEl.textContent = `03 // ${activeFolder?.name.toUpperCase() || 'ДЕТАЛИ'} (${items.length})`;
-      this.renderPartsGrid(items);
-    } else {
-      // Для категорий без подпапок (Двигатели, Пушки) колонка 2 НЕ исчезает,
-      // чтобы все 3 колонки всегда были на экране и верстка не прыгала!
-      this.subfoldersColEl.style.display = 'flex';
-      this.subfoldersTagEl.textContent = `02 // РАЗДЕЛЕНИЕ`;
-      this.subfoldersListEl.innerHTML = '';
-
+    filterOptions.forEach((opt) => {
       const btn = document.createElement('button');
-      btn.className = 'subfolder-col-btn active';
+      const isSelected = this.activeRarityFilter === opt.id;
+      btn.className = `subfolder-col-btn ${isSelected ? 'active' : ''}`;
       btn.type = 'button';
+
       btn.innerHTML = `
         <div class="subfolder-btn-inner">
-          <span class="subfolder-icon">📂</span>
+          <span class="subfolder-icon" ${opt.color ? `style="color: ${opt.color};"` : ''}>${opt.icon}</span>
           <div class="subfolder-text-wrap">
-            <span class="subfolder-name">Все модули</span>
-            <span class="subfolder-count">${activeCat.directItems.length} дет.</span>
+            <span class="subfolder-name" ${isSelected && opt.color ? `style="color: ${opt.color};"` : ''}>${opt.name}</span>
+            <span class="subfolder-count">${opt.count} дет.</span>
           </div>
           <span class="active-chevron">▶</span>
         </div>
       `;
-      this.subfoldersListEl.appendChild(btn);
 
-      this.partsColEl.style.display = 'flex';
-      this.partsTagEl.textContent = `03 // ${activeCat.title.toUpperCase()} (${activeCat.directItems.length})`;
-      this.renderPartsGrid(activeCat.directItems);
-    }
+      btn.addEventListener('mouseenter', () => soundFx.playUiHover());
+      btn.addEventListener('click', () => {
+        soundFx.playUiClick();
+        this.activeRarityFilter = opt.id;
+        this.renderSubfoldersAndParts();
+      });
+
+      this.subfoldersListEl.appendChild(btn);
+    });
+
+    // Столбец 3: Сетка деталей
+    this.partsColEl.style.display = 'flex';
+    this.partsTagEl.textContent = `03 // ${activeCat.title.toUpperCase()} (${items.length})`;
+    this.renderPartsGrid(items);
 
     const flowEl = this.modalEl.querySelector('#shipyard-columns-flow');
     if (flowEl) flowEl.scrollLeft = 0;
   }
 
   /**
-   * Рендеринг карточек деталей в столбце фотографий
+   * Создание карточки отдельного модуля с учетом его редкости, характеристик и цены.
+   * При открытии новых частей корабля (1-5 для редких, 2-5 для легендарных)
+   * они становятся доступны для ПОКУПКИ за металлолом.
+   */
+  private createPartCard(part: PartItem): HTMLElement {
+    const mod = getModuleByPartId(part.id);
+    const isUnlocked = mod ? campaignManager.isModuleUnlocked(mod.id) : true;
+    const isAvailable = mod ? campaignManager.isModuleAvailableForPurchase(mod.id) : true;
+    const displayName = mod ? mod.name : part.name;
+    const rarity = getModuleRarity(mod);
+    const statsLines = getModuleStatsLines(mod, part.category);
+    const price = mod?.price ?? 50;
+    const scrapBalance = campaignManager.getScrapBalance();
+    const canAfford = scrapBalance >= price;
+    const reqStage = mod?.tier === 3 ? '2-5' : '1-5';
+
+    const card = document.createElement('div');
+    const statusClass = isUnlocked
+      ? 'part-card-owned'
+      : isAvailable
+      ? 'part-card-purchasable'
+      : 'part-card-locked';
+    card.className = `part-card rarity-${rarity.type} ${statusClass}`;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('data-rarity', rarity.type);
+
+    const statsHtml = `
+      <div class="part-stats-list">
+        ${statsLines.map((line) => `<span class="stat-line">${line}</span>`).join('')}
+      </div>
+    `;
+
+    if (isUnlocked) {
+      // 1. Деталь куплена и находится в арсенале: доступна для установки и перетаскивания
+      card.setAttribute('draggable', 'true');
+      card.setAttribute('title', `${displayName} [${rarity.title}] // В арсенале`);
+
+      card.innerHTML = `
+        <div class="part-card-inner">
+          <div class="part-preview-wrap">
+            <img src="${part.url}" alt="${displayName}" class="part-preview-img" loading="lazy" draggable="false" />
+          </div>
+          <div class="part-meta">
+            <span class="part-name-tag" title="${displayName}">${displayName}</span>
+            ${statsHtml}
+            <div class="part-price-block part-price-owned">
+              <span class="part-price-val"><span class="price-icon">⚙</span> ${price}</span>
+              <span class="part-status-badge owned">✓ В АРСЕНАЛЕ</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('mouseenter', () => soundFx.playUiHover());
+
+      // Быстрый клик для добавления
+      card.addEventListener('click', () => {
+        if (this.hasMovedSignificantly) return;
+        const bayRect = this.centerBayEl.getBoundingClientRect();
+        const dropX = bayRect.width > 0 ? bayRect.width / 2 + (Math.random() * 30 - 15) : 200;
+        const dropY = bayRect.height > 0 ? bayRect.height / 2 + (Math.random() * 30 - 15) : 200;
+        this.tryAddPart(part, dropX, dropY);
+      });
+
+      // HTML5 DragStart
+      card.addEventListener('dragstart', (e: DragEvent) => {
+        soundFx.playUiHover();
+        if (e.dataTransfer) {
+          e.dataTransfer.setData('application/json', JSON.stringify(part));
+          e.dataTransfer.effectAllowed = 'copy';
+        }
+      });
+
+      // Pointer / Touch Down
+      card.addEventListener('pointerdown', (e: PointerEvent) => {
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        this.startPointerDrag(part, e);
+      });
+    } else if (isAvailable) {
+      // 2. Деталь открыта для покупки (пройден 1-5 для редких или 2-5 для легендарных)
+      card.setAttribute('draggable', 'false');
+      card.setAttribute('title', `${displayName} [${rarity.title}] // 🛒 Доступно для покупки: ${price} ⚙`);
+
+      card.innerHTML = `
+        <div class="part-card-inner">
+          <div class="part-preview-wrap">
+            <img src="${part.url}" alt="${displayName}" class="part-preview-img" loading="lazy" draggable="false" />
+            <div class="part-shop-badge" title="Доступно для покупки!">🛒</div>
+          </div>
+          <div class="part-meta">
+            <span class="part-name-tag" title="${displayName}">${displayName}</span>
+            ${statsHtml}
+            <div class="part-price-block part-price-shop">
+              <span class="part-price-val ${canAfford ? 'can-afford' : 'cannot-afford'}">
+                <span class="price-icon">⚙</span> ${price}
+              </span>
+              <button class="part-buy-btn ${canAfford ? 'can-afford' : 'cannot-afford'}" type="button" title="Купить ${displayName} за ${price} лома">
+                ${canAfford ? 'КУПИТЬ' : 'МАЛО ⚙'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const performPurchase = () => {
+        if (!mod) return;
+        const res = campaignManager.buyModule(mod.id);
+        if (res.success) {
+          soundFx.playUpgradeSelect();
+          this.updateScrapDisplay();
+          this.showAlert(`✅ КУПЛЕНО: ${displayName.toUpperCase()} ЗА ${price} ⚙!`);
+          this.render();
+        } else if (res.reason === 'INSUFFICIENT_SCRAP') {
+          soundFx.playHit();
+          this.showAlert(`⚠️ НЕДОСТАТОЧНО ЛОМА: ТРЕБУЕТСЯ ${price} ⚙ (У ВАС ${campaignManager.getScrapBalance()} ⚙)`);
+        } else {
+          soundFx.playHit();
+          this.showAlert(`🔒 ДЕТАЛЬ НЕДОСТУПНА`);
+        }
+      };
+
+      card.addEventListener('mouseenter', () => soundFx.playUiHover());
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        performPurchase();
+      });
+
+      const buyBtn = card.querySelector('.part-buy-btn') as HTMLButtonElement | null;
+      if (buyBtn) {
+        buyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          performPurchase();
+        });
+      }
+
+      card.addEventListener('dragstart', (e: DragEvent) => {
+        e.preventDefault();
+        soundFx.playHit();
+        this.showAlert(`🛒 СНАЧАЛА КУПИТЕ ДЕТАЛЬ: нажмите «КУПИТЬ» (${price} ⚙)`);
+      });
+    } else {
+      // 3. Деталь еще заблокирована прогрессом этапов кампании
+      card.setAttribute('draggable', 'false');
+      card.setAttribute('title', `${displayName} // 🔒 Доступно после этапа ${reqStage}`);
+
+      card.innerHTML = `
+        <div class="part-card-inner">
+          <div class="part-preview-wrap">
+            <img src="${part.url}" alt="${displayName}" class="part-preview-img part-locked-img" loading="lazy" draggable="false" />
+            <div class="part-lock-overlay">
+              <span class="lock-icon">🔒</span>
+            </div>
+          </div>
+          <div class="part-meta">
+            <span class="part-name-tag" title="${displayName}">${displayName}</span>
+            ${statsHtml}
+            <div class="part-price-block part-price-locked">
+              <span class="part-price-val locked"><span class="price-icon">⚙</span> ${price}</span>
+              <span class="part-status-badge stage-locked">🔒 ЭТАП ${reqStage}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('mouseenter', () => soundFx.playUiHover());
+      card.addEventListener('click', () => {
+        soundFx.playHit();
+        this.showAlert(`🔒 ДЕТАЛЬ НЕДОСТУПНА: завершите этап ${reqStage} для открытия покупки!`);
+      });
+      card.addEventListener('dragstart', (e: DragEvent) => {
+        e.preventDefault();
+        soundFx.playHit();
+        this.showAlert(`🔒 ДЕТАЛЬ НЕДОСТУПНА: завершите этап ${reqStage} для открытия покупки!`);
+      });
+    }
+
+    return card;
+  }
+
+  /**
+   * Рендеринг карточек деталей в 3 колонки (по редкости: Обычный, Редкий, Легендарный)
+   * с плавной вертикальной прокруткой мышью и пальцем
    */
   private renderPartsGrid(items: PartItem[]): void {
     this.partsGridEl.innerHTML = '';
 
+    const commonItems: PartItem[] = [];
+    const rareItems: PartItem[] = [];
+    const legendaryItems: PartItem[] = [];
+
     items.forEach((part) => {
       const mod = getModuleByPartId(part.id);
-      // Если деталь привязана к открываемому модулю кампании (тир 1, 2, 3), проверяем разблокировку.
-      // Если это стартовый модуль (тир 0) или стандартная деталь каталога (mod === undefined), она доступна сразу!
-      const isUnlocked = mod ? campaignManager.isModuleUnlocked(mod.id) : true;
-      const displayName = mod ? mod.name : part.name;
-
-      const card = document.createElement('div');
-      card.className = `part-card ${!isUnlocked ? 'part-card-locked' : ''} ${mod ? `part-card-module tier-${mod.tier}` : ''}`;
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
-
-      if (!isUnlocked) {
-        card.setAttribute('draggable', 'false');
-        card.setAttribute(
-          'title',
-          mod
-            ? `${mod.name} // 🔒 ЗАБЛОКИРОВАНО\nУсловие: ${mod.unlockMission}\n${mod.description}\nЭффект: ${mod.statsDescription}`
-            : `Модуль заблокирован в текущей кампании`
-        );
-
-        card.innerHTML = `
-          <div class="part-card-inner">
-            <div class="part-preview-wrap">
-              <img src="${part.url}" alt="${displayName}" class="part-preview-img part-locked-img" loading="lazy" draggable="false" />
-              <div class="part-lock-overlay">
-                <span class="lock-icon">🔒</span>
-                <span class="locked-text">LOCKED</span>
-              </div>
-            </div>
-            <div class="part-meta">
-              <span class="part-name-tag">${displayName}</span>
-              <span class="part-lock-condition">${mod?.unlockMission || 'Заблокировано'}</span>
-            </div>
-          </div>
-        `;
-
-        card.addEventListener('mouseenter', () => soundFx.playUiHover());
-        card.addEventListener('click', () => {
-          soundFx.playHit();
-          this.showAlert(
-            `МОДУЛЬ ЗАБЛОКИРОВАН: ${mod ? `${mod.name} (${mod.unlockMission})` : 'Недоступен'}`
-          );
-        });
-        card.addEventListener('dragstart', (e: DragEvent) => {
-          e.preventDefault();
-          soundFx.playHit();
-          this.showAlert(
-            `МОДУЛЬ ЗАБЛОКИРОВАН: ${mod ? `${mod.name} (${mod.unlockMission})` : 'Недоступен'}`
-          );
-        });
+      const rarity = getModuleRarity(mod);
+      if (rarity.type === 'common') {
+        commonItems.push(part);
+      } else if (rarity.type === 'rare') {
+        rareItems.push(part);
       } else {
-        card.setAttribute('draggable', 'true');
-        card.setAttribute(
-          'title',
-          mod
-            ? `${mod.name} [${mod.englishName}]\n${mod.description}\nЭФФЕКТ: ${mod.statsDescription}`
-            : `Перетащите ${part.name} в ангар или кликните для установки`
-        );
+        legendaryItems.push(part);
+      }
+    });
 
-        const tierBadge = mod
-          ? `<span class="part-tier-tag tier-${mod.tier}">${mod.tier === 0 ? 'СТАРТОВЫЙ' : `ТИР ${mod.tier}`}</span>`
-          : '';
+    const lanesContainer = document.createElement('div');
+    lanesContainer.className = 'rarity-lanes-container';
 
-        card.innerHTML = `
-          <div class="part-card-inner">
-            <div class="part-preview-wrap">
-              <img src="${part.url}" alt="${displayName}" class="part-preview-img" loading="lazy" draggable="false" />
-              ${tierBadge}
-            </div>
-            <div class="part-meta">
-              <span class="part-name-tag">${displayName}</span>
-              ${mod ? `<span class="part-stat-tag" title="${mod.statsDescription}">${mod.statsDescription}</span>` : ''}
-            </div>
-            <span class="part-drag-badge">DRAG</span>
-          </div>
-        `;
+    let lanesData = [
+      { type: 'common', title: 'ОБЫЧНЫЕ', color: '#94a3b8', items: commonItems },
+      { type: 'rare', title: 'РЕДКИЕ', color: '#facc15', items: rareItems },
+      { type: 'legendary', title: 'ЛЕГЕНДАРНЫЕ', color: '#ef4444', items: legendaryItems },
+    ];
 
-        card.addEventListener('mouseenter', () => soundFx.playUiHover());
+    if (this.activeRarityFilter !== 'all') {
+      lanesData = lanesData.filter((l) => l.type === this.activeRarityFilter);
+      lanesContainer.classList.add('single-lane');
+    }
 
-        // Быстрый клик для добавления
-        card.addEventListener('click', () => {
-          if (this.hasMovedSignificantly) return;
-          const bayRect = this.centerBayEl.getBoundingClientRect();
-          const dropX = bayRect.width > 0 ? bayRect.width / 2 + (Math.random() * 30 - 15) : 200;
-          const dropY = bayRect.height > 0 ? bayRect.height / 2 + (Math.random() * 30 - 15) : 200;
-          this.tryAddPart(part, dropX, dropY);
-        });
+    lanesData.forEach((lane) => {
+      const laneEl = document.createElement('div');
+      laneEl.className = `rarity-lane lane-${lane.type}`;
 
-        // HTML5 DragStart
-        card.addEventListener('dragstart', (e: DragEvent) => {
-          soundFx.playUiHover();
-          if (e.dataTransfer) {
-            e.dataTransfer.setData('application/json', JSON.stringify(part));
-            e.dataTransfer.effectAllowed = 'copy';
-          }
-        });
+      laneEl.innerHTML = `
+        <div class="rarity-lane-header" style="color: ${lane.color}; border-bottom-color: ${lane.color}80;">
+          <span class="rarity-dot" style="background-color: ${lane.color}; box-shadow: 0 0 6px ${lane.color};"></span>
+          <span class="rarity-lane-title">${lane.title}</span>
+          <span class="rarity-lane-count">(${lane.items.length})</span>
+        </div>
+        <div class="rarity-lane-cards"></div>
+      `;
 
-        // Pointer / Touch Down
-        card.addEventListener('pointerdown', (e: PointerEvent) => {
-          if (e.button !== 0 && e.pointerType === 'mouse') return;
-          this.startPointerDrag(part, e);
+      const cardsContainer = laneEl.querySelector('.rarity-lane-cards') as HTMLElement;
+
+      if (lane.items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'rarity-empty-lane';
+        empty.textContent = '—';
+        cardsContainer.appendChild(empty);
+      } else {
+        lane.items.forEach((part) => {
+          const card = this.createPartCard(part);
+          cardsContainer.appendChild(card);
         });
       }
 
-      this.partsGridEl.appendChild(card);
+      lanesContainer.appendChild(laneEl);
     });
+
+    this.partsGridEl.appendChild(lanesContainer);
   }
 
   /**
@@ -1224,7 +1399,13 @@ export class ShipBuilderModal {
     const mod = getModuleByPartId(part.id);
     if (mod && !campaignManager.isModuleUnlocked(mod.id)) {
       soundFx.playHit();
-      this.showAlert(`МОДУЛЬ ЗАБЛОКИРОВАН: ${mod.name.toUpperCase()} (${mod.unlockMission.toUpperCase()})`);
+      const isAvailable = campaignManager.isModuleAvailableForPurchase(mod.id);
+      if (isAvailable) {
+        this.showAlert(`🛒 ДЕТАЛЬ НЕ КУПЛЕНА: сначала купите её за ${mod.price} ⚙`);
+      } else {
+        const reqStage = mod.tier === 3 ? '2-5' : '1-5';
+        this.showAlert(`🔒 ДЕТАЛЬ НЕДОСТУПНА: завершите этап ${reqStage} для открытия покупки!`);
+      }
       return;
     }
 
@@ -1234,7 +1415,11 @@ export class ShipBuilderModal {
     this.pointerStartY = e.clientY;
     this.hasMovedSignificantly = false;
 
-    this.createTouchGhost(part, e.clientX, e.clientY);
+    // Для мыши сразу создаем призрак, для тача — при начале реального смещения (move > 10px),
+    // чтобы вертикальная прокрутка пальцем работала идеально гладко и без ложных призраков
+    if (e.pointerType !== 'touch') {
+      this.createTouchGhost(part, e.clientX, e.clientY);
+    }
   }
 
   private createTouchGhost(part: PartItem, clientX: number, clientY: number): void {
@@ -1252,27 +1437,34 @@ export class ShipBuilderModal {
 
   private handleGlobalPointerMove = (e: PointerEvent): void => {
     // 1. Если перетаскиваем деталь из каталога в ангар
-    if (this.isPointerDragging && this.touchGhostEl && this.touchDragPart) {
+    if (this.isPointerDragging && this.touchDragPart) {
       const dx = e.clientX - this.pointerStartX;
       const dy = e.clientY - this.pointerStartY;
-      if (Math.hypot(dx, dy) > 8) {
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 10) {
         this.hasMovedSignificantly = true;
+        if (!this.touchGhostEl) {
+          this.createTouchGhost(this.touchDragPart, e.clientX, e.clientY);
+        }
       }
 
-      this.touchGhostEl.style.left = `${e.clientX}px`;
-      this.touchGhostEl.style.top = `${e.clientY}px`;
+      if (this.touchGhostEl) {
+        this.touchGhostEl.style.left = `${e.clientX}px`;
+        this.touchGhostEl.style.top = `${e.clientY}px`;
 
-      const bayRect = this.centerBayEl.getBoundingClientRect();
-      const isOverBay =
-        e.clientX >= bayRect.left &&
-        e.clientX <= bayRect.right &&
-        e.clientY >= bayRect.top &&
-        e.clientY <= bayRect.bottom;
+        const bayRect = this.centerBayEl.getBoundingClientRect();
+        const isOverBay =
+          e.clientX >= bayRect.left &&
+          e.clientX <= bayRect.right &&
+          e.clientY >= bayRect.top &&
+          e.clientY <= bayRect.bottom;
 
-      if (isOverBay) {
-        this.centerBayEl.classList.add('drag-active');
-      } else {
-        this.centerBayEl.classList.remove('drag-active');
+        if (isOverBay) {
+          this.centerBayEl.classList.add('drag-active');
+        } else {
+          this.centerBayEl.classList.remove('drag-active');
+        }
       }
       return;
     }
@@ -1386,7 +1578,6 @@ export class ShipBuilderModal {
     const selected = this.droppedParts.find((p) => p.uid === this.selectedPartUid);
 
     if (!selected) {
-      this.selectedPartTagEl.textContent = 'ВЫБЕРИТЕ МОДУЛЬ В АНГАРЕ ДЛЯ НАСТРОЙКИ';
       this.btnLayerUp.disabled = true;
       this.btnLayerDown.disabled = true;
       this.btnRotate45.disabled = true;
@@ -1396,12 +1587,6 @@ export class ShipBuilderModal {
       this.selectedToolbarEl.classList.remove('has-selection');
       return;
     }
-
-    const catName = CATEGORY_LIMITS[selected.part.category]?.title || selected.part.category;
-    this.selectedPartTagEl.innerHTML = `
-      <span class="active-tag-accent">${catName.toUpperCase()}:</span> ${selected.part.name} 
-      <span class="active-tag-props">[Слой: ${selected.zIndex} | Угол: ${selected.rotation}° ${selected.flipX ? '| ⇄ Отражен' : ''}]</span>
-    `;
 
     this.btnLayerUp.disabled = false;
     this.btnLayerDown.disabled = false;

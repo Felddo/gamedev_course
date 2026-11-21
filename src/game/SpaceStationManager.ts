@@ -6,7 +6,8 @@ import { EnemyManager } from './EnemyManager';
 import { MeteorManager } from './MeteorManager';
 import { PlayerShip } from './PlayerShip';
 import { soundFx } from './audio';
-import { BLASTER_DAMAGE } from './constants';
+import { BLASTER_DAMAGE, MAP_WIDTH, MAP_HEIGHT } from './constants';
+import { ScrapManager } from './ScrapManager';
 
 const STATION_TEXTURE_KEYS = [
   'space_station_020',
@@ -27,6 +28,7 @@ export class SpaceStationManager {
   private spawnTimer = 3.0;
   private maxStations = 4;
   private spawnInterval = 14.0;
+  private scrapManager: ScrapManager | null = null;
 
   // Выбранная база для фокусированного огня корабля (Target Lock)
   private targetedStation: SpaceStation | null = null;
@@ -34,6 +36,10 @@ export class SpaceStationManager {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+  }
+
+  public setScrapManager(scrapManager: ScrapManager): void {
+    this.scrapManager = scrapManager;
   }
 
   public getStations(): SpaceStation[] {
@@ -117,15 +123,14 @@ export class SpaceStationManager {
    * Начальный спавн баз при старте игры
    */
   public createInitialStations(count = 2): void {
-    const cam = this.scene.cameras.main;
-    const cx = cam.worldView ? cam.worldView.centerX : 1536;
-    const cy = cam.worldView ? cam.worldView.centerY : 838;
+    const cx = MAP_WIDTH / 2;
+    const cy = MAP_HEIGHT / 2;
 
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + Phaser.Math.FloatBetween(-0.4, 0.4);
-      const dist = Phaser.Math.FloatBetween(600, 1100);
-      const x = cx + Math.cos(angle) * dist;
-      const y = cy + Math.sin(angle) * dist;
+      const dist = Phaser.Math.FloatBetween(400, 850);
+      const x = Phaser.Math.Clamp(cx + Math.cos(angle) * dist, 350, MAP_WIDTH - 350);
+      const y = Phaser.Math.Clamp(cy + Math.sin(angle) * dist, 350, MAP_HEIGHT - 350);
       const typeIndex = (i % 3) as 0 | 1 | 2;
       this.spawnStationAt(x, y, typeIndex, angle + Math.PI / 2);
     }
@@ -156,6 +161,25 @@ export class SpaceStationManager {
       station.sprite.x += Math.cos(station.moveAngle) * station.speed * seconds;
       station.sprite.y += Math.sin(station.moveAngle) * station.speed * seconds;
       station.sprite.rotation += station.rotationSpeed * seconds;
+
+      // Ограничение движения станции пределами космического сектора (отскок от границ пояса астероидов)
+      const minBound = 280;
+      const maxBoundX = MAP_WIDTH - 280;
+      const maxBoundY = MAP_HEIGHT - 280;
+      if (station.sprite.x < minBound) {
+        station.sprite.x = minBound;
+        station.moveAngle = Math.PI - station.moveAngle;
+      } else if (station.sprite.x > maxBoundX) {
+        station.sprite.x = maxBoundX;
+        station.moveAngle = Math.PI - station.moveAngle;
+      }
+      if (station.sprite.y < minBound) {
+        station.sprite.y = minBound;
+        station.moveAngle = -station.moveAngle;
+      } else if (station.sprite.y > maxBoundY) {
+        station.sprite.y = maxBoundY;
+        station.moveAngle = -station.moveAngle;
+      }
 
       // Обновление таймера вспышки от попадания
       if (station.isHitFlash > 0) {
@@ -327,6 +351,9 @@ export class SpaceStationManager {
       startY = Phaser.Math.Between(vy - 50, vy + vh + 50);
     }
 
+    startX = Phaser.Math.Clamp(startX, 260, MAP_WIDTH - 260);
+    startY = Phaser.Math.Clamp(startY, 260, MAP_HEIGHT - 260);
+
     // Траектория движения направлена внутрь исследуемого сектора
     const targetCenterX = vx + vw / 2 + Phaser.Math.Between(-300, 300);
     const targetCenterY = vy + vh / 2 + Phaser.Math.Between(-300, 300);
@@ -355,7 +382,8 @@ export class SpaceStationManager {
     let barWidth = 180;
     let barHeight = 12;
     let speed = Phaser.Math.FloatBetween(24, 34);
-    let xpReward = 400;
+    let xpReward = 0; // Опыт со станции не начисляется
+    let scrapReward = 50; // При взрыве станции выпадает лом
     let explosionRadius = 240;
     let explosionDamage = 45;
 
@@ -369,7 +397,8 @@ export class SpaceStationManager {
       barWidth = 220;
       barHeight = 14;
       speed = Phaser.Math.FloatBetween(18, 28);
-      xpReward = 700;
+      xpReward = 0;
+      scrapReward = 90;
       explosionRadius = 300;
       explosionDamage = 60;
     } else if (typeIndex === 2) {
@@ -382,7 +411,8 @@ export class SpaceStationManager {
       barWidth = 280;
       barHeight = 16;
       speed = Phaser.Math.FloatBetween(14, 22);
-      xpReward = 1100;
+      xpReward = 0;
+      scrapReward = 160;
       explosionRadius = 360;
       explosionDamage = 80;
     }
@@ -449,6 +479,7 @@ export class SpaceStationManager {
       scale,
       isHitFlash: 0,
       xpReward,
+      scrapReward,
       explosionRadius,
       explosionDamage,
     });
@@ -650,27 +681,17 @@ export class SpaceStationManager {
     soundFx.playExplosion();
     this.scene.cameras.main.shake(360, 0.018);
 
-    // Колоссальный взрыв станции и всплывающий текст опыта
-    particleManager.spawnStationMegaExplosion(sx, sy, expRadius, xpReward);
-    onScoreGained(xpReward, sx, sy);
+    // Колоссальный взрыв станции без начисления опыта
+    particleManager.spawnStationMegaExplosion(sx, sy, expRadius, 0);
 
-    // 1. Урон окружающим вражеским кораблям
-    const enemies = enemyManager.getEnemies();
-    for (let e = enemies.length - 1; e >= 0; e--) {
-      const enemy = enemies[e];
-      const dist = Phaser.Math.Distance.Between(sx, sy, enemy.sprite.x, enemy.sprite.y);
-      if (dist <= expRadius) {
-        particleManager.spawnExplosion(enemy.sprite.x, enemy.sprite.y);
-        enemy.hp -= expDamage;
-        enemy.sprite.setTint(0xffffff);
-        enemy.isHitFlash = 0.12;
-        if (enemy.hp <= 0) {
-          enemyManager.destroyEnemy(e, particleManager, onScoreGained);
-        }
-      }
+    // При взрыве со станции выпадает металлолом (валюта)
+    if (this.scrapManager) {
+      this.scrapManager.spawnScrap(sx, sy, station.scrapReward ?? 60);
     }
 
-    // 2. Раскалывание и урон окружающим метеоритам
+    // Враги полностью неуязвимы к взрыву станции (урон врагам не наносится)
+
+    // 1. Раскалывание и урон окружающим метеоритам
     const meteors = meteorManager.getMeteors();
     for (let m = meteors.length - 1; m >= 0; m--) {
       const meteor = meteors[m];

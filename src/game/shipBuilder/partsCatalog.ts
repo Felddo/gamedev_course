@@ -32,15 +32,42 @@ const partImages = import.meta.glob<string>(
 );
 
 /**
- * Русские человекочитаемые названия для папок подкатегорий
+ * Поиск фактического resolved URL изображения по partId
  */
-const SUBFOLDER_NAMES: Record<string, string> = {
-  black: 'Черные детали // Black',
-  white: 'Белые детали // White',
-  blue: 'Синие сплавы // Blue',
-  green: 'Изумрудные // Green',
-  red: 'Титановые (Красные) // Red',
-};
+function findPartImageUrl(partId: string): string {
+  // 1. Точный поиск по нормализованному пути из partId
+  for (const [filePath, url] of Object.entries(partImages)) {
+    const fileName = filePath.split('/').pop()?.replace(/\.[^/.]+$/, '');
+    if (!fileName) continue;
+
+    // Для engines_0 -> fileName === '0', guns_1 -> fileName === '1'
+    if (partId === `engines_${fileName}` && filePath.includes('/engines/')) {
+      return url;
+    }
+    if (partId === `guns_${fileName}` && filePath.includes('/guns/')) {
+      return url;
+    }
+
+    // Для деталей вида pilot_black_spaceParts_054, wings_blue_spaceParts_010 и т.д.
+    const keyNormalized = filePath
+      .replace(/.*\/Parts\//, '')
+      .replace(/\//g, '_')
+      .replace(/\.[^/.]+$/, '');
+    if (keyNormalized === partId) {
+      return url;
+    }
+  }
+
+  // 2. Дополнительный поиск по вхождению имени файла
+  for (const [filePath, url] of Object.entries(partImages)) {
+    const fileName = filePath.split('/').pop()?.replace(/\.[^/.]+$/, '');
+    if (fileName && partId.includes(fileName)) {
+      return url;
+    }
+  }
+
+  return '';
+}
 
 const CATEGORIES_CONFIG: Array<{
   id: string;
@@ -49,69 +76,68 @@ const CATEGORIES_CONFIG: Array<{
   description: string;
   iconSvg: string;
 }> = [
-    {
-      id: 'pilot',
-      title: 'Кабина',
-      englishName: 'COCKPIT // PILOT',
-      description: 'Командные модули, оптические визоры и кабины пилота',
-      iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+  {
+    id: 'pilot',
+    title: 'Кабина',
+    englishName: 'COCKPIT // PILOT',
+    description: 'Командные модули, визоры и кабины пилота',
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z"/>
       <circle cx="12" cy="11" r="3"/>
       <path d="M12 14v4"/>
     </svg>`,
-    },
-    {
-      id: 'body',
-      title: 'Тело',
-      englishName: 'HULL // BODY',
-      description: 'Несущий каркас, броневые плиты и центральные блоки корпуса',
-      iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+  },
+  {
+    id: 'body',
+    title: 'Тело',
+    englishName: 'HULL // BODY',
+    description: 'Несущий каркас, броневые плиты и блоки корпуса',
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <rect x="5" y="4" width="14" height="16" rx="3"/>
       <line x1="9" y1="9" x2="15" y2="9"/>
       <line x1="9" y1="15" x2="15" y2="15"/>
       <line x1="12" y1="4" x2="12" y2="20"/>
     </svg>`,
-    },
-    {
-      id: 'wings',
-      title: 'Крылья',
-      englishName: 'WINGS // AERO',
-      description: 'Маневровые крылья, аэродинамические стабилизаторы и пилоны',
-      iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+  },
+  {
+    id: 'wings',
+    title: 'Крылья',
+    englishName: 'WINGS // AERO',
+    description: 'Маневровые крылья, аэродинамические плоскости и пилоны',
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <path d="M12 4l-9 8 9 8 9-8-9-8z"/>
       <path d="M3 12h18"/>
       <path d="M12 4v16"/>
     </svg>`,
-    },
-    {
-      id: 'engines',
-      title: 'Двигатели',
-      englishName: 'THRUSTERS // ENGINES',
-      description: 'Маршевые фотонно-плазменные сопла и реактивные ускорители',
-      iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+  },
+  {
+    id: 'engines',
+    title: 'Двигатели',
+    englishName: 'THRUSTERS // ENGINES',
+    description: 'Маршевые фотонно-плазменные сопла и реактивные приводы',
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <path d="M8 3h8l-1 9H9L8 3z"/>
       <path d="M7 12h10l-2 5H9l-2-5z"/>
       <path d="M10 17l2 4 2-4"/>
     </svg>`,
-    },
-    {
-      id: 'guns',
-      title: 'Пушки',
-      englishName: 'WEAPONS // GUNS',
-      description: 'Импульсные орудия, бластеры и спаренные турельные стволы',
-      iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+  },
+  {
+    id: 'guns',
+    title: 'Пушки',
+    englishName: 'WEAPONS // GUNS',
+    description: 'Импульсные орудия, бластеры и спаренные стволы',
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <rect x="10" y="2" width="4" height="12" rx="1"/>
       <path d="M7 14h10v6H7v-6z"/>
       <line x1="12" y1="2" x2="12" y2="14"/>
     </svg>`,
-    },
-  ];
+  },
+];
 
 /**
- * Парсинг и построение иерархического каталога деталей
+ * Построение каталога деталей корабля
  */
 export function buildPartsCatalog(): CategoryData[] {
-  // Словарь для категоризации
   const catalogMap = new Map<string, CategoryData>();
 
   for (const config of CATEGORIES_CONFIG) {
@@ -127,102 +153,19 @@ export function buildPartsCatalog(): CategoryData[] {
     });
   }
 
-  // Обход всех загруженных Vite изображений
-  for (const [filePath, resolvedUrl] of Object.entries(partImages)) {
-    // Пример filePath: '../../assets/Sprites/Parts/pilot/black/spaceParts_054.png'
-    // или '../../assets/Sprites/Parts/engines/0.png'
-    const match = filePath.match(/Parts\/([^/]+)\/(.+)$/);
-    if (!match) continue;
+  // Заполняем категории кураторскими модулями (по строго заданным количествам и редкостям)
+  for (const mod of SHIP_MODULES_CATALOG) {
+    const cat = catalogMap.get(mod.category);
+    if (!cat) continue;
 
-    const catId = match[1];
-    const rest = match[2];
-    const category = catalogMap.get(catId);
-    if (!category) continue;
+    const resolvedUrl = findPartImageUrl(mod.partId);
 
-    const parts = rest.split('/');
-    if (parts.length === 1) {
-      // Прямой файл в категории (например, engines/0.png)
-      const fileName = parts[0];
-      const baseName = fileName.replace(/\.[^/.]+$/, '');
-      category.directItems.push({
-        id: `${catId}_${baseName}`,
-        name: baseName,
-        url: resolvedUrl,
-        category: catId,
-      });
-    } else {
-      // Файл внутри подпапки (например, pilot/black/spaceParts_054.png)
-      const folderName = parts[0];
-      const fileName = parts[1];
-      const baseName = fileName.replace(/\.[^/.]+$/, '');
-
-      category.hasSubfolders = true;
-      let folderNode = category.folders.find((f) => f.name === folderName);
-      if (!folderNode) {
-        folderNode = {
-          name: folderName,
-          title: SUBFOLDER_NAMES[folderName] || folderName.toUpperCase(),
-          items: [],
-        };
-        category.folders.push(folderNode);
-      }
-
-      folderNode.items.push({
-        id: `${catId}_${folderName}_${baseName}`,
-        name: baseName,
-        url: resolvedUrl,
-        category: catId,
-        subfolder: folderName,
-      });
-    }
-  }
-
-  // Сортировка деталей для аккуратного отображения
-  for (const cat of catalogMap.values()) {
-    cat.directItems.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    for (const folder of cat.folders) {
-      folder.items.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    }
-  }
-
-  // Добавляем специальную вкладку "★ Боевые модули" в начало подпапок для категорий с подпапками
-  for (const cat of catalogMap.values()) {
-    if (cat.hasSubfolders && cat.folders.length > 0) {
-      const moduleItems: PartItem[] = [];
-      const catModules = SHIP_MODULES_CATALOG.filter((m) => m.category === cat.id);
-      for (const mod of catModules) {
-        let found: PartItem | undefined;
-        for (const f of cat.folders) {
-          found = f.items.find((i) => i.id === mod.partId);
-          if (found) break;
-        }
-        if (found) {
-          moduleItems.push({
-            ...found,
-            name: mod.name,
-          });
-        }
-      }
-      if (moduleItems.length > 0) {
-        cat.folders.unshift({
-          name: 'modules',
-          title: '★ Боевые модули',
-          items: moduleItems,
-        });
-      }
-    } else {
-      // Для категорий без подпапок (engines, guns) сортируем так, чтобы модули кампании шли первыми по порядку тиров
-      const modOrder = new Map<string, number>();
-      SHIP_MODULES_CATALOG.filter((m) => m.category === cat.id).forEach((m, idx) => {
-        modOrder.set(m.partId, idx);
-      });
-      cat.directItems.sort((a, b) => {
-        const orderA = modOrder.has(a.id) ? modOrder.get(a.id)! : 999;
-        const orderB = modOrder.has(b.id) ? modOrder.get(b.id)! : 999;
-        if (orderA !== orderB) return orderA - orderB;
-        return a.name.localeCompare(b.name, undefined, { numeric: true });
-      });
-    }
+    cat.directItems.push({
+      id: mod.partId,
+      name: mod.name,
+      url: resolvedUrl,
+      category: mod.category,
+    });
   }
 
   return CATEGORIES_CONFIG.map((cfg) => catalogMap.get(cfg.id)!);

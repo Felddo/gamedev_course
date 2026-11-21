@@ -419,26 +419,28 @@ export class ParticleManager {
       });
     }
 
-    // 5. Всплывающий текст полученного опыта
-    const xpText = this.scene.add.text(x, y - 20, `+${xpReward} ОПЫТ`, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '22px',
-      color: '#38bdf8',
-      stroke: '#020617',
-      strokeThickness: 5,
-    });
-    xpText.setOrigin(0.5, 0.5);
-    xpText.setDepth(20);
+    // 5. Всплывающий текст полученного опыта (только при наличии опыта)
+    if (xpReward > 0) {
+      const xpText = this.scene.add.text(x, y - 20, `+${xpReward} ОПЫТ`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '22px',
+        color: '#38bdf8',
+        stroke: '#020617',
+        strokeThickness: 5,
+      });
+      xpText.setOrigin(0.5, 0.5);
+      xpText.setDepth(20);
 
-    this.scene.tweens.add({
-      targets: xpText,
-      y: y - 85,
-      alpha: 0,
-      scale: 1.25,
-      duration: 1200,
-      ease: 'Cubic.easeOut',
-      onComplete: () => xpText.destroy(),
-    });
+      this.scene.tweens.add({
+        targets: xpText,
+        y: y - 85,
+        alpha: 0,
+        scale: 1.25,
+        duration: 1200,
+        ease: 'Cubic.easeOut',
+        onComplete: () => xpText.destroy(),
+      });
+    }
   }
 
   /**

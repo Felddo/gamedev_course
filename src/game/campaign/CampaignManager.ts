@@ -1,7 +1,13 @@
 import { CAMPAIGN_MISSIONS } from './campaignData';
 import { CampaignMission, CampaignSaveData, SavedDroppedPart, ScrapVictoryBreakdown } from './types';
 import { SCRAP_CONFIG, rollScrap } from './scrapConfig';
-import { DEFAULT_UNLOCKED_MODULES, isModuleRewardMission, SHIP_MODULES_CATALOG } from '../shipBuilder/modulesCatalog';
+import {
+  DEFAULT_UNLOCKED_MODULES,
+  isModuleRewardMission,
+  SHIP_MODULES_CATALOG,
+  getModuleById,
+  isModuleAvailableForPurchase,
+} from '../shipBuilder/modulesCatalog';
 
 const STORAGE_KEY = 'iron_resolve_campaign_save';
 
@@ -163,6 +169,62 @@ export class CampaignManager {
    */
   public isModuleUnlocked(moduleId: string): boolean {
     return this.saveData.unlockedModuleIds.includes(moduleId);
+  }
+
+  /**
+   * Проверить, открыт ли доступ к покупке модуля (по прогрессу кампании)
+   */
+  public isModuleAvailableForPurchase(moduleId: string): boolean {
+    const mod = getModuleById(moduleId);
+    if (!mod) return false;
+    return isModuleAvailableForPurchase(
+      mod,
+      this.saveData.completedMissions,
+      this.saveData.currentSector,
+    );
+  }
+
+  /**
+   * Покупка модуля в ангаре за металлолом:
+   * Проверяет наличие детали, доступность по прогрессу (1-5 для редких, 2-5 для легендарных),
+   * достаточность баланса металлолома, списывает валюту и добавляет деталь в разблокированные.
+   */
+  public buyModule(moduleId: string): {
+    success: boolean;
+    reason?: 'NOT_FOUND' | 'ALREADY_OWNED' | 'LOCKED_BY_STAGE' | 'INSUFFICIENT_SCRAP';
+    newBalance?: number;
+    moduleName?: string;
+    price?: number;
+  } {
+    const mod = getModuleById(moduleId);
+    if (!mod) {
+      return { success: false, reason: 'NOT_FOUND' };
+    }
+    if (this.isModuleUnlocked(moduleId)) {
+      return { success: false, reason: 'ALREADY_OWNED', moduleName: mod.name, price: mod.price };
+    }
+    if (!this.isModuleAvailableForPurchase(moduleId)) {
+      return { success: false, reason: 'LOCKED_BY_STAGE', moduleName: mod.name, price: mod.price };
+    }
+    if (this.saveData.scrapBalance < mod.price) {
+      return {
+        success: false,
+        reason: 'INSUFFICIENT_SCRAP',
+        moduleName: mod.name,
+        price: mod.price,
+        newBalance: this.saveData.scrapBalance,
+      };
+    }
+
+    this.saveData.scrapBalance -= mod.price;
+    this.saveData.unlockedModuleIds.push(moduleId);
+    this.saveToStorage();
+    return {
+      success: true,
+      newBalance: this.saveData.scrapBalance,
+      moduleName: mod.name,
+      price: mod.price,
+    };
   }
 
   /**
@@ -341,14 +403,10 @@ export class CampaignManager {
       this.saveData.currentMission = nextMission;
     }
 
-    // Автоматическая разблокировка новых боевых модулей для конструктора:
-    // По завершении миссий открываются модули соответствующего уровня
-    const maxTierToUnlock = Math.min(3, Math.max(1, nextSector));
-    SHIP_MODULES_CATALOG.forEach((mod) => {
-      if (mod.tier <= maxTierToUnlock && !this.saveData.unlockedModuleIds.includes(mod.id)) {
-        this.saveData.unlockedModuleIds.push(mod.id);
-      }
-    });
+    // При победе в миссиях детали не разблокируются бесплатно:
+    // По завершении этапа 1-5 становятся доступны для покупки редкие части корабля (tier 2),
+    // а по завершении этапа 2-5 становятся доступны для покупки легендарные части корабля (tier 3).
+    // Покупка осуществляется игроком в ангаре за накопленный металлолом.
 
     // Мгновенная фиксация в localStorage
     this.saveToStorage();

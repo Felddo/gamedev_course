@@ -945,8 +945,8 @@ canvas {
 
 .mc-horizontal-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
   margin: 0;
   height: 100%;
 }
@@ -954,6 +954,106 @@ canvas {
 .mc-horizontal-stats .debrief-card {
   height: 100%;
   padding: 16px 8px;
+}
+
+/* ==========================================================
+   УВЕДОМЛЕНИЯ О РАЗБЛОКИРОВКЕ РЕДКИХ И ЛЕГЕНДАРНЫХ ДЕТАЛЕЙ
+   ========================================================== */
+.mc-unlock-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 26px;
+  margin-bottom: 22px;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.7);
+  animation: unlockBannerPulse 2s ease-in-out infinite;
+  backdrop-filter: blur(10px);
+}
+
+.mc-unlock-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-25deg);
+  animation: unlockBannerShimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes unlockBannerShimmer {
+  0% { left: -100%; }
+  40%, 100% { left: 160%; }
+}
+
+.mc-unlock-banner.hidden {
+  display: none !important;
+}
+
+.mc-unlock-banner.unlock-rare {
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.22) 0%, rgba(245, 158, 11, 0.45) 50%, rgba(234, 179, 8, 0.22) 100%);
+  border: 2.5px solid #facc15;
+  box-shadow: 0 0 35px rgba(250, 204, 21, 0.6), inset 0 0 25px rgba(250, 204, 21, 0.3);
+}
+
+.mc-unlock-banner.unlock-rare .mc-unlock-text {
+  font-family: var(--font-display, 'Orbitron', monospace);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  color: #fffbeb;
+  text-shadow: 0 0 12px rgba(250, 204, 21, 1), 0 0 28px rgba(245, 158, 11, 0.85);
+  text-transform: uppercase;
+}
+
+.mc-unlock-banner.unlock-legendary {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.28) 0%, rgba(244, 63, 94, 0.5) 50%, rgba(239, 68, 68, 0.28) 100%);
+  border: 2.5px solid #ef4444;
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.7), inset 0 0 28px rgba(239, 68, 68, 0.35);
+}
+
+.mc-unlock-banner.unlock-legendary .mc-unlock-text {
+  font-family: var(--font-display, 'Orbitron', monospace);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  color: #fff1f2;
+  text-shadow: 0 0 16px rgba(239, 68, 68, 1), 0 0 32px rgba(244, 63, 94, 0.9);
+  text-transform: uppercase;
+}
+
+.mc-unlock-banner .mc-unlock-icon {
+  font-size: 26px;
+  line-height: 1;
+  display: inline-block;
+  animation: unlockIconBounce 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+@keyframes unlockBannerPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.014);
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes unlockIconBounce {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.25) translateY(-2px);
+  }
 }
 
 .mc-scrap-column {

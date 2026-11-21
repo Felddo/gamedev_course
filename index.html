@@ -582,13 +582,15 @@
 
         <header class="modal-card-header">
           <div class="modal-card-title-wrap">
-            <span class="modal-badge" id="mc-badge" style="border-color: #34d399; background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">ПОБЕДА // VICTORY</span>
             <h2 id="mc-title">МИССИЯ 1-1 ВЫПОЛНЕНА</h2>
           </div>
-          <p id="mc-subtitle" class="modal-desc-text mc-header-sub">
-            СЕКТОР 1 // ПАТРУЛЬ АВАНПОСТА // ЦЕЛИ МИССИИ ДОСТИГНУТЫ
-          </p>
         </header>
+
+        <!-- Баннер уведомлений о разблокировке редких/легендарных деталей -->
+        <div id="mc-unlock-banner" class="mc-unlock-banner hidden" role="status" aria-live="polite">
+          <span class="mc-unlock-icon" id="mc-unlock-icon">⭐</span>
+          <span class="mc-unlock-text" id="mc-unlock-text">ДОСТУПНЫ РЕДКИЕ ЧАСТИ КОРАБЛЯ</span>
+        </div>
 
         <div class="modal-card-body">
           <div class="mc-content-split">
@@ -606,10 +608,6 @@
                   <span class="debrief-label">ЛИКВИДИРОВАНО</span>
                   <span id="mc-kills" class="debrief-value">0</span>
                 </div>
-                <div class="debrief-card">
-                  <span class="debrief-label">НАБРАНО ОЧКОВ</span>
-                  <span id="mc-score" class="debrief-value score-val">0</span>
-                </div>
               </div>
             </div>
 
@@ -617,7 +615,6 @@
             <div class="mc-scrap-column">
               <div id="mc-scrap-panel" class="mc-scrap-panel">
                 <div class="mc-scrap-header">
-                  <span class="mc-scrap-badge">ВАЛЮТА // REWARD</span>
                   <span class="mc-scrap-title">ДОБЫТЫЙ МЕТАЛЛОЛОМ</span>
                 </div>
 

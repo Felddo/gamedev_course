@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PLAYER_MAX_HP } from './constants';
+import { PLAYER_MAX_HP, MAP_WIDTH, MAP_HEIGHT } from './constants';
 import { EnemyShip, Meteor, SpaceStation, ScrapPickup } from './types';
 import { CampaignMission } from './campaign/types';
 
@@ -109,10 +109,10 @@ export class HudManager {
       .setDepth(32);
 
     this.killsLabel = this.scene.add
-      .text(0, 0, 'ЦЕЛИ', {
+      .text(0, 0, '🎯 ЦЕЛИ', {
         fontFamily: "'Rajdhani', -apple-system, sans-serif",
-        fontSize: '10px',
-        fontStyle: '600',
+        fontSize: '11px',
+        fontStyle: 'bold',
         color: '#6ee7b7',
       })
       .setOrigin(0.5, 0.5)
@@ -124,7 +124,9 @@ export class HudManager {
         fontFamily: "'Orbitron', 'JetBrains Mono', monospace",
         fontSize: '16px',
         fontStyle: 'bold',
-        color: '#ecfdf5',
+        color: '#fef08a',
+        stroke: '#064e3b',
+        strokeThickness: 2,
       })
       .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
@@ -155,20 +157,22 @@ export class HudManager {
     this.phaseLabel = this.scene.add
       .text(0, 0, 'СЕКТОР 1', {
         fontFamily: "'Rajdhani', -apple-system, sans-serif",
-        fontSize: '10px',
-        fontStyle: '600',
-        color: '#6ee7b7',
+        fontSize: '11px',
+        fontStyle: 'bold',
+        color: '#7dd3fc',
       })
       .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
       .setDepth(32);
 
     this.phaseText = this.scene.add
-      .text(0, 0, 'МИССИЯ 1-1', {
+      .text(0, 0, 'ЭТАП 1-1', {
         fontFamily: "'Orbitron', 'JetBrains Mono', monospace",
         fontSize: '15px',
         fontStyle: 'bold',
-        color: '#34d399',
+        color: '#38bdf8',
+        stroke: '#0c4a6e',
+        strokeThickness: 2,
       })
       .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
@@ -269,6 +273,46 @@ export class HudManager {
     const phaseX = width - padX - 80;
     this.phaseLabel.setPosition(phaseX, 12);
     this.phaseText.setPosition(phaseX, 28);
+
+    // 1. Выделенный контейнер для целей миссии (сколько целей надо убить)
+    const killsBoxW = 124;
+    const killsBoxH = 34;
+    const killsBoxX = killsX - killsBoxW / 2;
+    const killsBoxY = 5;
+
+    this.hudGraphics.fillStyle(0x032317, 0.94);
+    this.hudGraphics.fillRoundedRect(killsBoxX, killsBoxY, killsBoxW, killsBoxH, 4);
+    this.hudGraphics.lineStyle(1.5, 0x10b981, 1);
+    this.hudGraphics.strokeRoundedRect(killsBoxX, killsBoxY, killsBoxW, killsBoxH, 4);
+
+    // Верхняя светящаяся полоса и угловые акценты целей
+    this.hudGraphics.lineStyle(2, 0x34d399, 1);
+    this.hudGraphics.lineBetween(killsBoxX + 8, killsBoxY + 1, killsBoxX + killsBoxW - 8, killsBoxY + 1);
+    this.hudGraphics.lineStyle(1.5, 0x6ee7b7, 0.9);
+    this.hudGraphics.lineBetween(killsBoxX, killsBoxY + 5, killsBoxX, killsBoxY + 12);
+    this.hudGraphics.lineBetween(killsBoxX, killsBoxY + 5, killsBoxX + 7, killsBoxY + 5);
+    this.hudGraphics.lineBetween(killsBoxX + killsBoxW, killsBoxY + killsBoxH - 5, killsBoxX + killsBoxW, killsBoxY + killsBoxH - 12);
+    this.hudGraphics.lineBetween(killsBoxX + killsBoxW, killsBoxY + killsBoxH - 5, killsBoxX + killsBoxW - 7, killsBoxY + killsBoxH - 5);
+
+    // 2. Выделенный контейнер для текущего этапа (какой сейчас этап)
+    const phaseBoxW = 138;
+    const phaseBoxH = 34;
+    const phaseBoxX = phaseX - phaseBoxW / 2;
+    const phaseBoxY = 5;
+
+    this.hudGraphics.fillStyle(0x0c2438, 0.95);
+    this.hudGraphics.fillRoundedRect(phaseBoxX, phaseBoxY, phaseBoxW, phaseBoxH, 4);
+    this.hudGraphics.lineStyle(1.5, 0x38bdf8, 1);
+    this.hudGraphics.strokeRoundedRect(phaseBoxX, phaseBoxY, phaseBoxW, phaseBoxH, 4);
+
+    // Верхняя светящаяся полоса и угловые акценты текущего этапа
+    this.hudGraphics.lineStyle(2, 0x7dd3fc, 1);
+    this.hudGraphics.lineBetween(phaseBoxX + 8, phaseBoxY + 1, phaseBoxX + phaseBoxW - 8, phaseBoxY + 1);
+    this.hudGraphics.lineStyle(1.5, 0x38bdf8, 0.9);
+    this.hudGraphics.lineBetween(phaseBoxX, phaseBoxY + 5, phaseBoxX, phaseBoxY + 12);
+    this.hudGraphics.lineBetween(phaseBoxX, phaseBoxY + 5, phaseBoxX + 7, phaseBoxY + 5);
+    this.hudGraphics.lineBetween(phaseBoxX + phaseBoxW, phaseBoxY + phaseBoxH - 5, phaseBoxX + phaseBoxW, phaseBoxY + phaseBoxH - 12);
+    this.hudGraphics.lineBetween(phaseBoxX + phaseBoxW, phaseBoxY + phaseBoxH - 5, phaseBoxX + phaseBoxW - 7, phaseBoxY + phaseBoxH - 5);
   }
 
   private positionRadar(width: number, height: number): void {
@@ -305,18 +349,20 @@ export class HudManager {
   public setMission(mission: CampaignMission): void {
     this.currentMission = mission;
     this.phaseLabel.setText('СЕКТОР ' + mission.sector);
-    this.phaseText.setText(mission.isBoss ? `БОСС ${mission.id}` : `МИССИЯ ${mission.id}`);
+    this.phaseText.setText(mission.isBoss ? `БОСС ${mission.id}` : `ЭТАП ${mission.id}`);
     if (mission.isBoss) {
       this.timerLabel.setText('ДО ВХОДА БОССА');
       const spawnKills = mission.bossConfig?.spawnKills ?? (mission.targetKills ?? 20);
-      this.killsLabel.setText('ДО БОССА');
+      this.killsLabel.setText('🎯 ДО БОССА');
       this.killsText.setText(`0 / ${spawnKills}`);
+      this.killsText.setColor('#fef08a');
     } else {
       this.timerLabel.setText('ВРЕМЯ БОЯ');
       this.timerText.setText('00:00');
       const targetKills = mission.targetKills ?? 25;
-      this.killsLabel.setText('ЦЕЛИ');
+      this.killsLabel.setText('🎯 ЦЕЛИ');
       this.killsText.setText(`0 / ${targetKills}`);
+      this.killsText.setColor('#fef08a');
     }
     if (this.bossBarGraphics) this.bossBarGraphics.clear();
     if (this.bossBarText) this.bossBarText.setVisible(false);
@@ -365,8 +411,9 @@ export class HudManager {
           this.timerText.setText(this.formatTime(survivalTime));
           this.phaseLabel.setText('СЕКТОР ' + this.currentMission.sector);
           this.phaseText.setText('БОСС ' + this.currentMission.id);
-          this.killsLabel.setText('СБИТО ВРАГОВ');
+          this.killsLabel.setText('🎯 СБИТО ВРАГОВ');
           this.killsText.setText(`${killsCount}`);
+          this.killsText.setColor('#fef08a');
           this.renderBossBar(activeBoss);
         } else {
           const spawnDelay = this.currentMission.bossConfig?.spawnDelay ?? 60;
@@ -376,9 +423,10 @@ export class HudManager {
           this.timerLabel.setText('ДО ВХОДА БОССА');
           this.timerText.setText(this.formatTime(remainingToBoss));
           this.phaseLabel.setText('СЕКТОР ' + this.currentMission.sector);
-          this.phaseText.setText('МИССИЯ ' + this.currentMission.id + ' [БОСС]');
-          this.killsLabel.setText('ДО БОССА');
+          this.phaseText.setText('ЭТАП ' + this.currentMission.id + ' [БОСС]');
+          this.killsLabel.setText('🎯 ДО БОССА');
           this.killsText.setText(`${killsCount} / ${spawnKills}`);
+          this.killsText.setColor(killsCount >= spawnKills ? '#4ade80' : '#fef08a');
           if (this.bossBarGraphics) this.bossBarGraphics.clear();
           if (this.bossBarText) this.bossBarText.setVisible(false);
         }
@@ -387,9 +435,10 @@ export class HudManager {
         this.timerLabel.setText('ВРЕМЯ БОЯ');
         this.timerText.setText(this.formatTime(survivalTime));
         this.phaseLabel.setText('СЕКТОР ' + this.currentMission.sector);
-        this.phaseText.setText('МИССИЯ ' + this.currentMission.id);
-        this.killsLabel.setText('ЦЕЛИ');
+        this.phaseText.setText('ЭТАП ' + this.currentMission.id);
+        this.killsLabel.setText('🎯 ЦЕЛИ');
         this.killsText.setText(`${killsCount} / ${targetKills}`);
+        this.killsText.setColor(killsCount >= targetKills ? '#4ade80' : '#fef08a');
         if (this.bossBarGraphics) this.bossBarGraphics.clear();
         if (this.bossBarText) this.bossBarText.setVisible(false);
       }
@@ -397,9 +446,10 @@ export class HudManager {
       this.timerLabel.setText('ВРЕМЯ БОЯ');
       this.timerText.setText(this.formatTime(survivalTime));
       this.phaseLabel.setText('СЕКТОР 1');
-      this.phaseText.setText('МИССИЯ 1-1');
-      this.killsLabel.setText('ЦЕЛИ');
+      this.phaseText.setText('ЭТАП 1-1');
+      this.killsLabel.setText('🎯 ЦЕЛИ');
       this.killsText.setText(`${killsCount}`);
+      this.killsText.setColor('#fef08a');
       if (this.bossBarGraphics) this.bossBarGraphics.clear();
       if (this.bossBarText) this.bossBarText.setVisible(false);
     }
@@ -474,6 +524,30 @@ export class HudManager {
       const camH = (cam.worldView.height / scanRadius) * radarRadius;
       this.radarGraphics.lineStyle(1, 0x38bdf8, 0.35);
       this.radarGraphics.strokeRect(-camW / 2, -camH / 2, camW, camH);
+    }
+
+    // Отображение границ неонового барьера STOP на радаре при приближении к краю сектора
+    const bMinX = 75;
+    const bMaxX = MAP_WIDTH - 75;
+    const bMinY = 75;
+    const bMaxY = MAP_HEIGHT - 75;
+    this.radarGraphics.lineStyle(1.8, 0xff1744, 0.85);
+
+    if (Math.abs(playerX - bMinX) <= scanRadius) {
+      const rx = ((bMinX - playerX) / scanRadius) * radarRadius;
+      this.radarGraphics.lineBetween(rx, -radarRadius, rx, radarRadius);
+    }
+    if (Math.abs(playerX - bMaxX) <= scanRadius) {
+      const rx = ((bMaxX - playerX) / scanRadius) * radarRadius;
+      this.radarGraphics.lineBetween(rx, -radarRadius, rx, radarRadius);
+    }
+    if (Math.abs(playerY - bMinY) <= scanRadius) {
+      const ry = ((bMinY - playerY) / scanRadius) * radarRadius;
+      this.radarGraphics.lineBetween(-radarRadius, ry, radarRadius, ry);
+    }
+    if (Math.abs(playerY - bMaxY) <= scanRadius) {
+      const ry = ((bMaxY - playerY) / scanRadius) * radarRadius;
+      this.radarGraphics.lineBetween(-radarRadius, ry, radarRadius, ry);
     }
 
     // Космические станции на радаре

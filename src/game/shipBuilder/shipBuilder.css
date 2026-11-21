@@ -26,8 +26,9 @@
 
 /* Расширенное окно конструктора */
 .shipyard-window {
-  width: min(96vw, 1420px);
-  height: min(94vh, 880px);
+  width: min(98vw, 1540px);
+  max-width: 98vw;
+  height: min(94vh, 900px);
   display: flex;
   flex-direction: column;
   padding: 14px 18px;
@@ -109,28 +110,13 @@
 
 .shipyard-title-wrap {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.shipyard-badge {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: var(--holo-accent-light);
 }
 
-.shipyard-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--holo-accent-light);
-  box-shadow: 0 0 8px var(--holo-accent-light);
-  animation: pulseDot 2s infinite ease-in-out;
+.shipyard-title-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
 }
 
 .shipyard-title {
@@ -142,6 +128,61 @@
   text-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
   margin: 0;
   line-height: 1.1;
+  white-space: nowrap;
+}
+
+/* Бейдж отображения лома в шапке конструктора (с отступом от названия) */
+.shipyard-scrap-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px;
+  background: rgba(28, 22, 6, 0.88);
+  border: 1.5px solid #facc15;
+  border-radius: 4px;
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.35), inset 0 0 8px rgba(250, 204, 21, 0.12);
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.shipyard-scrap-badge:hover {
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.55), inset 0 0 12px rgba(250, 204, 21, 0.2);
+  border-color: #fde047;
+}
+
+.shipyard-scrap-icon {
+  font-size: 13px;
+  color: #facc15;
+  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8));
+  display: inline-block;
+  animation: rotateGear 16s infinite linear;
+}
+
+@keyframes rotateGear {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.shipyard-scrap-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #fde047;
+}
+
+.shipyard-scrap-val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.8);
+  letter-spacing: 0.5px;
 }
 
 .shipyard-header-actions {
@@ -221,29 +262,21 @@
   flex: 1;
   min-height: 0;
   gap: 16px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   align-items: stretch;
+  justify-content: space-between;
 }
 
-/* ПОТОК ДИНАМИЧЕСКИХ КОЛОНОК НАВИГАЦИИ (СЛЕВА) - БЕЗ ГОРИЗОНТАЛЬНОЙ ПРОКРУТКИ */
+/* ПОТОК ДИНАМИЧЕСКИХ КОЛОНОК НАВИГАЦИИ (СЛЕВА) - БЕЗ СМЯТИЯ БЛОКА 03 */
 .shipyard-columns-flow {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: 0;
   gap: 8px;
-  overflow-x: hidden !important;
-  /* ЗАПРЕЩАЕМ ГОРИЗОНТАЛЬНУЮ ПОЛОСУ ПРОКРУТКИ! */
-  overflow-y: hidden;
+  overflow: visible;
   padding-bottom: 0;
   align-items: stretch;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-.shipyard-columns-flow::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
 }
 
 /* Общий стиль для каждой из 3 колонок */
@@ -256,6 +289,7 @@
   overflow: hidden;
   min-height: 0;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .col-head {
@@ -307,8 +341,8 @@
 
 /* КОЛОНКА 1: МОДУЛИ (Кабина, Тело, Крылья, Двигатели, Пушки) */
 .col-categories {
-  width: 130px;
-  flex: 0 0 130px;
+  width: 120px;
+  flex: 0 0 120px;
   min-width: 120px;
 }
 
@@ -414,8 +448,8 @@
 
 /* КОЛОНКА 2: РАЗДЕЛЕНИЕ */
 .col-subfolders {
-  width: 140px;
-  flex: 0 0 140px;
+  width: 125px;
+  flex: 0 0 125px;
   min-width: 125px;
 }
 
@@ -494,41 +528,145 @@
   opacity: 1;
 }
 
-/* КОЛОНКА 3: ДЕТАЛИ */
+/* КОЛОНКА 3: ДЕТАЛИ (3 КОЛОНКИ ПО РЕДКОСТИ: ОБЫЧНЫЙ, РЕДКИЙ, ЛЕГЕНДАРНЫЙ) */
 .col-parts {
-  flex: 1 1 0;
-  min-width: 180px;
+  width: 335px;
+  flex: 0 0 335px;
+  min-width: 320px;
+  max-width: 360px;
+  flex-shrink: 0;
 }
 
 .parts-scroll {
-  padding: 6px;
+  padding: 6px 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .parts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-  gap: 6px;
+  width: 100%;
 }
 
+/* 3 КОЛОНКИ ПО РЕДКОСТИ ДЕТАЛЕЙ */
+.rarity-lanes-container {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  width: 100%;
+  align-items: start;
+}
+
+.rarity-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rarity-lane-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 2px;
+  background: rgba(3, 20, 15, 0.96);
+  backdrop-filter: blur(4px);
+  border-bottom: 2px solid;
+  border-radius: 3px 3px 0 0;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rarity-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rarity-lane-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.rarity-empty-lane {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--holo-text-muted);
+  text-align: center;
+  padding: 16px 2px;
+  opacity: 0.45;
+}
+
+/* КАРТОЧКА МОДУЛЯ */
 .part-card {
   position: relative;
   cursor: grab;
-  background: rgba(3, 24, 18, 0.7);
-  border: 1px solid rgba(16, 185, 129, 0.35);
   border-radius: 4px;
-  padding: 6px 4px;
+  padding: 6px 3px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   transition: all 0.16s ease;
   box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  background: rgba(3, 24, 18, 0.7);
 }
 
-.part-card:hover {
-  background: rgba(6, 44, 32, 0.95);
-  border-color: var(--holo-accent-light);
-  box-shadow: 0 0 12px rgba(52, 211, 153, 0.5);
+/* 1. ОБЫЧНЫЙ - СЕРЫЙ ЦВЕТ */
+.part-card.rarity-common {
+  border: 1.5px solid rgba(148, 163, 184, 0.75);
+  background: rgba(30, 41, 59, 0.6);
+  box-shadow: 0 0 6px rgba(100, 116, 139, 0.25);
+}
+
+.part-card.rarity-common:hover {
+  border-color: #cbd5e1;
+  background: rgba(51, 65, 85, 0.85);
+  box-shadow: 0 0 14px rgba(148, 163, 184, 0.55);
+  transform: translateY(-2px);
+}
+
+/* 2. РЕДКИЙ - ЖЕЛТЫЙ ЦВЕТ */
+.part-card.rarity-rare {
+  border: 1.5px solid #eab308;
+  background: rgba(45, 36, 10, 0.65);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.35);
+}
+
+.part-card.rarity-rare:hover {
+  border-color: #facc15;
+  background: rgba(65, 52, 14, 0.9);
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.65);
+  transform: translateY(-2px);
+}
+
+/* 3. ЛЕГЕНДАРНЫЙ - КРАСНЫЙ ЦВЕТ */
+.part-card.rarity-legendary {
+  border: 1.5px solid #ef4444;
+  background: rgba(50, 14, 18, 0.65);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.45);
+}
+
+.part-card.rarity-legendary:hover {
+  border-color: #f87171;
+  background: rgba(75, 20, 25, 0.9);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.75);
   transform: translateY(-2px);
 }
 
@@ -544,153 +682,249 @@
   width: 100%;
 }
 
+/* УВЕЛИЧЕННЫЕ МОДУЛИ (ЧТОБЫ БЫЛО ЛУЧШЕ ВИДНО) */
 .part-preview-wrap {
-  width: 50px;
-  height: 50px;
+  width: 66px;
+  height: 66px;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .part-preview-img {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 62px;
+  max-height: 62px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85));
   pointer-events: none;
+  transition: transform 0.15s ease;
+}
+
+.part-card:hover .part-preview-img {
+  transform: scale(1.08);
 }
 
 .part-meta {
   width: 100%;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  padding: 0 1px;
 }
 
 .part-name-tag {
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-size: 9px;
-  color: var(--holo-accent-sub);
+  font-weight: 700;
+  color: #ffffff;
   display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
+  width: 100%;
 }
 
-.part-drag-badge {
+/* СПИСОК ХАРАКТЕРИСТИК МОДУЛЯ (КАЖДАЯ С НОВОЙ СТРОКИ В ПРОЦЕНТАХ) */
+.part-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.stat-line {
+  display: block;
   font-family: var(--font-mono);
-  font-size: 7px;
+  font-size: 7.5px;
+  line-height: 1.25;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  color: rgba(52, 211, 153, 0.75);
-  background: rgba(16, 185, 129, 0.15);
-  padding: 1px 4px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.1px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 1px 2px;
   border-radius: 2px;
+}
+
+.part-card.rarity-common .stat-line {
+  color: #cbd5e1;
+}
+
+.part-card.rarity-rare .stat-line {
+  color: #fde047;
+}
+
+.part-card.rarity-legendary .stat-line {
+  color: #fca5a5;
 }
 
 /* Стили для заблокированных модулей */
 .part-card.part-card-locked {
   cursor: not-allowed;
-  opacity: 0.62;
-  background: rgba(15, 15, 22, 0.82);
-  border: 1px dashed rgba(239, 68, 68, 0.45);
-  filter: grayscale(0.55);
+  opacity: 0.65;
+  filter: grayscale(0.45);
 }
 
 .part-card.part-card-locked:hover {
-  background: rgba(35, 15, 20, 0.95);
-  border-color: #ef4444;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.45);
   transform: none;
 }
 
-.part-preview-wrap {
-  position: relative;
+/* Стили для модулей, доступных для покупки */
+.part-card.part-card-purchasable {
+  cursor: pointer;
+  border-style: solid;
 }
 
-.part-lock-overlay {
-  position: absolute;
-  top: 1px;
-  right: -2px;
-  background: rgba(15, 23, 42, 0.92);
-  border: 1px solid rgba(239, 68, 68, 0.7);
-  border-radius: 3px;
-  padding: 1px 3px;
+.part-card.part-card-purchasable:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+/* БЛОК ЦЕНЫ И СТАТУСА МОДУЛЯ */
+.part-price-block {
+  margin-top: 3px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 2px;
-  font-family: var(--font-mono);
-  font-size: 7px;
-  font-weight: 700;
-  color: #fca5a5;
-  letter-spacing: 0.4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2px 1px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
 }
 
-.part-lock-overlay .lock-icon {
+.part-price-val {
+  font-family: var(--font-display, 'Orbitron', monospace);
   font-size: 8px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  color: #facc15;
 }
 
-.part-lock-condition {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 7.5px;
-  font-weight: 600;
+.part-price-val .price-icon {
+  color: #eab308;
+  font-size: 8.5px;
+  filter: drop-shadow(0 0 3px rgba(234, 179, 8, 0.6));
+}
+
+.part-price-val.can-afford {
+  color: #fef08a;
+  text-shadow: 0 0 6px rgba(250, 204, 21, 0.5);
+}
+
+.part-price-val.cannot-afford {
   color: #f87171;
-  text-align: center;
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 90px;
 }
 
-.part-stat-tag {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 7.5px;
-  font-weight: 600;
-  color: #34d399;
-  text-align: center;
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 90px;
+.part-price-val.locked {
+  color: #94a3b8;
+  opacity: 0.8;
 }
 
-.part-tier-tag {
-  position: absolute;
-  bottom: 0px;
-  right: -2px;
-  font-family: var(--font-mono);
+.part-status-badge {
+  font-family: var(--font-mono, monospace);
   font-size: 6.5px;
   font-weight: 700;
   padding: 1px 3px;
   border-radius: 2px;
-  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.part-tier-tag.tier-0 {
-  background: rgba(16, 185, 129, 0.25);
+.part-status-badge.owned {
+  background: rgba(16, 185, 129, 0.22);
   color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.5);
+  border: 1px solid rgba(16, 185, 129, 0.55);
 }
 
-.part-tier-tag.tier-1 {
-  background: rgba(59, 130, 246, 0.25);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.5);
+.part-status-badge.stage-locked {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.6);
 }
 
-.part-tier-tag.tier-2 {
-  background: rgba(168, 85, 247, 0.25);
-  color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.5);
+/* Кнопка покупки детали */
+.part-buy-btn {
+  border: none;
+  border-radius: 2px;
+  padding: 2px 4px;
+  font-family: var(--font-display, 'Orbitron', monospace);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-.part-tier-tag.tier-3 {
-  background: rgba(245, 158, 11, 0.25);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.5);
+.part-buy-btn.can-afford {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.55);
+}
+
+.part-buy-btn.can-afford:hover {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  transform: scale(1.06);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.85);
+}
+
+.part-buy-btn.cannot-afford {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+.part-buy-btn.cannot-afford:hover {
+  background: rgba(239, 68, 68, 0.35);
+  border-color: #ef4444;
+}
+
+.part-shop-badge {
+  position: absolute;
+  top: 2px;
+  right: 0px;
+  background: rgba(234, 179, 8, 0.25);
+  border: 1px solid #eab308;
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-size: 8px;
+  line-height: 1;
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.45);
+}
+
+.part-lock-overlay {
+  position: absolute;
+  top: 2px;
+  right: 0px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.75);
+  border-radius: 3px;
+  padding: 1px 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.part-lock-overlay .lock-icon {
+  font-size: 9px;
+  line-height: 1;
+}
+
+.rarity-lanes-container.single-lane {
+  grid-template-columns: 1fr;
 }
 
 .parts-col-footer-hint {
@@ -707,19 +941,18 @@
 }
 
 /* ==========================================================
-   ЦЕНТРАЛЬНАЯ СЕКЦИЯ: АНГАР СБОРКИ КОРАБЛЯ (СПРАВА)
+   ЦЕНТРАЛЬНАЯ СЕКЦИЯ: АНГАР СБОРКИ КОРАБЛЯ (В КРАЙНЕМ ПРАВОМ УГЛУ)
    ========================================================== */
 .shipyard-center-col {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  flex: 0 0 390px;
-  width: 390px;
-  max-width: 430px;
-  min-width: 290px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   border-left: 1px solid rgba(16, 185, 129, 0.2);
   padding-left: 14px;
 }
@@ -727,47 +960,156 @@
 .hangar-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  max-width: 440px;
+  align-items: flex-end;
+  justify-content: center;
+  width: auto;
   min-height: 0;
 }
 
-/* ИНДИКАТОРЫ ЛИМИТОВ */
-.hangar-limits-grid {
+/* ГОРИЗОНТАЛЬНЫЙ РЯД: [ЛИМИТЫ 04] [УПРАВЛЕНИЕ 05] [КОРАБЛЬ] */
+.hangar-main-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+  width: auto;
+  min-height: 0;
+}
+
+/* ОБЩИЙ СТИЛЬ КОЛОНОК-ПАНЕЛЕЙ (ЛИМИТЫ И УПРАВЛЕНИЕ)
+   Высота в точности совпадает с высотой блока ангара корабля! */
+.hangar-panel-col {
+  display: flex;
+  flex-direction: column;
+  background: rgba(2, 20, 14, 0.88);
+  border: 1.2px solid rgba(16, 185, 129, 0.35);
+  border-radius: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+  height: min(400px, calc(80vh - 240px));
+  margin-bottom: 26px;
+  /* Выравнивает низ панели с низом отсека корабля (над hangar-controls-bar) */
+  flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(16, 185, 129, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 1. БЛОК С УКАЗАНИЕМ СКОЛЬКО ЧАСТЕЙ НУЖНО (ЕЩЕ ЛЕВЕЕ) */
+.hangar-limits-panel {
+  width: 140px;
+  flex: 0 0 140px;
+}
+
+/* 2. БЛОК С УПРАВЛЕНИЕМ МОДУЛЯМИ (СЛЕВА ОТ КОРАБЛЯ) */
+.selected-module-toolbar {
+  width: 145px;
+  flex: 0 0 145px;
+}
+
+.selected-module-toolbar.has-selection {
+  border-color: var(--holo-accent-light);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.35), inset 0 0 10px rgba(52, 211, 153, 0.1);
+}
+
+.panel-col-head {
+  padding: 7px 10px;
+  background: rgba(4, 32, 22, 0.95);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 5px;
+}
+
+.panel-col-head-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--holo-accent-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.panel-col-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ИНДИКАТОРЫ ЛИМИТОВ (ГОРИЗОНТАЛЬНЫЕ СТРОКИ-ЧИПЫ) */
+.hangar-limits-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
-  flex-shrink: 0;
+  flex: 1;
+  justify-content: space-evenly;
 }
 
 .limit-chip {
-  display: inline-flex;
+  display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
   background: rgba(3, 24, 18, 0.75);
   border: 1px solid rgba(16, 185, 129, 0.35);
-  border-radius: 3px;
+  border-radius: 4px;
+  box-sizing: border-box;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--holo-text-muted);
   transition: all 0.2s ease;
 }
 
+.limit-chip-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.limit-chip-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .limit-chip.full {
-  background: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.22);
   border-color: var(--holo-accent-light);
   color: #ffffff;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
 }
 
-.limit-val {
+.limit-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.limit-label {
+  font-family: var(--font-display);
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.limit-val {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 11px;
   color: var(--holo-accent-light);
 }
 
@@ -777,60 +1119,23 @@
 
 .limit-check {
   color: #34d399;
-  font-weight: bold;
+  font-weight: 800;
+  font-size: 11px;
 }
 
-/* ПАНЕЛЬ УПРАВЛЕНИЯ ВЫБРАННЫМ МОДУЛЕМ */
-.selected-module-toolbar {
+/* КНОПКИ УПРАВЛЕНИЯ МОДУЛЯМИ (РАСПОЛОЖЕНЫ ПО ГОРИЗОНТАЛИ В РЯДАХ) */
+.selected-module-toolbar .panel-col-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  padding: 5px 8px;
-  background: rgba(3, 24, 18, 0.85);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 4px;
-  box-sizing: border-box;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.selected-module-toolbar.has-selection {
-  border-color: var(--holo-accent-light);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
-}
-
-.sel-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sel-tag {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--holo-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.active-tag-accent {
-  color: var(--holo-accent-light);
-}
-
-.active-tag-props {
-  font-size: 9px;
-  color: var(--holo-accent-sub);
+  justify-content: space-evenly;
+  padding: 8px;
 }
 
 .sel-tools {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 8px;
+  width: 100%;
 }
 
 .sel-tool-btn {
@@ -838,46 +1143,110 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 4px 8px;
-  background: rgba(6, 42, 30, 0.8);
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 4px;
+  background: rgba(6, 42, 30, 0.85);
   border: 1px solid rgba(16, 185, 129, 0.4);
-  border-radius: 3px;
+  border-radius: 4px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #ffffff;
   transition: all 0.15s ease;
   white-space: nowrap;
+  box-sizing: border-box;
+  text-align: center;
 }
 
 .sel-tool-btn:hover:not(:disabled) {
-  background: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.45);
   border-color: var(--holo-accent-light);
-  box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.5);
+  transform: translateY(-1px);
 }
 
 .sel-tool-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.28;
   cursor: not-allowed;
   border-color: rgba(16, 185, 129, 0.15);
+  background: rgba(4, 20, 15, 0.4);
 }
 
 .sel-tool-btn.btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.45);
   border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
 }
 
 .tool-icon {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--holo-accent-light);
+}
+
+/* 3. КОЛОНКА С КОРАБЛЕМ (СВЕРХУ НАДПИСЬ, В ЦЕНТРЕ АНГАР, СНИЗУ КНОПКИ) */
+.hangar-ship-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+/* ЗАМЕТНАЯ ВЫДЕЛЕННАЯ НАДПИСЬ СВЕРХУ ОТ БЛОКА С КОРАБЛЕМ */
+.shipyard-field-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: linear-gradient(90deg, rgba(6, 44, 32, 0.8) 0%, rgba(16, 185, 129, 0.25) 50%, rgba(6, 44, 32, 0.8) 100%);
+  border: 1.5px solid var(--holo-accent-light);
+  border-radius: 4px;
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.4), inset 0 0 10px rgba(16, 185, 129, 0.15);
+  margin-bottom: 6px;
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  animation: promptGlow 3s infinite ease-in-out;
+}
+
+.prompt-icon {
+  font-size: 15px;
+  color: #34d399;
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.8));
+}
+
+.prompt-text {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.75);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+@keyframes promptGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 14px rgba(52, 211, 153, 0.3), inset 0 0 8px rgba(16, 185, 129, 0.12);
+    border-color: rgba(52, 211, 153, 0.6);
+  }
+
+  50% {
+    box-shadow: 0 0 24px rgba(52, 211, 153, 0.6), inset 0 0 14px rgba(16, 185, 129, 0.25);
+    border-color: #34d399;
+  }
 }
 
 /* ДИНАМИЧЕСКИ МАСШТАБИРУЕМЫЙ АНГАР СБОРКИ (без вылезания за пределы экрана!) */
 .shipyard-center-bay {
   position: relative;
-  width: min(100%, 410px);
-  height: min(410px, calc(80vh - 240px));
+  width: min(100%, 400px);
+  height: min(400px, calc(80vh - 240px));
   aspect-ratio: 1 / 1;
   background: radial-gradient(circle at 50% 50%, rgba(4, 32, 23, 0.88) 0%, rgba(1, 14, 9, 0.97) 100%);
   border: 1.8px solid var(--holo-border);
@@ -1053,8 +1422,15 @@
 }
 
 @keyframes disconnectedPulse {
-  0% { transform: scale(1); filter: drop-shadow(0 0 4px #ef4444); }
-  100% { transform: scale(1.08); filter: drop-shadow(0 0 14px #ef4444); }
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px #ef4444);
+  }
+
+  100% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 14px #ef4444);
+  }
 }
 
 /* Кнопка быстрого удаления детали */
@@ -1095,7 +1471,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  max-width: 410px;
+  max-width: 400px;
   margin-top: 2px;
   flex-shrink: 0;
 }
@@ -1187,507 +1563,602 @@
 
 /* ==========================================================
    RESPONSIVE LAYOUT
-   Средние экраны: ангар сверху, каталог ниже.
-   Телефоны: вертикальная прокрутка без сжатия колонок.
+   Все экраны (включая телефоны): колонки и ангар строго горизонтально!
+   Все элементы гарантированно влезают в экран без полос прокрутки окна.
    ========================================================== */
 
-/* Ноутбуки с небольшой шириной и планшеты */
+/* Ноутбуки и планшеты (до 1100px) */
 @media screen and (max-width: 1100px) {
   .shipyard-backdrop {
     padding: 8px;
     align-items: stretch;
+    overflow: hidden;
   }
 
   .shipyard-window {
     width: 100%;
     max-width: 100%;
     height: 100%;
-    max-height: 100%;
+    max-height: 100dvh;
     min-height: 0;
-    padding: 12px;
+    padding: 10px 12px;
+    overflow: hidden;
   }
 
   .shipyard-workspace {
-    flex-direction: column;
-    gap: 10px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    display: flex !important;
+    flex-direction: row !important;
+    flex: 1 1 0;
     min-height: 0;
-  }
-
-  .shipyard-center-col {
-    order: 0;
-    flex: 0 0 auto;
-    width: 100%;
-    max-width: none;
     min-width: 0;
-    padding: 0;
-    border-left: 0;
-  }
-
-  .hangar-container {
-    width: 100%;
-    max-width: 100%;
     gap: 8px;
-  }
-
-  .shipyard-center-bay {
-    width: min(100%, 430px);
-    height: auto;
-    aspect-ratio: 1 / 1;
-    max-height: min(52vh, 430px);
-  }
-
-  .hangar-controls-bar {
-    max-width: min(100%, 430px);
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    align-items: stretch;
+    justify-content: space-between !important;
   }
 
   .shipyard-columns-flow {
-    order: 1;
-    flex: 0 0 auto;
-    width: 100%;
-    min-height: 250px;
-    height: min(34vh, 330px);
-    overflow: hidden;
+    display: flex !important;
+    flex-direction: row !important;
+    flex: 0 0 auto !important;
+    gap: 6px;
+    min-height: 0;
+    min-width: 0;
+    overflow: visible !important;
   }
 
   .col-categories {
-    flex-basis: 112px;
-    width: 112px;
-    min-width: 112px;
+    flex-basis: 95px;
+    width: 95px;
+    min-width: 90px;
+    flex-shrink: 0;
   }
 
   .col-subfolders {
-    flex-basis: 132px;
-    width: 132px;
-    min-width: 132px;
+    flex-basis: 100px;
+    width: 100px;
+    min-width: 95px;
+    flex-shrink: 0;
   }
 
   .col-parts {
-    flex: 1 1 0;
-    min-width: 150px;
+    flex-basis: 310px;
+    width: 310px;
+    min-width: 280px;
+    flex-shrink: 0;
   }
 
-  .shipyard-footer {
-    gap: 10px;
-  }
-}
-
-/* Телефоны */
-@media screen and (max-width: 640px) {
-  .shipyard-backdrop {
-    padding: 0;
-    align-items: stretch;
-    overflow: hidden;
-  }
-
-  .shipyard-window {
-    width: 100%;
-    height: 100%;
-    height: 100dvh;
-    max-width: none;
-    max-height: none;
-    min-height: 0;
-    padding: 10px;
-    border: 0;
-    border-radius: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .shipyard-header {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-bottom: 9px;
-    margin-bottom: 8px;
-  }
-
-  .shipyard-title-wrap {
-    min-width: 0;
-    flex: 1 1 100%;
-  }
-
-  .shipyard-badge {
-    font-size: 8px;
-    letter-spacing: 1px;
-    line-height: 1.4;
-  }
-
-  .shipyard-title {
-    font-size: clamp(17px, 5vw, 22px);
-    line-height: 1.08;
-    letter-spacing: 1px;
-  }
-
-  .shipyard-header-actions {
-    width: 100%;
-    flex-wrap: wrap;
-    flex-shrink: 1;
-  }
-
-  .shipyard-header-actions .shipyard-action-btn {
-    flex: 1 1 auto;
-    min-height: 38px;
-    padding: 8px 10px;
-    font-size: 10px;
-    white-space: normal;
-    text-align: center;
-  }
-
-  .shipyard-workspace {
-    display: flex;
-    flex-direction: column;
-    flex: 0 0 auto;
-    min-height: 0;
-    gap: 12px;
-    overflow: visible;
-  }
-
-  /* Ангар */
-  .shipyard-center-col {
-    order: 0;
-    width: 100%;
-    flex: 0 0 auto;
-    min-width: 0;
-    max-width: none;
-    min-height: 0;
-    padding: 0;
-    border: 0;
-    overflow: visible;
-  }
-
-  .hangar-container {
-    width: 100%;
-    max-width: none;
-    gap: 8px;
-  }
-
-  .hangar-limits-grid {
-    justify-content: flex-start;
-    gap: 5px;
-  }
-
-  .limit-chip {
-    padding: 4px 6px;
-    font-size: 9px;
-  }
-
-  .selected-module-toolbar {
-    padding: 7px;
-    gap: 7px;
-  }
-
-  .sel-meta {
-    min-width: 0;
-  }
-
-  .sel-tag {
-    white-space: normal;
-    line-height: 1.35;
-    font-size: 9px;
-  }
-
-  .sel-tools {
-    justify-content: flex-start;
-    gap: 5px;
-  }
-
-  .sel-tool-btn {
-    padding: 7px 8px;
-    min-height: 32px;
-    font-size: 10px;
-  }
-
-  .shipyard-center-bay {
-    width: min(100%, 430px);
-    height: auto;
-    aspect-ratio: 1 / 1;
-    max-height: none;
-    margin: 0 auto;
-  }
-
-  .hangar-ghost-silhouette {
+  .part-preview-wrap {
     width: 58px;
     height: 58px;
   }
 
-  .hangar-hint-text {
-    font-size: 10px;
-    letter-spacing: 1px;
-  }
-
-  .hangar-hint-sub {
-    font-size: 10px;
-  }
-
-  .dropped-part-wrap img {
+  .part-preview-img {
     max-width: 54px;
     max-height: 54px;
   }
 
-  .hangar-controls-bar {
+  .shipyard-center-col {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+    min-width: 0;
+    min-height: 0;
+    overflow: visible;
+    padding-left: 8px;
+    border-left: 1px solid rgba(16, 185, 129, 0.2);
+    align-items: flex-end !important;
+    justify-content: center;
+  }
+
+  .hangar-container {
+    width: auto;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    gap: 5px;
+    align-items: flex-end !important;
+    justify-content: center;
+  }
+
+  .hangar-main-row {
+    gap: 8px;
+    justify-content: flex-end !important;
+    width: auto;
+  }
+
+  .hangar-limits-panel {
+    width: 125px;
+    flex: 0 0 125px;
+  }
+
+  .selected-module-toolbar {
+    width: 130px;
+    flex: 0 0 130px;
+  }
+
+  .shipyard-center-bay {
+    width: auto;
     max-width: 100%;
+    height: min(340px, calc(100vh - 280px));
+    aspect-ratio: 1 / 1;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .hangar-panel-col {
+    height: min(340px, calc(100vh - 280px));
+  }
+
+  .shipyard-footer {
+    padding-top: 6px;
+    margin-top: 6px;
     gap: 8px;
   }
+}
 
-  .hangar-tool-btn,
-  .hangar-parts-counter {
-    min-height: 32px;
-    padding: 7px 9px;
-    font-size: 9px;
-  }
-
-  /* Каталог превращается в последовательные компактные секции.
-     Категории и подкатегории прокручиваются горизонтально,
-     карточки деталей остаются обычной сеткой. */
-  .shipyard-columns-flow {
-    order: 1;
-    display: flex;
-    flex-direction: column;
-    flex: 0 0 auto;
-    width: 100%;
-    height: auto;
-    min-height: 0;
-    gap: 9px;
-    overflow: visible;
+/* Телефоны и малые экраны (до 768px): строго горизонтальное расположение */
+@media screen and (max-width: 768px) {
+  .shipyard-backdrop {
     padding: 0;
-  }
-
-  .flow-col {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-    flex: 0 0 auto;
     overflow: hidden;
   }
 
-  .col-head {
-    padding: 7px 9px;
-  }
-
-  .col-head-tag {
-    font-size: 9px;
-    letter-spacing: 1px;
-    text-align: left;
-  }
-
-  .col-scroll {
-    flex: 0 0 auto;
-    min-height: 0;
-    padding: 7px;
-    overflow: visible;
-  }
-
-  .col-categories,
-  .col-subfolders {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-  }
-
-  .categories-list,
-  .subfolders-list {
+  .shipyard-window {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: 5px 6px;
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
     display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    gap: 7px;
-    width: max-content;
-    min-width: 100%;
+    flex-direction: column;
   }
 
-  .col-categories .category-col-btn,
-  .col-subfolders .subfolder-col-btn {
-    flex: 0 0 auto;
-    width: auto;
-    max-width: 145px;
+  .shipyard-header {
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
-  .col-categories .col-btn-inner,
-  .col-subfolders .subfolder-btn-inner {
-    min-width: 82px;
-    min-height: 62px;
-    height: 100%;
-    padding: 8px;
+  .shipyard-badge {
+    display: none !important;
+  }
+
+  .shipyard-title {
+    font-size: 13px !important;
+    letter-spacing: 1px;
+    line-height: 1.1;
+  }
+
+  .shipyard-header-actions {
+    gap: 4px;
+  }
+
+  .shipyard-header-actions .shipyard-action-btn {
+    padding: 4px 8px;
+    min-height: 26px;
+    font-size: 9px;
+  }
+
+  /* Скрываем дублирующий нижний футер на телефонах для освобождения пространства */
+  .shipyard-footer {
+    display: none !important;
+  }
+
+  /* ГОРИЗОНТАЛЬНОЕ РАСПОЛОЖЕНИЕ КОЛОНОК И АНГАРА */
+  .shipyard-workspace {
+    display: flex !important;
+    flex-direction: row !important;
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
     gap: 5px;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: left;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .shipyard-columns-flow {
+    display: flex !important;
+    flex-direction: row !important;
+    flex: 0 0 auto;
+    gap: 4px;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Колонка 1: Компактные иконки категорий */
+  .col-categories {
+    width: 48px !important;
+    flex: 0 0 48px !important;
+    min-width: 44px !important;
+  }
+
+  .col-categories .col-head {
+    padding: 4px 2px;
+  }
+
+  .col-categories .col-head-tag {
+    font-size: 8px;
+    text-align: center;
+  }
+
+  .col-categories .col-btn-inner {
+    padding: 5px 2px;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+    justify-content: center;
   }
 
   .col-categories .cat-icon-box {
-    width: 20px;
-    height: 20px;
-  }
-
-  .col-categories .cat-icon-box svg {
     width: 18px;
     height: 18px;
   }
 
-  .col-categories .cat-text-box,
-  .col-subfolders .subfolder-text-wrap {
-    align-items: flex-start;
-    width: auto;
-    min-width: 0;
+  .col-categories .cat-icon-box svg {
+    width: 16px;
+    height: 16px;
   }
 
-  .col-categories .cat-title,
-  .col-subfolders .subfolder-name {
-    max-width: 100px;
-    font-size: 10px;
-    text-align: left;
+  .col-categories .cat-title {
+    display: none !important;
   }
 
-  .col-categories .cat-count-badge,
-  .col-subfolders .subfolder-count {
-    font-size: 9px;
-  }
-
-  .col-categories .active-chevron,
-  .col-subfolders .active-chevron {
-    display: none;
-  }
-
-  .col-subfolders .subfolder-icon {
-    font-size: 15px;
-  }
-
-  .col-parts {
-    width: 100%;
-    min-width: 0;
-    flex: 0 0 auto;
-  }
-
-  .col-parts .col-scroll {
-    max-height: 36vh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .col-parts .parts-grid {
-    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
-    gap: 7px;
-  }
-
-  .col-parts .part-card {
-    min-width: 0;
-    min-height: 82px;
-    padding: 7px 4px;
-  }
-
-  .col-parts .part-preview-wrap {
-    width: 46px;
-    height: 46px;
-  }
-
-  .col-parts .part-preview-img {
-    max-width: 42px;
-    max-height: 42px;
-  }
-
-  .col-parts .part-name-tag {
-    max-width: 100%;
+  .col-categories .cat-count-badge {
     font-size: 8px;
   }
 
-  .parts-col-footer-hint {
-    display: none;
+  .col-categories .active-chevron {
+    display: none !important;
   }
 
-  /* Нижние действия не конкурируют за одну строку */
-  .shipyard-footer {
-    display: flex;
-    flex-direction: column-reverse;
-    align-items: stretch;
-    gap: 8px;
-    padding-top: 10px;
-    margin-top: 12px;
+  /* Колонка 2: Компактные иконки подпапок */
+  .col-subfolders {
+    width: 50px !important;
+    flex: 0 0 50px !important;
+    min-width: 46px !important;
   }
 
-  .footer-left,
-  .footer-right {
-    width: 100%;
+  .col-subfolders .col-head {
+    padding: 4px 2px;
   }
 
-  .footer-left .shipyard-action-btn,
-  .footer-right .shipyard-action-btn {
-    width: 100%;
-    min-height: 42px;
-    box-sizing: border-box;
-    white-space: normal;
+  .col-subfolders .col-head-tag {
+    font-size: 8px;
     text-align: center;
   }
 
-  .shipyard-action-btn.btn-launch-big {
-    padding: 10px 12px;
-    font-size: 11px;
+  .col-subfolders .subfolder-btn-inner {
+    padding: 5px 2px;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+    justify-content: center;
   }
 
-  .shipyard-action-btn.btn-secondary {
-    padding: 9px 12px;
-    font-size: 10px;
+  .col-subfolders .subfolder-icon {
+    font-size: 13px;
   }
 
-  .shipyard-alert-toast {
-    position: fixed;
-    top: 10px;
-    left: 50%;
-    width: calc(100% - 24px);
-    max-width: 420px;
-    box-sizing: border-box;
-    padding: 9px 12px;
-    font-size: 10px;
-    z-index: 300;
-  }
-}
-
-/* Очень узкие телефоны */
-@media screen and (max-width: 380px) {
-  .shipyard-window {
-    padding: 8px;
-  }
-
-  .shipyard-title {
-    font-size: 17px;
-  }
-
-  .limit-chip {
+  .col-subfolders .subfolder-name {
     font-size: 8px;
+    max-width: 46px;
+  }
+
+  .col-subfolders .subfolder-count {
+    display: none !important;
+  }
+
+  .col-subfolders .active-chevron {
+    display: none !important;
+  }
+
+  /* Колонка 3: 3 вертикальные колонки редкости (Обычный, Редкий, Легендарный) */
+  .col-parts {
+    width: 225px !important;
+    flex: 0 0 225px !important;
+    min-width: 195px !important;
+  }
+
+  .col-parts .col-head {
+    padding: 4px 2px;
+  }
+
+  .col-parts .col-head-tag {
+    font-size: 8px;
+  }
+
+  .col-parts .parts-scroll {
+    padding: 4px 2px;
+  }
+
+  .rarity-lanes-container {
     gap: 3px;
   }
 
+  .rarity-lane-header {
+    font-size: 7.5px;
+    padding: 2px 1px;
+    gap: 2px;
+  }
+
+  .rarity-lane-title {
+    letter-spacing: 0.2px;
+  }
+
+  .rarity-lane-count {
+    font-size: 7px;
+  }
+
+  .rarity-lane-cards {
+    gap: 5px;
+  }
+
+  .part-card {
+    padding: 4px 2px;
+  }
+
+  .part-preview-wrap {
+    width: 48px;
+    height: 48px;
+  }
+
+  .part-preview-img {
+    max-width: 44px;
+    max-height: 44px;
+  }
+
+  .part-name-tag {
+    font-size: 8px;
+  }
+
+  .part-advantage-tag {
+    font-size: 7px;
+    padding: 1px 2px;
+  }
+
+  .parts-col-footer-hint {
+    display: none !important;
+  }
+
+  .shipyard-title-row {
+    gap: 10px;
+  }
+
+  .shipyard-scrap-badge {
+    padding: 3px 8px;
+    gap: 4px;
+  }
+
+  .shipyard-scrap-icon {
+    font-size: 10px;
+  }
+
+  .shipyard-scrap-label {
+    font-size: 8px;
+  }
+
+  .shipyard-scrap-val {
+    font-size: 10px;
+  }
+
+  /* ЦЕНТРАЛЬНЫЙ АНГАР ДЛЯ КОСМОЛЕТА (СПРАВА) */
+  .shipyard-center-col {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden;
+    padding: 0 !important;
+    border: none !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hangar-container {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    gap: 3px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hangar-main-row {
+    gap: 4px;
+    align-items: flex-end;
+  }
+
+  .hangar-panel-col {
+    height: auto;
+    max-height: calc(100% - 62px);
+    margin-bottom: 24px;
+  }
+
+  .hangar-limits-panel {
+    width: 86px !important;
+    flex: 0 0 86px !important;
+  }
+
+  .selected-module-toolbar {
+    width: 92px !important;
+    flex: 0 0 92px !important;
+  }
+
+  .panel-col-head {
+    padding: 3px 2px;
+  }
+
+  .panel-col-head-tag {
+    font-size: 7.5px;
+  }
+
+  .panel-col-body {
+    padding: 3px 2px;
+  }
+
+  .hangar-limits-grid {
+    gap: 2px;
+    padding: 0;
+  }
+
+  .limit-chip {
+    padding: 2px 3px;
+    font-size: 7px;
+  }
+
+  .limit-label {
+    font-size: 7px;
+  }
+
+  .limit-val {
+    font-size: 7px;
+  }
+
+  .limit-icon {
+    font-size: 8.5px;
+  }
+
+  .limit-check {
+    font-size: 7px;
+  }
+
+  .sel-tools {
+    gap: 2px;
+  }
+
   .sel-tool-btn {
-    font-size: 9px;
-    padding: 6px;
+    padding: 2px 2px;
+    min-height: 20px;
+    font-size: 7px;
+    gap: 2px;
   }
 
-  .col-parts .parts-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .shipyard-field-prompt {
+    padding: 3px 6px;
+    margin-bottom: 3px;
+    max-width: 100%;
   }
-}
 
-/* Невысокие окна ноутбуков: уменьшаем ангар, но сохраняем две зоны */
-@media screen and (min-width: 641px) and (max-width: 1100px) and (max-height: 720px) {
-  .shipyard-window {
-    padding-top: 8px;
-    padding-bottom: 8px;
+  .prompt-icon {
+    font-size: 11px;
+  }
+
+  .prompt-text {
+    font-size: 7.5px;
+    letter-spacing: 0.3px;
   }
 
   .shipyard-center-bay {
-    width: min(34vw, 300px);
-    max-height: 38vh;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-height: calc(100% - 62px);
+    min-height: 0;
+    min-width: 0;
+    margin: 0 auto;
   }
 
-  .shipyard-columns-flow {
-    height: min(30vh, 250px);
+  .hangar-controls-bar {
+    gap: 3px;
+  }
+
+  .hangar-tool-btn {
+    padding: 3px 6px;
+    font-size: 8px;
+    min-height: 22px;
+  }
+
+  .hangar-parts-counter {
+    font-size: 8px;
+    padding: 3px 6px;
+  }
+
+  .dropped-part-wrap img {
+    max-width: 46px;
+    max-height: 46px;
   }
 }
 
+/* Узкие мобильные экраны (до 480px) */
+@media screen and (max-width: 480px) {
+  .shipyard-window {
+    padding: 4px;
+  }
+
+  .col-categories {
+    width: 40px !important;
+    flex: 0 0 40px !important;
+    min-width: 38px !important;
+  }
+
+  .col-subfolders {
+    width: 42px !important;
+    flex: 0 0 42px !important;
+    min-width: 38px !important;
+  }
+
+  .col-parts {
+    width: 185px !important;
+    flex: 0 0 185px !important;
+    min-width: 175px !important;
+  }
+
+  .part-preview-wrap {
+    width: 42px;
+    height: 42px;
+  }
+
+  .part-preview-img {
+    max-width: 38px;
+    max-height: 38px;
+  }
+
+  .part-name-tag {
+    font-size: 7px;
+  }
+
+  .part-advantage-tag {
+    font-size: 6.5px;
+  }
+
+  .hangar-limits-panel {
+    width: 76px !important;
+    flex: 0 0 76px !important;
+  }
+
+  .selected-module-toolbar {
+    width: 80px !important;
+    flex: 0 0 80px !important;
+  }
+
+  .limit-chip {
+    font-size: 6.5px;
+    padding: 2px 2px;
+  }
+
+  .limit-label {
+    font-size: 6.5px;
+  }
+
+  .limit-val {
+    font-size: 6.5px;
+  }
+
+  .sel-tool-btn {
+    font-size: 6.5px;
+    padding: 2px 1px;
+  }
+}
 
 /* Перекрываем общие ограничения базового модального окна игры */
 .holo-modal-window.shipyard-window {
@@ -1702,11 +2173,11 @@
   }
 }
 
-@media screen and (max-width: 640px) {
+@media screen and (max-width: 768px) {
   .holo-modal-window.shipyard-window {
-    width: 100%;
+    width: 100vw;
     max-width: none;
-    height: 100%;
-    max-height: none;
+    height: 100dvh;
+    max-height: 100dvh;
   }
 }

@@ -118,6 +118,8 @@ export interface Meteor {
   isHitFlash: number;
   trailTimer: number;
   sizeCategory: 'small' | 'medium' | 'large' | 'giant';
+  isIndestructible?: boolean;
+  isBoundary?: boolean;
 }
 
 /**
@@ -147,6 +149,7 @@ export interface SpaceStation {
   scale: number;
   isHitFlash: number;
   xpReward: number;
+  scrapReward?: number;
   explosionRadius: number;
   explosionDamage: number;
 }

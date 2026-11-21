@@ -3,9 +3,9 @@ import { CosmicDustParticle, CosmicStar } from './types';
 import { MAP_WIDTH, MAP_HEIGHT } from './constants';
 
 const STAR_TEXTURE_KEY = 'cosmic_star_tiny';
-const STAR_COUNT = 100;
-const STAR_SPAN_X = 2800;
-const STAR_SPAN_Y = 1800;
+const STAR_COUNT = 150;
+const STAR_SPAN_X = 3600;
+const STAR_SPAN_Y = 2400;
 const STAR_DEPTH = -4;
 
 /**

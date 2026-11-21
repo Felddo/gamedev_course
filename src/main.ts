@@ -77,10 +77,13 @@ const goScore = document.getElementById('go-score') as HTMLElement;
 // Mission Complete Modal Elements
 const modalMissionComplete = document.getElementById('modal-mission-complete') as HTMLElement;
 const mcTitle = document.getElementById('mc-title') as HTMLElement;
-const mcSubtitle = document.getElementById('mc-subtitle') as HTMLElement;
+const mcSubtitle = document.getElementById('mc-subtitle') as HTMLElement | null;
 const mcTime = document.getElementById('mc-time') as HTMLElement;
 const mcKills = document.getElementById('mc-kills') as HTMLElement;
-const mcScore = document.getElementById('mc-score') as HTMLElement;
+const mcScore = document.getElementById('mc-score') as HTMLElement | null;
+const mcUnlockBanner = document.getElementById('mc-unlock-banner') as HTMLElement | null;
+const mcUnlockText = document.getElementById('mc-unlock-text') as HTMLElement | null;
+const mcUnlockIcon = document.getElementById('mc-unlock-icon') as HTMLElement | null;
 const btnMcNext = document.getElementById('btn-mc-next') as HTMLButtonElement;
 const btnMcNextText = document.getElementById('btn-mc-next-text') as HTMLElement;
 const btnMcMenu = document.getElementById('btn-mc-menu') as HTMLButtonElement;
@@ -657,10 +660,26 @@ function showMissionComplete(
   topEscBtn?.classList.add('hidden');
 
   if (mcTitle) mcTitle.textContent = `МИССИЯ ${missionId} ВЫПОЛНЕНА`;
-  if (mcSubtitle) mcSubtitle.textContent = `${subtitle} // ${title}`;
+  if (mcSubtitle) mcSubtitle.textContent = '';
   if (mcTime) mcTime.textContent = time;
   if (mcKills) mcKills.textContent = kills.toString();
   if (mcScore) mcScore.textContent = score.toString();
+
+  // Выделенное уведомление о разблокировке покупки редких / легендарных деталей
+  if (mcUnlockBanner && mcUnlockText) {
+    if (missionId === '1-5') {
+      mcUnlockBanner.className = 'mc-unlock-banner unlock-rare';
+      mcUnlockText.textContent = 'ДОСТУПНЫ РЕДКИЕ ЧАСТИ КОРАБЛЯ';
+      if (mcUnlockIcon) mcUnlockIcon.textContent = '⭐';
+    } else if (missionId === '2-5') {
+      mcUnlockBanner.className = 'mc-unlock-banner unlock-legendary';
+      mcUnlockText.textContent = 'ДОСТУПНЫ ЛЕГЕНДАРНЫЕ ЧАСТИ КОРАБЛЯ';
+      if (mcUnlockIcon) mcUnlockIcon.textContent = '👑';
+    } else {
+      mcUnlockBanner.className = 'mc-unlock-banner hidden';
+      mcUnlockText.textContent = '';
+    }
+  }
 
   // Заполнение информации о добытом металлоломе
   if (scrapBreakdown) {
@@ -696,6 +715,7 @@ function showMissionComplete(
 
 function hideMissionComplete(): void {
   modalMissionComplete?.classList.add('hidden');
+  mcUnlockBanner?.classList.add('hidden');
 }
 
 function showCampaignComplete(totalScore: number, scrapBalance?: number): void {

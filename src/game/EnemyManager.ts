@@ -25,6 +25,8 @@ import {
   ENEMY_GUNSHIP_BULLET_LIFETIME,
   GAME_PHASES,
   PhaseInfo,
+  MAP_WIDTH,
+  MAP_HEIGHT,
 } from './constants';
 import { EnemyShip, EnemyBullet } from './types';
 import { PlayerShip } from './PlayerShip';
@@ -463,8 +465,13 @@ export class EnemyManager {
         playerY,
       );
 
-      // В бесконечном космосе: удаляем корабли, отставшие более чем на 3200 пикселей
-      if (distToPlayer > 3200) {
+      // В ограниченной карте: удаляем корабли только если они вылетели далеко за пределы карты
+      if (
+        enemy.sprite.x < -400 ||
+        enemy.sprite.x > MAP_WIDTH + 400 ||
+        enemy.sprite.y < -400 ||
+        enemy.sprite.y > MAP_HEIGHT + 400
+      ) {
         this.destroyEnemySprites(enemy);
         this.enemies.splice(i, 1);
         continue;
@@ -480,6 +487,10 @@ export class EnemyManager {
       // Курс на сближение с кораблем игрока
       enemy.sprite.x += Math.cos(angle) * enemy.speed * seconds;
       enemy.sprite.y += Math.sin(angle) * enemy.speed * seconds;
+
+      // Ограничение врагов пределами боевого сектора (внутри неонового барьера STOP)
+      enemy.sprite.x = Phaser.Math.Clamp(enemy.sprite.x, 95, MAP_WIDTH - 95);
+      enemy.sprite.y = Phaser.Math.Clamp(enemy.sprite.y, 95, MAP_HEIGHT - 95);
 
       // Плавное покачивание кораблей при полете
       enemy.animPhase = (enemy.animPhase ?? 0) + seconds * 4.2;

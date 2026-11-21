@@ -10,6 +10,8 @@ import {
   SUPER_DURATION,
   SUPER_COOLDOWN,
   SHIP_SCALE,
+  MAP_WIDTH,
+  MAP_HEIGHT,
 } from './constants';
 import { EnemyShip } from './types';
 import { AtmosphereManager } from './AtmosphereManager';
@@ -660,6 +662,10 @@ export class PlayerShip {
         }
       }
     }
+
+    // Ограничение перемещения корабля пределами сектора (внутри неонового барьера STOP)
+    this.shipSprite.x = Phaser.Math.Clamp(this.shipSprite.x, 95, MAP_WIDTH - 95);
+    this.shipSprite.y = Phaser.Math.Clamp(this.shipSprite.y, 95, MAP_HEIGHT - 95);
 
     // Синхронизация кастомного модульного корабля
     const shouldShow = this.isShipVisible && !this.isGameOver;

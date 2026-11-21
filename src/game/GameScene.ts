@@ -38,6 +38,7 @@ import { HudManager } from './HudManager';
 import { MeteorManager } from './MeteorManager';
 import { SpaceStationManager } from './SpaceStationManager';
 import { ScrapManager } from './ScrapManager';
+import { NeonBarrierManager } from './NeonBarrierManager';
 import { getEnemyScrapDrop } from './campaign/scrapConfig';
 import { buildPartsCatalog } from './shipBuilder/partsCatalog';
 import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
@@ -62,6 +63,7 @@ export class GameScene extends Phaser.Scene {
   private meteorManager!: MeteorManager;
   private spaceStationManager!: SpaceStationManager;
   private scrapManager!: ScrapManager;
+  private neonBarrierManager!: NeonBarrierManager;
 
   // Опасные зоны плазменного шлейфа двигателей
   private fireHazards: FireHazard[] = [];
@@ -225,15 +227,15 @@ export class GameScene extends Phaser.Scene {
       // Окошко фаз убрано, индикация босса отображается на верхней панели HUD
     };
 
-    // 6. Настройка камеры для слежения за кораблем
-    this.cameras.main.removeBounds();
+    // 6. Настройка камеры для слежения за кораблем в пределах ограниченной карты
+    this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.cameras.main.setBackgroundColor('#02040a');
     this.cameras.main.startFollow(this.playerShip.shipSprite, true, 0.08, 0.08);
 
     // 7. Построение боевого HUD интерфейса и тактического радара
     this.hudManager = new HudManager(this, width, height);
 
-    // 8. Инициализация менеджера метеоритов
+    // 8. Инициализация менеджера метеоритов (включая плотные пояса астероидов по 4 краям)
     this.meteorManager = new MeteorManager(this);
     this.meteorManager.createInitialMeteors(6);
 
@@ -243,6 +245,10 @@ export class GameScene extends Phaser.Scene {
 
     // 8.2. Инициализация менеджера валюты «Металлолом»
     this.scrapManager = new ScrapManager(this);
+    this.spaceStationManager.setScrapManager(this.scrapManager);
+
+    // 8.3. Инициализация неонового барьера с надписями STOP по границам сектора
+    this.neonBarrierManager = new NeonBarrierManager(this);
 
     // 9. Установка начальной фазы боя
     this.enemyManager.setPhase(1);
@@ -271,6 +277,7 @@ export class GameScene extends Phaser.Scene {
       this.meteorManager.destroy();
       this.spaceStationManager.destroy();
       this.scrapManager.destroy();
+      this.neonBarrierManager.destroy();
     });
   }
 
@@ -332,6 +339,8 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.setMission(this.currentMission);
     this.meteorManager.setMission(this.currentMission);
     this.hudManager.setMission(this.currentMission);
+
+    this.meteorManager.createInitialMeteors();
 
     this.playerShip.reset(MAP_WIDTH / 2, MAP_HEIGHT / 2);
     if (this.activeShipAssembly) {
@@ -447,6 +456,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.isGameOver) {
+      this.neonBarrierManager.update(seconds);
       this.particleManager.update(seconds);
       this.atmosphereManager.updateCosmicDust(seconds);
       this.meteorManager.update(seconds, this.cameras.main, this.particleManager);
@@ -455,6 +465,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.isMissionWon) {
+      this.neonBarrierManager.update(seconds);
       this.particleManager.update(seconds);
       this.atmosphereManager.updateCosmicDust(seconds);
       this.atmosphereManager.updateCosmicAtmosphere(seconds, this.cameras.main);
@@ -464,6 +475,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.survivalTime += seconds;
+
+    // 0. Неоновый лазерный барьер с надписями STOP по краям сектора
+    this.neonBarrierManager.update(seconds);
+    this.neonBarrierManager.clampPlayer(this.playerShip, this.particleManager);
 
     // Проверка победы в обычной миссии кампании (по числу уничтоженных врагов)
     if (

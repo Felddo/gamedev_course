@@ -99,7 +99,7 @@ export class MeteorManager {
       }
     }
 
-    // 2. Обновление каждого активного метеорита
+    // 2. Обновление каждого активного метеорита (метеориты свободно пролетают сквозь барьер сектора)
     const camCenterX = cam.worldView ? cam.worldView.centerX : 0;
     const camCenterY = cam.worldView ? cam.worldView.centerY : 0;
 
@@ -107,14 +107,14 @@ export class MeteorManager {
       const m = this.meteors[i];
       const sprite = m.sprite;
 
-      // Линейное перемещение
+      // Линейное перемещение дрейфующих астероидов
       sprite.x += m.vx * seconds;
       sprite.y += m.vy * seconds;
 
       // Свободное вращение в невесомости
       sprite.rotation += m.angularVelocity * seconds;
 
-      // Эффект вспышки при получении урона от лазеров
+      // Эффект вспышки при попадании
       if (m.isHitFlash > 0) {
         m.isHitFlash -= seconds;
         if (m.isHitFlash <= 0) {
@@ -129,7 +129,7 @@ export class MeteorManager {
         this.emitMeteorTrail(m, particleManager);
       }
 
-      // Очистка метеоритов, улетевших далеко за пределы обзора в бесконечном космосе
+      // Очистка метеоритов, улетевших далеко за пределы обзора
       const distToCamera = Phaser.Math.Distance.Between(
         sprite.x,
         sprite.y,
@@ -313,6 +313,7 @@ export class MeteorManager {
           projectiles.splice(pIdx, 1);
 
           this.emitImpactSparks(lx, ly, particleManager);
+          soundFx.playHit();
 
           // Урон метеориту
           const damage = laser.damage || 1.5;
@@ -372,27 +373,60 @@ export class MeteorManager {
   }
 
   /**
-   * Проверка столкновений метеоритов с вражескими кораблями
+   * Проверка столкновений метеоритов с вражескими кораблями.
+   * Астероиды ОТСКАКИВАЮТ от вражеских кораблей и НЕ убивают их.
    */
   public checkEnemyCollisions(
     enemyManager: EnemyManager,
     particleManager: ParticleManager,
-    onEnemyKilled?: (score: number, x: number, y: number, enemyType?: any, isBoss?: boolean) => void,
+    _onEnemyKilled?: (score: number, x: number, y: number, enemyType?: any, isBoss?: boolean) => void,
   ): void {
     const enemies = enemyManager.getEnemies();
-    for (const meteor of this.meteors) {
+    for (let mIdx = this.meteors.length - 1; mIdx >= 0; mIdx--) {
+      const meteor = this.meteors[mIdx];
+
       for (let e = enemies.length - 1; e >= 0; e--) {
         const enemy = enemies[e];
         const dist = Phaser.Math.Distance.Between(meteor.sprite.x, meteor.sprite.y, enemy.sprite.x, enemy.sprite.y);
-        if (dist <= meteor.radius + enemy.radius) {
-          soundFx.playExplosion();
-          particleManager.spawnExplosion(enemy.sprite.x, enemy.sprite.y);
-          enemy.hp -= meteor.hp * 2;
-          enemy.sprite.setTint(0xffffff);
-          enemy.isHitFlash = 0.1;
-          if (enemy.hp <= 0) {
-            enemyManager.destroyEnemy(e, particleManager, onEnemyKilled);
+        const minDist = meteor.radius + enemy.radius;
+
+        if (dist <= minDist) {
+          const dx = enemy.sprite.x - meteor.sprite.x;
+          const dy = enemy.sprite.y - meteor.sprite.y;
+          let nx = 1;
+          let ny = 0;
+          if (dist > 0.001) {
+            nx = dx / dist;
+            ny = dy / dist;
+          } else {
+            const a = Math.random() * Math.PI * 2;
+            nx = Math.cos(a);
+            ny = Math.sin(a);
           }
+
+          const overlap = minDist - dist + 3;
+
+          // Дрейфующий астероид: отскакивает от врага
+          meteor.sprite.x -= nx * overlap * 0.6;
+          meteor.sprite.y -= ny * overlap * 0.6;
+          enemy.sprite.x += nx * overlap * 0.4;
+          enemy.sprite.y += ny * overlap * 0.4;
+
+          // Физический отскок астероида
+          const dot = meteor.vx * nx + meteor.vy * ny;
+          if (dot > 0) {
+            meteor.vx -= 1.8 * dot * nx;
+            meteor.vy -= 1.8 * dot * ny;
+          } else {
+            const speed = Math.max(150, Math.hypot(meteor.vx, meteor.vy));
+            meteor.vx = -nx * speed;
+            meteor.vy = -ny * speed;
+          }
+          meteor.angularVelocity = Phaser.Math.FloatBetween(-3.2, 3.2);
+
+          soundFx.playHit();
+          this.emitImpactSparks(enemy.sprite.x, enemy.sprite.y, particleManager);
+          // ВРАГИ НЕ ПОГИБАЮТ И НЕ ПОЛУЧАЮТ УРОНА ОТ АСТЕРОИДОВ
         }
       }
     }
