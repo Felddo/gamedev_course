@@ -288,6 +288,7 @@ export class GameScene extends Phaser.Scene {
     this.playerShip.setVisible(false);
     this.playerShip.setAutopilot(false);
     this.hudManager.setVisible(false);
+    this.meteorManager?.reset();
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
     this.wasBossKilled = false;
@@ -310,6 +311,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.reset();
     this.weaponSystem.reset();
     this.weaponSystem.resetUpgrades();
+    this.meteorManager?.reset();
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
     this.wasBossKilled = false;
@@ -335,12 +337,14 @@ export class GameScene extends Phaser.Scene {
     this.weaponSystem.reset();
     this.weaponSystem.resetUpgrades();
     this.scrapManager.reset();
+    this.meteorManager.reset();
 
     this.enemyManager.setMission(this.currentMission);
     this.meteorManager.setMission(this.currentMission);
     this.hudManager.setMission(this.currentMission);
 
     this.meteorManager.createInitialMeteors();
+    this.meteorManager.clearMeteorsNear(MAP_WIDTH / 2, MAP_HEIGHT / 2, 750);
 
     this.playerShip.reset(MAP_WIDTH / 2, MAP_HEIGHT / 2);
     if (this.activeShipAssembly) {
@@ -398,6 +402,7 @@ export class GameScene extends Phaser.Scene {
     this.applyCampaignUpgrades();
     this.playerShip.setVisible(true);
     this.cameras.main.centerOn(this.playerShip.x, this.playerShip.y);
+    this.meteorManager.clearMeteorsNear(this.playerShip.x, this.playerShip.y, 750);
     this.hudManager.setVisible(true);
     if (this.scene.isPaused()) {
       this.scene.resume();
@@ -815,6 +820,10 @@ export class GameScene extends Phaser.Scene {
   private triggerGameOver(reason?: string): void {
     if (this.isGameOver) return;
     this.isGameOver = true;
+
+    // Останавливаем спавн и уничтожаем накопившиеся метеориты, чтобы не спавниться в них при рестарте
+    this.meteorManager.stopSpawning();
+    this.meteorManager.reset();
 
     soundFx.playExplosion();
     this.cameras.main.shake(380, 0.024);

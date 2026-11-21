@@ -663,9 +663,9 @@ export class PlayerShip {
       }
     }
 
-    // Ограничение перемещения корабля пределами сектора (внутри неонового барьера STOP)
-    this.shipSprite.x = Phaser.Math.Clamp(this.shipSprite.x, 95, MAP_WIDTH - 95);
-    this.shipSprite.y = Phaser.Math.Clamp(this.shipSprite.y, 95, MAP_HEIGHT - 95);
+    // Ограничение перемещения корабля пределами сектора (внутри пояса туманностей)
+    this.shipSprite.x = Phaser.Math.Clamp(this.shipSprite.x, 130, MAP_WIDTH - 130);
+    this.shipSprite.y = Phaser.Math.Clamp(this.shipSprite.y, 130, MAP_HEIGHT - 130);
 
     // Синхронизация кастомного модульного корабля
     const shouldShow = this.isShipVisible && !this.isGameOver;
@@ -786,17 +786,30 @@ export class PlayerShip {
       this.recoilOffset = Math.max(0, this.recoilOffset - 35 * seconds);
     }
 
-    // Мигание щита при неуязвимости
+    // Мигание и силовой щит при неуязвимости (включая защитный экран при спавне)
     if (this.invulnTimer > 0) {
       this.invulnTimer -= seconds;
-      const alpha = Math.floor(survivalTime * 20) % 2 === 0 ? 0.35 : 1;
+      const alpha = Math.floor(survivalTime * 18) % 2 === 0 ? 0.45 : 1;
       this.shipSprite.setAlpha(alpha);
       this.customShipContainer?.setAlpha(alpha);
-      this.leftFlameSprite.setAlpha(alpha);
-      this.rightFlameSprite.setAlpha(alpha);
+      this.leftFlameSprite?.setAlpha(alpha);
+      this.rightFlameSprite?.setAlpha(alpha);
+
+      // Визуализация защитного силового поля при спавне
+      if (!this.isDashing && this.shieldSprite) {
+        this.shieldSprite.setPosition(this.shipSprite.x, this.shipSprite.y);
+        this.shieldSprite.setVisible(this.isShipVisible);
+        this.shieldSprite.rotation += 4 * seconds;
+        const shieldPulse = 0.65 + Math.sin(survivalTime * 12) * 0.2;
+        this.shieldSprite.setAlpha(shieldPulse);
+        this.shieldSprite.setScale((1.2 + Math.sin(survivalTime * 14) * 0.06) * SHIP_SCALE);
+      }
     } else {
       this.shipSprite.setAlpha(1);
       this.customShipContainer?.setAlpha(1);
+      if (!this.isDashing && this.shieldSprite) {
+        this.shieldSprite.setVisible(false);
+      }
     }
 
     // Таймер перезарядки форсажа
@@ -884,7 +897,7 @@ export class PlayerShip {
     this.rightFlameSprite?.setPosition(startX, startY);
     this.shieldSprite?.setPosition(startX, startY);
     this.hp = this.maxHp;
-    this.invulnTimer = 0;
+    this.invulnTimer = 3.0; // 3 секунды неуязвимости и активного щита при спавне/рестарте
     this.isGameOver = false;
     this.isDashing = false;
     this.dashTimer = 0;

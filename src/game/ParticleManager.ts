@@ -601,6 +601,47 @@ export class ParticleManager {
     });
   }
 
+  /**
+   * Эффект ионизации космического газа и свечение туманности при касании границы сектора
+   */
+  public spawnNebulaContact(x: number, y: number): void {
+    const ring = this.scene.add.circle(x, y, 16, 0xa855f7, 0.45);
+    ring.setDepth(12);
+    ring.setStrokeStyle(2, 0x38bdf8, 0.7);
+    this.scene.tweens.add({
+      targets: ring,
+      scale: 2.4,
+      alpha: 0,
+      duration: 380,
+      ease: 'Sine.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+
+    const colors = [0xc084fc, 0x38bdf8, 0x818cf8, 0xa855f7];
+    for (let i = 0; i < 6; i++) {
+      const p = this.scene.add.circle(
+        x + Phaser.Math.Between(-10, 10),
+        y + Phaser.Math.Between(-10, 10),
+        Phaser.Math.FloatBetween(2, 4),
+        Phaser.Utils.Array.GetRandom(colors),
+        0.8,
+      );
+      p.setDepth(13);
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const speed = Phaser.Math.Between(30, 90);
+      this.scene.tweens.add({
+        targets: p,
+        x: p.x + Math.cos(angle) * speed,
+        y: p.y + Math.sin(angle) * speed,
+        alpha: 0,
+        scale: 0.3,
+        duration: Phaser.Math.Between(280, 500),
+        ease: 'Quad.easeOut',
+        onComplete: () => p.destroy(),
+      });
+    }
+  }
+
   public destroy(): void {
     this.reset();
   }

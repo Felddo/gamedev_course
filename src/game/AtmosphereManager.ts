@@ -3,9 +3,9 @@ import { CosmicDustParticle, CosmicStar } from './types';
 import { MAP_WIDTH, MAP_HEIGHT } from './constants';
 
 const STAR_TEXTURE_KEY = 'cosmic_star_tiny';
-const STAR_COUNT = 150;
-const STAR_SPAN_X = 3600;
-const STAR_SPAN_Y = 2400;
+const STAR_COUNT = 240;
+const STAR_SPAN_X = MAP_WIDTH;
+const STAR_SPAN_Y = MAP_HEIGHT;
 const STAR_DEPTH = -4;
 
 /**
@@ -143,13 +143,15 @@ export class AtmosphereManager {
    */
   private createProceduralNebulas(): void {
     const nebulaSpots = [
-      { x: 500, y: 400, texture: 'nebula_cyan_cloud', scale: 2.2, alpha: 0.35 },
-      { x: 1200, y: 1300, texture: 'nebula_purple_cloud', scale: 2.5, alpha: 0.32 },
-      { x: 2300, y: 550, texture: 'nebula_cyan_cloud', scale: 2.8, alpha: 0.3 },
-      { x: 2600, y: 1250, texture: 'nebula_rose_cloud', scale: 2.3, alpha: 0.28 },
-      { x: 1600, y: 750, texture: 'nebula_purple_cloud', scale: 2.6, alpha: 0.25 },
-      { x: 300, y: 1200, texture: 'nebula_rose_cloud', scale: 2.1, alpha: 0.26 },
-      { x: 2000, y: 250, texture: 'nebula_purple_cloud', scale: 2.2, alpha: 0.24 },
+      { x: 700, y: 550, texture: 'nebula_cyan_cloud', scale: 2.6, alpha: 0.35 },
+      { x: 1600, y: 1900, texture: 'nebula_purple_cloud', scale: 3.0, alpha: 0.32 },
+      { x: 3200, y: 800, texture: 'nebula_cyan_cloud', scale: 3.2, alpha: 0.3 },
+      { x: 3800, y: 2200, texture: 'nebula_rose_cloud', scale: 2.8, alpha: 0.28 },
+      { x: 2400, y: 1200, texture: 'nebula_purple_cloud', scale: 3.1, alpha: 0.25 },
+      { x: 500, y: 2400, texture: 'nebula_rose_cloud', scale: 2.6, alpha: 0.26 },
+      { x: 2800, y: 400, texture: 'nebula_purple_cloud', scale: 2.7, alpha: 0.24 },
+      { x: 1200, y: 2700, texture: 'nebula_cyan_cloud', scale: 2.9, alpha: 0.27 },
+      { x: 4100, y: 1200, texture: 'nebula_purple_cloud', scale: 2.8, alpha: 0.26 },
     ];
 
     for (const spot of nebulaSpots) {
@@ -326,8 +328,8 @@ export class AtmosphereManager {
     // Бесшовный перенос туманностей вокруг камеры
     const camCenterX = cam.worldView ? cam.worldView.centerX : 0;
     const camCenterY = cam.worldView ? cam.worldView.centerY : 0;
-    const wrapX = 2600;
-    const wrapY = 2000;
+    const wrapX = 3200;
+    const wrapY = 2400;
 
     for (const cloud of this.nebulas) {
       if (cloud.x < camCenterX - wrapX) {

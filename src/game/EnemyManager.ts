@@ -488,9 +488,9 @@ export class EnemyManager {
       enemy.sprite.x += Math.cos(angle) * enemy.speed * seconds;
       enemy.sprite.y += Math.sin(angle) * enemy.speed * seconds;
 
-      // Ограничение врагов пределами боевого сектора (внутри неонового барьера STOP)
-      enemy.sprite.x = Phaser.Math.Clamp(enemy.sprite.x, 95, MAP_WIDTH - 95);
-      enemy.sprite.y = Phaser.Math.Clamp(enemy.sprite.y, 95, MAP_HEIGHT - 95);
+      // Ограничение врагов пределами боевого сектора (внутри пояса туманностей)
+      enemy.sprite.x = Phaser.Math.Clamp(enemy.sprite.x, 130, MAP_WIDTH - 130);
+      enemy.sprite.y = Phaser.Math.Clamp(enemy.sprite.y, 130, MAP_HEIGHT - 130);
 
       // Плавное покачивание кораблей при полете
       enemy.animPhase = (enemy.animPhase ?? 0) + seconds * 4.2;

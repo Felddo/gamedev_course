@@ -156,6 +156,35 @@ class SoundFx {
   }
 
   /**
+   * Мягкий космический резонанс при контакте корабля с плотной туманностью границы сектора.
+   */
+  playNebulaContact(): void {
+    try {
+      this.init();
+      const dest = this.getMasterDestination();
+      if (!this.ctx || !dest || this.muted) return;
+      const now = this.ctx.currentTime;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+      osc.connect(gain);
+      gain.connect(dest);
+
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } catch {
+      // Игнорируем ошибки воспроизведения
+    }
+  }
+
+  /**
    * Звук взрыва уничтоженного космического корабля.
    */
   playExplosion(): void {

@@ -1,6 +1,6 @@
 // --- Константы космического мира и карты --
-export const MAP_WIDTH = 3600;
-export const MAP_HEIGHT = 2400;
+export const MAP_WIDTH = 4800;
+export const MAP_HEIGHT = 3200;
 
 // --- Игровые константы космического корабля игрока ---
 export const PLAYER_SPEED = 240;

@@ -316,8 +316,13 @@ export class HudManager {
   }
 
   private positionRadar(width: number, height: number): void {
-    const rx = width - RADAR_SIZE / 2 - RADAR_MARGIN;
-    const ry = height - RADAR_SIZE / 2 - RADAR_MARGIN;
+    const rx = width - RADAR_SIZE / 2 - 20;
+    // Размещение в верхнем правом углу с комфортным отступом от верхней панели (высота панели 44px)
+    const topBarHeight = 44;
+    const labelOffset = 14;
+    const topMargin = 28; // Не лепим вплотную к верхней панели: 28px чистого зазора до заголовка радара
+    const preferredRy = topBarHeight + topMargin + labelOffset + RADAR_SIZE / 2; // = 171px
+    const ry = Math.min(preferredRy, Math.max(140, height - RADAR_SIZE / 2 - 20));
     this.radarContainer.setPosition(rx, ry);
   }
 
@@ -526,12 +531,12 @@ export class HudManager {
       this.radarGraphics.strokeRect(-camW / 2, -camH / 2, camW, camH);
     }
 
-    // Отображение границ неонового барьера STOP на радаре при приближении к краю сектора
-    const bMinX = 75;
-    const bMaxX = MAP_WIDTH - 75;
-    const bMinY = 75;
-    const bMaxY = MAP_HEIGHT - 75;
-    this.radarGraphics.lineStyle(1.8, 0xff1744, 0.85);
+    // Отображение пояса туманностей границ сектора на радаре при приближении к краю карты
+    const bMinX = 130;
+    const bMaxX = MAP_WIDTH - 130;
+    const bMinY = 130;
+    const bMaxY = MAP_HEIGHT - 130;
+    this.radarGraphics.lineStyle(2.4, 0xa855f7, 0.85);
 
     if (Math.abs(playerX - bMinX) <= scanRadius) {
       const rx = ((bMinX - playerX) / scanRadius) * radarRadius;

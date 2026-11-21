@@ -64,9 +64,13 @@ export class MeteorManager {
   }
 
   /**
-   * Начальный спавн метеоритов по карте при старте матча (по настройке фазы)
+   * Начальный спавн метеоритов по карте при старте матча (по настройке фазы).
+   * Гарантирует чистоту перед спавном и отсутствие метеоритов в зоне респавна игрока.
    */
   public createInitialMeteors(customCount?: number): void {
+    this.reset();
+    this.isSpawningStopped = false;
+
     const count = customCount !== undefined ? customCount : (this.getCurrentPhaseInfo().initialMeteorCount ?? 5);
     const cam = this.scene.cameras.main;
     const cx = cam.worldView ? cam.worldView.centerX : MAP_WIDTH / 2;
@@ -74,11 +78,28 @@ export class MeteorManager {
 
     for (let i = 0; i < count; i++) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const dist = Phaser.Math.FloatBetween(380, 850);
+      // Спавн на безопасном расстоянии от спавна игрока (800..1400px)
+      const dist = Phaser.Math.FloatBetween(800, 1400);
       const x = cx + Math.cos(angle) * dist;
       const y = cy + Math.sin(angle) * dist;
-      const trajAngle = angle + Math.PI + Phaser.Math.FloatBetween(-0.4, 0.4);
+      // Траектория полета смещена по касательной, чтобы астероиды не сходились в точку респавна
+      const tangentOffset = (Math.random() < 0.5 ? 1 : -1) * Phaser.Math.FloatBetween(0.8, 1.6);
+      const trajAngle = angle + Math.PI + tangentOffset;
       this.spawnMeteorAt(x, y, trajAngle);
+    }
+  }
+
+  /**
+   * Очистить зону вокруг координат от любых метеоритов для безопасного старта или респавна
+   */
+  public clearMeteorsNear(x: number, y: number, safeRadius: number): void {
+    for (let i = this.meteors.length - 1; i >= 0; i--) {
+      const m = this.meteors[i];
+      const dist = Phaser.Math.Distance.Between(x, y, m.sprite.x, m.sprite.y);
+      if (dist < safeRadius) {
+        m.sprite.destroy();
+        this.meteors.splice(i, 1);
+      }
     }
   }
 
@@ -261,12 +282,18 @@ export class MeteorManager {
   /**
    * Смертоносное столкновение с кораблем игрока:
    * "при столкновении корабля с метеоритом корабль должен сразу погибать"
+   * Защита: во время щита неуязвимости при спавне или форсаже гибель блокируется.
    */
   public checkPlayerCollision(
     player: PlayerShip,
     onFatalCrash: () => void,
   ): boolean {
     if (player.isGameOver) return false;
+
+    // Щит неуязвимости при спавне или форсаже спасает от мгновенной гибели
+    if (player.invulnTimer > 0 || player.isDashing) {
+      return false;
+    }
 
     // Радиус хитбокса корабля игрока (с учетом уменьшенного масштаба)
     const playerRadius = 20;
