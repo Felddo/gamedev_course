@@ -416,14 +416,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Применение всех сохраненных тактических улучшений текущей кампании
+   * Применение всех сохраненных тактических улучшений и модификаций текущей кампании
    * Каждое улучшение применяется ровно один раз!
    */
   public applyCampaignUpgrades(): void {
+    this.playerShip.resetUpgrades();
+    this.weaponSystem.resetUpgrades();
+    this.scrapManager.resetModifications();
+
     const campaignUpgrades = campaignManager.getAppliedUpgradeIds();
     for (const upgradeId of campaignUpgrades) {
       this.playerShip.applyUpgrade(upgradeId);
       this.weaponSystem.applyUpgrade(upgradeId);
+      this.scrapManager.applyModification(upgradeId);
     }
   }
 
@@ -437,8 +442,11 @@ export class GameScene extends Phaser.Scene {
     this.killsCount += 1;
     this.score += scoreGained;
     this.checkPhaseProgression();
-    const scrapDrop = getEnemyScrapDrop(enemyType, isBoss);
+    let scrapDrop = getEnemyScrapDrop(enemyType, isBoss);
     if (scrapDrop > 0) {
+      if (campaignManager.getAppliedUpgradeIds().includes('scrap_recycler')) {
+        scrapDrop = Math.max(1, Math.round(scrapDrop * 1.2));
+      }
       this.scrapManager.spawnScrap(ex, ey, scrapDrop);
     }
     if (isBoss) {
@@ -547,7 +555,7 @@ export class GameScene extends Phaser.Scene {
         );
         const effectiveDist = Math.max(0, distToStation - targetedStation.boundingRadius);
         // Стреляем по захваченной базе, когда она в радиусе досягаемости орудий
-        if (effectiveDist <= PLAYER_ATTACK_RADIUS) {
+        if (effectiveDist <= this.playerShip.getAttackRadius()) {
           hasTarget = true;
         }
         // Орудия направлены строго в центр базы
@@ -565,7 +573,7 @@ export class GameScene extends Phaser.Scene {
 
     // Если база НЕ захвачена, автонаводка стреляет по ближайшему противнику
     if (!this.spaceStationManager.getTargetedStation()) {
-      nearestEnemy = this.enemyManager.findNearestEnemy(this.playerShip.x, this.playerShip.y, PLAYER_ATTACK_RADIUS);
+      nearestEnemy = this.enemyManager.findNearestEnemy(this.playerShip.x, this.playerShip.y, this.playerShip.getAttackRadius());
       if (nearestEnemy && nearestEnemy.sprite?.active && nearestEnemy.hp > 0) {
         hasTarget = true;
         this.playerShip.aimAngle = Phaser.Math.Angle.Between(

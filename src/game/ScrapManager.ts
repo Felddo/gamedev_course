@@ -13,9 +13,20 @@ import { ScrapPickup } from './types';
 export class ScrapManager {
   private scene: Phaser.Scene;
   private items: ScrapPickup[] = [];
+  public magnetRadiusMultiplier = 1.0;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+  }
+
+  public applyModification(id: string): void {
+    if (id === 'magnetic_collector') {
+      this.magnetRadiusMultiplier = 1.6;
+    }
+  }
+
+  public resetModifications(): void {
+    this.magnetRadiusMultiplier = 1.0;
   }
 
   public getItems(): ScrapPickup[] {
@@ -99,7 +110,7 @@ export class ScrapManager {
     onCollect: (value: number) => void,
     particleManager?: ParticleManager,
   ): void {
-    const MAGNET_RADIUS = 160;
+    const MAGNET_RADIUS = 160 * this.magnetRadiusMultiplier;
     const COLLECT_RADIUS = 30;
 
     for (let i = this.items.length - 1; i >= 0; i--) {
@@ -173,6 +184,7 @@ export class ScrapManager {
   }
 
   public reset(): void {
+    this.resetModifications();
     for (const item of this.items) {
       item.sprite.destroy();
     }

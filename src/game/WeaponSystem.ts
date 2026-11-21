@@ -38,6 +38,17 @@ export class WeaponSystem {
   public hasPiercing = false;
   public cooldownMultiplier = 1.0;
 
+  // Модификации корабля
+  public modFireRateMultiplier = 1.0;
+  public modDamageMultiplier = 1.0;
+  public hasPlasmaMunitions = false;
+  public hasEmpDischarge = false;
+  public hasAnnihilationProtocol = false;
+
+  public getBulletDamage(baseDamage: number): number {
+    return (baseDamage + this.bulletDamageBonus) * this.modDamageMultiplier;
+  }
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
   }
@@ -76,6 +87,17 @@ export class WeaponSystem {
       this.cooldownMultiplier = 0.55;
     } else if (upgradeId === 'turret_piercing_slugs') {
       this.hasPiercing = true;
+    } else if (upgradeId === 'overclocked_capacitor') {
+      this.modFireRateMultiplier *= 1.15;
+    } else if (upgradeId === 'reinforced_barrels') {
+      this.modDamageMultiplier *= 1.2;
+      this.modFireRateMultiplier *= 0.9;
+    } else if (upgradeId === 'plasma_munitions') {
+      this.hasPlasmaMunitions = true;
+    } else if (upgradeId === 'emp_discharge') {
+      this.hasEmpDischarge = true;
+    } else if (upgradeId === 'annihilation_protocol') {
+      this.hasAnnihilationProtocol = true;
     }
   }
 
@@ -86,6 +108,11 @@ export class WeaponSystem {
     this.hasRapidPlasma = false;
     this.hasPiercing = false;
     this.cooldownMultiplier = 1.0;
+    this.modFireRateMultiplier = 1.0;
+    this.modDamageMultiplier = 1.0;
+    this.hasPlasmaMunitions = false;
+    this.hasEmpDischarge = false;
+    this.hasAnnihilationProtocol = false;
   }
 
   public applyAssemblyStats(stats: CalculatedShipStats): void {
@@ -103,7 +130,7 @@ export class WeaponSystem {
     hasTarget = true,
   ): void {
     const baseCooldown = player.isSuperMode ? SUPER_BLASTER_COOLDOWN : BLASTER_COOLDOWN;
-    const currentCooldown = (baseCooldown * this.cooldownMultiplier) / this.fireRateMultiplier;
+    const currentCooldown = (baseCooldown * this.cooldownMultiplier) / (this.fireRateMultiplier * this.modFireRateMultiplier);
     this.blasterTimer += seconds;
     if (this.blasterTimer < currentCooldown) return;
 
@@ -224,8 +251,8 @@ export class WeaponSystem {
       vx,
       vy,
       lifetime: (BLASTER_RANGE * 1.15) / speed,
-      damage: BLASTER_DAMAGE + this.bulletDamageBonus,
-      isExplosive: this.hasExplosiveShells,
+      damage: this.getBulletDamage(BLASTER_DAMAGE),
+      isExplosive: this.hasExplosiveShells || this.hasPlasmaMunitions,
       pierceCount: this.hasPiercing ? 2 : 1,
       hitEnemies: new Set(),
     });
@@ -268,8 +295,8 @@ export class WeaponSystem {
       vx,
       vy,
       lifetime: BLASTER_RANGE / SUPER_BLASTER_SPEED,
-      damage: SUPER_BLASTER_DAMAGE + this.bulletDamageBonus,
-      isExplosive: this.hasExplosiveShells,
+      damage: this.getBulletDamage(SUPER_BLASTER_DAMAGE),
+      isExplosive: this.hasExplosiveShells || this.hasPlasmaMunitions,
       pierceCount: this.hasPiercing ? 2 : 1,
       hitEnemies: new Set(),
     });

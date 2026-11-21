@@ -642,6 +642,72 @@ export class ParticleManager {
     }
   }
 
+  /**
+   * Электрическая дуга между двумя координатами (Электромагнитный разряд)
+   */
+  public spawnElectricArc(x1: number, y1: number, x2: number, y2: number): void {
+    const gfx = this.scene.add.graphics();
+    gfx.setDepth(15);
+
+    const dist = Phaser.Math.Distance.Between(x1, y1, x2, y2);
+    const steps = Math.max(4, Math.min(10, Math.floor(dist / 30)));
+    const angle = Phaser.Math.Angle.Between(x1, y1, x2, y2);
+    const perpAngle = angle + Math.PI / 2;
+
+    const points: Array<{ x: number; y: number }> = [{ x: x1, y: y1 }];
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const baseX = Phaser.Math.Linear(x1, x2, t);
+      const baseY = Phaser.Math.Linear(y1, y2, t);
+      const jitter = Phaser.Math.Between(-14, 14);
+      points.push({
+        x: baseX + Math.cos(perpAngle) * jitter,
+        y: baseY + Math.sin(perpAngle) * jitter,
+      });
+    }
+    points.push({ x: x2, y: y2 });
+
+    // Внешнее свечение дуги
+    gfx.lineStyle(4.5, 0x0284c7, 0.6);
+    gfx.beginPath();
+    gfx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      gfx.lineTo(points[i].x, points[i].y);
+    }
+    gfx.strokePath();
+
+    // Яркое белое ядро молнии
+    gfx.lineStyle(1.8, 0xffffff, 0.95);
+    gfx.beginPath();
+    gfx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      gfx.lineTo(points[i].x, points[i].y);
+    }
+    gfx.strokePath();
+
+    // Искры на концах дуги
+    for (const pt of [points[0], points[points.length - 1]]) {
+      const spark = this.scene.add.circle(pt.x, pt.y, 4, 0x67e8f9, 0.9);
+      spark.setDepth(16);
+      this.scene.tweens.add({
+        targets: spark,
+        alpha: 0,
+        scale: 1.8,
+        duration: 160,
+        onComplete: () => spark.destroy(),
+      });
+    }
+
+    // Быстрое затухание графики
+    this.scene.tweens.add({
+      targets: gfx,
+      alpha: 0,
+      duration: 160,
+      ease: 'Quad.easeOut',
+      onComplete: () => gfx.destroy(),
+    });
+  }
+
   public destroy(): void {
     this.reset();
   }

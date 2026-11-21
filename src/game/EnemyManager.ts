@@ -659,17 +659,24 @@ export class EnemyManager {
           enemy.sprite.setTint(0xffffff);
           enemy.isHitFlash = 0.08;
 
-          const damage = laser.damage ?? BLASTER_DAMAGE;
+          const baseDamage = laser.damage ?? BLASTER_DAMAGE;
+          const isBoss = enemy.type === 'boss' || !!enemy.isBoss || this.activeBoss === enemy;
+          const damage = (isBoss && weaponSystem.hasAnnihilationProtocol)
+            ? baseDamage * 1.3
+            : baseDamage;
           enemy.hp -= damage;
 
-          // Взрывные снаряды: осколочно-фугасный урон по площади
+          // Взрывные снаряды: осколочно-фугасный урон по площади (Плазменные боеприпасы)
           if (laser.isExplosive) {
             particleManager.spawnExplosion(laser.sprite.x, laser.sprite.y);
             const splashRadius = 110;
+            const hitInSplash = new Set<EnemyShip>();
 
             for (let s = this.enemies.length - 1; s >= 0; s--) {
               if (s === e) continue;
               const splashTarget = this.enemies[s];
+              if (!splashTarget || hitInSplash.has(splashTarget)) continue;
+
               const splashDist = Phaser.Math.Distance.Between(
                 laser.sprite.x,
                 laser.sprite.y,
@@ -677,12 +684,63 @@ export class EnemyManager {
                 splashTarget.sprite.y,
               );
               if (splashDist <= splashRadius) {
+                hitInSplash.add(splashTarget);
                 splashTarget.sprite.setTint(0xffffff);
                 splashTarget.isHitFlash = 0.08;
-                splashTarget.hp -= damage * 0.7;
+                const splashIsBoss = splashTarget.type === 'boss' || !!splashTarget.isBoss || this.activeBoss === splashTarget;
+                const splashBaseDamage = baseDamage * 0.7;
+                const splashDamage = (splashIsBoss && weaponSystem.hasAnnihilationProtocol)
+                  ? splashBaseDamage * 1.3
+                  : splashBaseDamage;
+                splashTarget.hp -= splashDamage;
                 if (splashTarget.hp <= 0) {
                   this.destroyEnemy(s, particleManager, onEnemyKilled);
                   if (s < e) {
+                    e--;
+                  }
+                }
+              }
+            }
+          }
+
+          // Электромагнитный разряд: 15% шанс вызвать электрическую дугу по ближайшему другому врагу
+          if (weaponSystem.hasEmpDischarge && Math.random() < 0.15) {
+            let nearestOther: EnemyShip | null = null;
+            let minOtherDist = 320;
+            for (let o = 0; o < this.enemies.length; o++) {
+              const other = this.enemies[o];
+              if (other === enemy || other.hp <= 0 || !other.sprite?.active) continue;
+              const d = Phaser.Math.Distance.Between(
+                laser.sprite.x,
+                laser.sprite.y,
+                other.sprite.x,
+                other.sprite.y,
+              );
+              if (d < minOtherDist) {
+                minOtherDist = d;
+                nearestOther = other;
+              }
+            }
+            if (nearestOther) {
+              particleManager.spawnElectricArc(
+                laser.sprite.x,
+                laser.sprite.y,
+                nearestOther.sprite.x,
+                nearestOther.sprite.y,
+              );
+              soundFx.playHit();
+              nearestOther.sprite.setTint(0x38bdf8);
+              nearestOther.isHitFlash = 0.08;
+              const arcIsBoss = nearestOther.type === 'boss' || !!nearestOther.isBoss || this.activeBoss === nearestOther;
+              const arcDamage = (arcIsBoss && weaponSystem.hasAnnihilationProtocol)
+                ? baseDamage * 1.3
+                : baseDamage;
+              nearestOther.hp -= arcDamage;
+              if (nearestOther.hp <= 0) {
+                const otherIdx = this.enemies.indexOf(nearestOther);
+                if (otherIdx !== -1) {
+                  this.destroyEnemy(otherIdx, particleManager, onEnemyKilled);
+                  if (otherIdx < e) {
                     e--;
                   }
                 }

@@ -79,6 +79,15 @@ export class PlayerShip {
   public onFireTrailSpawn: ((x: number, y: number) => void) | null = null;
   private normalFireTrailTimer = 0;
 
+  // Модификации корабля (Soul Knight style)
+  public attackRadiusMultiplier = 1.0;
+  public modDamageReduction = 0;
+  public modMoveSpeedMultiplier = 1.0;
+
+  public getAttackRadius(): number {
+    return PLAYER_ATTACK_RADIUS * this.attackRadiusMultiplier;
+  }
+
   // Режим автопилота для главного экрана
   public isAutopilot = false;
   private autopilotDashTimer = 0;
@@ -388,11 +397,11 @@ export class PlayerShip {
   /**
    * Отрисовка визуально малозаметного круга радиуса поражения корабля
    */
-  private drawAttackRangeCircle(): void {
+  public drawAttackRangeCircle(): void {
     if (!this.attackRangeCircle) return;
     this.attackRangeCircle.clear();
 
-    const radius = PLAYER_ATTACK_RADIUS;
+    const radius = this.getAttackRadius();
 
     // Мягкая малозаметная полупрозрачная подсветка зоны поражения
     this.attackRangeCircle.fillStyle(0x38bdf8, 0.02);
@@ -607,8 +616,8 @@ export class PlayerShip {
       if (this.isDashing) {
         this.dashTimer -= seconds;
         const progress = 1 - Math.max(0, this.dashTimer / DASH_DURATION);
-        const dashSpeed = DASH_SPEED * (this.installedStats?.dashSpeedMultiplier || 1.0);
-        const currentSpeed = Phaser.Math.Linear(dashSpeed, PLAYER_SPEED * 1.3, progress);
+        const dashSpeed = DASH_SPEED * (this.installedStats?.dashSpeedMultiplier || 1.0) * this.modMoveSpeedMultiplier;
+        const currentSpeed = Phaser.Math.Linear(dashSpeed, (PLAYER_SPEED * 1.3) * this.modMoveSpeedMultiplier, progress);
 
         const sideAngle = this.dashMoveAngle + Math.PI / 2;
         const driftSlip = Math.sin(progress * Math.PI) * 195 * Math.sign(this.dashDriftYaw);
@@ -667,7 +676,7 @@ export class PlayerShip {
         const angleDiff = Phaser.Math.Angle.Wrap(desiredMoveAngle - this.lastMoveAngle);
         this.lastMoveAngle = this.lastMoveAngle + angleDiff * Math.min(1, 4.2 * seconds);
 
-        const currentSpeed = PLAYER_SPEED * this.speedMultiplier;
+        const currentSpeed = PLAYER_SPEED * this.speedMultiplier * this.modMoveSpeedMultiplier;
         this.shipSprite.x += Math.cos(this.lastMoveAngle) * currentSpeed * seconds;
         this.shipSprite.y += Math.sin(this.lastMoveAngle) * currentSpeed * seconds;
         isMoving = true;
@@ -688,8 +697,8 @@ export class PlayerShip {
       if (this.isDashing) {
         this.dashTimer -= seconds;
         const progress = 1 - Math.max(0, this.dashTimer / DASH_DURATION);
-        const dashSpeed = DASH_SPEED * (this.installedStats?.dashSpeedMultiplier || 1.0);
-        const currentSpeed = Phaser.Math.Linear(dashSpeed, PLAYER_SPEED * 1.3, progress);
+        const dashSpeed = DASH_SPEED * (this.installedStats?.dashSpeedMultiplier || 1.0) * this.modMoveSpeedMultiplier;
+        const currentSpeed = Phaser.Math.Linear(dashSpeed, (PLAYER_SPEED * 1.3) * this.modMoveSpeedMultiplier, progress);
 
         const sideAngle = this.dashMoveAngle + Math.PI / 2;
         const driftSlip = Math.sin(progress * Math.PI) * 195 * Math.sign(this.dashDriftYaw);
@@ -730,8 +739,8 @@ export class PlayerShip {
         if (isMoving) {
           const modSpeedMult = this.installedStats?.speedMultiplier || 1.0;
           const len = Math.hypot(dx, dy);
-          const moveX = (dx / len) * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * seconds;
-          const moveY = (dy / len) * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * seconds;
+          const moveX = (dx / len) * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * this.modMoveSpeedMultiplier * seconds;
+          const moveY = (dy / len) * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * this.modMoveSpeedMultiplier * seconds;
 
           this.shipSprite.x += moveX;
           this.shipSprite.y += moveY;
@@ -1009,7 +1018,8 @@ export class PlayerShip {
     }
     if (this.invulnTimer > 0 || this.isDashing) return false;
 
-    const netDamage = Math.max(1, amount * (1 - this.damageReduction));
+    const baseReducedDamage = amount * (1 - this.damageReduction);
+    const netDamage = Math.max(1, baseReducedDamage * (1 - this.modDamageReduction));
     this.hp = Math.max(0, this.hp - netDamage);
     this.invulnTimer = PLAYER_INVULN_TIME;
     return this.hp <= 0;
@@ -1053,6 +1063,13 @@ export class PlayerShip {
       this.hasRamSpikes = true;
     } else if (upgradeId === 'tracks_emp_drift') {
       this.hasEmpDrift = true;
+    } else if (upgradeId === 'enhanced_targeting') {
+      this.attackRadiusMultiplier = 1.25;
+      this.drawAttackRangeCircle();
+    } else if (upgradeId === 'reinforced_armor') {
+      this.modDamageReduction = 0.15;
+    } else if (upgradeId === 'afterburner_thrusters') {
+      this.modMoveSpeedMultiplier = 1.15;
     }
   }
 
@@ -1095,6 +1112,10 @@ export class PlayerShip {
     this.hasRamSpikes = false;
     this.hasEmpDrift = false;
     this.normalFireTrailTimer = 0;
+    this.attackRadiusMultiplier = 1.0;
+    this.modDamageReduction = 0;
+    this.modMoveSpeedMultiplier = 1.0;
+    this.drawAttackRangeCircle();
     this.emitDashState();
   }
 

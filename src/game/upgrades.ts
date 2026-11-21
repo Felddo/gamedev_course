@@ -194,14 +194,16 @@ export const UPGRADE_POOL: ShipUpgrade[] = [
 ];
 
 /**
- * Миссии кампании, за завершение которых выдается тактическое улучшение на выбор:
- * 1-2, 1-4, 2-2, 2-4, 3-2, 3-4 (всего 6 выборов за кампанию)
+ * Миссии кампании, за завершение которых выдается модификация корабля:
+ * 1-2, 1-4, 2-1, 2-3, 3-1, 3-3 (всего 6 выборов за кампанию)
  */
-export const TACTICAL_UPGRADE_REWARD_MISSIONS = ['1-2', '1-4', '2-2', '2-4', '3-2', '3-4'];
+export const TACTICAL_UPGRADE_REWARD_MISSIONS = ['1-2', '1-4', '2-1', '2-3', '3-1', '3-3'];
 
 export function isTacticalUpgradeRewardMission(missionId: string): boolean {
   return TACTICAL_UPGRADE_REWARD_MISSIONS.includes(missionId);
 }
+
+export * from './modifications/modificationsData';
 
 /**
  * Выбрать n случайных уникальных улучшений из пула (исключая уже установленные)

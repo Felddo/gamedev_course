@@ -8,6 +8,10 @@ import {
   getModuleById,
   isModuleAvailableForPurchase,
 } from '../shipBuilder/modulesCatalog';
+import {
+  MODIFICATION_REWARD_MISSIONS,
+  isModificationRewardMission,
+} from '../modifications/modificationsData';
 
 const STORAGE_KEY = 'iron_resolve_campaign_save';
 
@@ -155,6 +159,42 @@ export class CampaignManager {
       this.saveData.rewardedTacticalMissions.push(missionId);
     }
     this.saveToStorage();
+  }
+
+  /**
+   * Проверить, является ли миссия контрольной для получения модификации (1-2, 1-4, 2-1, 2-3, 3-1, 3-3)
+   */
+  public isModificationRewardMission(missionId: string): boolean {
+    return isModificationRewardMission(missionId);
+  }
+
+  /**
+   * Проверить, была ли уже получена модификация за данную контрольную миссию
+   */
+  public isModificationMissionRewarded(missionId: string): boolean {
+    return this.saveData.rewardedTacticalMissions.includes(missionId);
+  }
+
+  /**
+   * Проверить, есть ли завершенная контрольная миссия, за которую игрок еще не выбрал модификацию
+   */
+  public getPendingModificationMission(): string | null {
+    for (const mId of MODIFICATION_REWARD_MISSIONS) {
+      if (
+        this.saveData.completedMissions.includes(mId) &&
+        !this.saveData.rewardedTacticalMissions.includes(mId)
+      ) {
+        return mId;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Зафиксировать получение модификации за контрольную миссию
+   */
+  public recordModificationReward(missionId: string, modificationId: string): void {
+    this.recordTacticalUpgradeReward(missionId, modificationId);
   }
 
   /**

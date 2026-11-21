@@ -4,8 +4,9 @@ import { soundFx } from './game/audio';
 import { GAME_PHASES } from './game/constants';
 import { GameScene } from './game/GameScene';
 import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
+import { shipModificationModal } from './game/modifications/ShipModificationModal';
 import { campaignManager } from './game/campaign/CampaignManager';
-import { ScrapVictoryBreakdown } from './game/campaign/types';
+import { CampaignMission, ScrapVictoryBreakdown } from './game/campaign/types';
 import menuBgUrl from './assets/menu_bg.jpg';
 
 let phaserGame: Phaser.Game | null = null;
@@ -235,10 +236,63 @@ function launchGame(): void {
     }
   }
 
+  // Проверяем, есть ли неразыгранная модификация за завершенную контрольную миссию (например, после перезагрузки)
+  const pendingMission = campaignManager.getPendingModificationMission();
+  if (pendingMission) {
+    shipModificationModal.open(pendingMission, () => {
+      if (phaserGame) {
+        const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+        if (scene) {
+          scene.applyCampaignUpgrades();
+        }
+      }
+      const nextMission = campaignManager.getCurrentMission();
+      launchDirectCombat(nextMission);
+    });
+    return;
+  }
+
   // Появление голографического зеленого окна конструктора корабля
   shipBuilderModal.open();
 
   // Обновление размеров полноэкранного холста
+  window.requestAnimationFrame(() => {
+    phaserGame?.scale.refresh();
+  });
+}
+
+/**
+ * Прямой запуск следующей миссии без открытия конструктора корабля
+ * (используется после получения модификаций на контрольных уровнях)
+ */
+function launchDirectCombat(nextMission: CampaignMission): void {
+  isGamePaused = false;
+  isGameStarted = true;
+  mainMenu.classList.add('hidden');
+  gameContainer?.classList.remove('hidden');
+  dashHud?.classList.remove('hidden');
+  topEscBtn?.classList.remove('hidden');
+  modalPause?.classList.add('hidden');
+  hideMissionComplete();
+  hideCampaignComplete();
+  hideGameOver();
+
+  if (phaserGame) {
+    const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+    if (scene) {
+      if (scene.scene.isPaused()) {
+        scene.scene.resume();
+      }
+      scene.startCombatSession(nextMission);
+    }
+  }
+
+  showPhaseAnnouncement(
+    1,
+    nextMission.title,
+    `${nextMission.subtitle} // ${nextMission.briefing}`,
+  );
+
   window.requestAnimationFrame(() => {
     phaserGame?.scale.refresh();
   });
@@ -289,6 +343,7 @@ shipBuilderModal.onReturnToMenu = () => {
  * Возврат в главное меню с отображением menu_bg.jpg и кнопок управления
  */
 function returnToMainMenu(): void {
+  shipModificationModal.close();
   shipBuilderModal.close();
   hideGameOver();
   hideMissionComplete();
@@ -740,9 +795,16 @@ function showMissionComplete(
     if (mcScrapBalance) mcScrapBalance.textContent = currentBalance.toString();
   }
 
+  const isModReward = campaignManager.isModificationRewardMission(missionId) &&
+                      !campaignManager.isModificationMissionRewarded(missionId);
+
   if (btnMcNext) btnMcNext.disabled = false;
   if (btnMcNextText) {
-    btnMcNextText.textContent = `ДАЛЕЕ // ВЕРФЬ [${nextSector}-${nextMission}]`;
+    if (isModReward) {
+      btnMcNextText.textContent = 'ДАЛЕЕ // ВЫБОР МОДИФИКАЦИИ [SPACE]';
+    } else {
+      btnMcNextText.textContent = `ДАЛЕЕ // ВЕРФЬ [${nextSector}-${nextMission}]`;
+    }
   }
 
   modalMissionComplete?.classList.remove('hidden');
@@ -783,6 +845,28 @@ function startNextMission(): void {
     return;
   }
 
+  // Проверяем, полагается ли выбор модификации за завершенную контрольную миссию
+  const pendingMission = campaignManager.getPendingModificationMission();
+  if (pendingMission) {
+    shipModificationModal.open(pendingMission, (_selectedMod) => {
+      // Модификация немедленно применяется к кораблю в сцене
+      if (phaserGame) {
+        const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+        if (scene) {
+          scene.applyCampaignUpgrades();
+        }
+      }
+      // На уровнях с модификациями окно конструктора пропускается — сразу в бой
+      const nextMission = campaignManager.getCurrentMission();
+      launchDirectCombat(nextMission);
+    });
+    return;
+  }
+
+  openShipyardBeforeNextMission();
+}
+
+function openShipyardBeforeNextMission(): void {
   const nextMission = campaignManager.getCurrentMission();
 
   dashHud?.classList.add('hidden');
@@ -1038,6 +1122,11 @@ window.addEventListener('tank-super-state', ((e: CustomEvent<{
 
 // Горячие клавиши
 window.addEventListener('keydown', (e) => {
+  // Если открыт экран выбора модификаций корабля
+  if (shipModificationModal && shipModificationModal.isOpen()) {
+    return;
+  }
+
   // Если открыт конструктор корабля
   if (shipBuilderModal && shipBuilderModal.isOpen()) {
     if (e.key === 'Escape') {

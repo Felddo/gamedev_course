@@ -1,0 +1,421 @@
+/* ==========================================================
+   СИСТЕМА МОДИФИКАЦИЙ КОРАБЛЯ // SHIP MODIFICATIONS UI
+   Голографический интерфейс выбора модификаций в стиле Soul Knight
+   ========================================================== */
+
+#modal-modification {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 120;
+  background: rgba(1, 10, 7, 0.86);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+#modal-modification.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.modal-modification-window {
+  position: relative;
+  width: 100%;
+  max-width: 1060px;
+  background: rgba(3, 24, 18, 0.96);
+  border: 1.5px solid rgba(16, 185, 129, 0.7);
+  border-radius: 8px;
+  padding: 24px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(16, 185, 129, 0.35);
+  animation: modModalEnter 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes modModalEnter {
+  0% {
+    transform: scale(0.92) translateY(18px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.mod-header-wrap {
+  text-align: center;
+  margin-bottom: 22px;
+  position: relative;
+}
+
+.mod-badge {
+  display: inline-block;
+  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  padding: 4px 14px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+}
+
+.mod-title {
+  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #ecfdf5;
+  text-shadow: 0 0 20px rgba(52, 211, 153, 0.65);
+  margin-bottom: 6px;
+}
+
+.mod-subtitle {
+  font-family: var(--font-ui, 'Rajdhani', sans-serif);
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  color: #a7f3d0;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+/* Сетка из 3 карточек */
+.mod-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+/* Отдельная карточка модификации */
+.mod-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(5, 36, 28, 0.95) 0%, rgba(2, 18, 14, 0.98) 100%);
+  border: 1.5px solid var(--card-border, rgba(16, 185, 129, 0.5));
+  border-radius: 6px;
+  padding: 22px 18px;
+  cursor: pointer;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s ease,
+              opacity 0.25s ease;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Декоративные голографические уголки */
+.mod-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--card-accent, #10b981), transparent);
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.mod-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--card-accent, #34d399);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8),
+              0 0 24px var(--card-glow, rgba(16, 185, 129, 0.45)),
+              inset 0 0 16px var(--card-inner-glow, rgba(16, 185, 129, 0.15));
+}
+
+.mod-card:active {
+  transform: translateY(-2px) scale(0.99);
+}
+
+/* Состояние выбора (подтверждение) */
+.mod-card.selected {
+  border-color: #facc15 !important;
+  box-shadow: 0 0 35px rgba(250, 204, 21, 0.7), inset 0 0 20px rgba(250, 204, 21, 0.3) !important;
+  transform: scale(1.04) translateY(-8px) !important;
+  animation: modSelectedPulse 0.45s ease infinite alternate;
+}
+
+@keyframes modSelectedPulse {
+  0% { box-shadow: 0 0 25px rgba(250, 204, 21, 0.6); }
+  100% { box-shadow: 0 0 45px rgba(250, 204, 21, 0.95); }
+}
+
+.mod-card.dimmed {
+  opacity: 0.28;
+  transform: scale(0.96);
+  pointer-events: none;
+}
+
+/* Верхняя строка карточки: категория */
+.mod-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.mod-category-badge {
+  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  color: var(--card-accent, #34d399);
+  background: var(--card-badge-bg, rgba(16, 185, 129, 0.16));
+  border: 1px solid var(--card-accent, rgba(16, 185, 129, 0.4));
+}
+
+.mod-card-index {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: rgba(167, 243, 208, 0.6);
+  letter-spacing: 1px;
+}
+
+/* Контейнер иконки */
+.mod-icon-wrapper {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 16px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(6, 42, 33, 0.9) 0%, rgba(2, 18, 14, 0.7) 70%);
+  border: 1.5px solid var(--card-accent, rgba(16, 185, 129, 0.45));
+  border-radius: 8px;
+  box-shadow: 0 0 16px var(--card-glow, rgba(16, 185, 129, 0.25));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mod-card:hover .mod-icon-wrapper {
+  transform: scale(1.08) rotate(-1.5deg);
+  box-shadow: 0 0 24px var(--card-glow, rgba(16, 185, 129, 0.5));
+}
+
+.mod-icon-svg {
+  width: 54px;
+  height: 54px;
+  filter: drop-shadow(0 0 6px var(--card-accent, rgba(16, 185, 129, 0.6)));
+}
+
+/* Название модификации */
+.mod-name {
+  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #ecfdf5;
+  text-align: center;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  line-height: 1.25;
+}
+
+/* Плашка числового значения бонуса */
+.mod-bonus-badge {
+  display: block;
+  text-align: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+  background: var(--card-accent, #10b981);
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Краткое описание эффекта */
+.mod-desc,
+.mod-short-desc {
+  font-family: var(--font-ui, 'Rajdhani', sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #d1fae5;
+  text-align: center;
+  flex-grow: 1;
+  margin-bottom: 16px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Кнопка выбора в карточке */
+.mod-select-btn {
+  width: 100%;
+  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #ffffff;
+  background: linear-gradient(180deg, var(--card-accent, #10b981) 0%, var(--card-secondary, #059669) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  padding: 10px 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 12px var(--card-glow, rgba(16, 185, 129, 0.35));
+}
+
+.mod-card:hover .mod-select-btn {
+  background: linear-gradient(180deg, #34d399 0%, var(--card-accent, #10b981) 100%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 18px var(--card-glow, rgba(52, 211, 153, 0.6));
+  transform: translateY(-1px);
+}
+
+.mod-select-btn:active {
+  transform: translateY(1px);
+}
+
+.mod-card.selected .mod-select-btn {
+  background: #facc15 !important;
+  color: #1a1202 !important;
+  border-color: #ffffff !important;
+  font-weight: 900;
+}
+
+/* Подвал модального окна */
+.mod-footer {
+  text-align: center;
+  padding-top: 10px;
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.mod-hint-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #6ee7b7;
+  opacity: 0.8;
+}
+
+/* ==========================================================
+   АДАПТИВНОСТЬ: НОУТБУКИ, ПЛАНШЕТЫ И МОБИЛЬНЫЕ УСТРОЙСТВА
+   ========================================================== */
+
+@media (max-width: 900px) {
+  .modal-modification-window {
+    padding: 18px 20px;
+    max-width: 95vw;
+  }
+  .mod-title {
+    font-size: 22px;
+  }
+  .mod-cards-grid {
+    gap: 14px;
+  }
+  .mod-card {
+    padding: 16px 14px;
+  }
+  .mod-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 12px;
+  }
+  .mod-icon-svg {
+    width: 44px;
+    height: 44px;
+  }
+  .mod-name {
+    font-size: 13px;
+    min-height: 36px;
+  }
+  .mod-bonus-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  .mod-desc,
+  .mod-short-desc {
+    font-size: 13px;
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 680px) {
+  #modal-modification {
+    padding: 10px;
+    align-items: flex-start;
+  }
+  .modal-modification-window {
+    padding: 16px 14px;
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+  .mod-header-wrap {
+    margin-bottom: 14px;
+  }
+  .mod-title {
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+  .mod-subtitle {
+    font-size: 12px;
+  }
+  .mod-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .mod-card {
+    padding: 14px 16px;
+  }
+  .mod-card-top {
+    margin-bottom: 8px;
+  }
+  .mod-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 10px;
+  }
+  .mod-icon-svg {
+    width: 38px;
+    height: 38px;
+  }
+  .mod-name {
+    font-size: 14px;
+    min-height: auto;
+    margin-bottom: 6px;
+  }
+  .mod-bonus-badge {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+  .mod-desc,
+  .mod-short-desc {
+    font-size: 13px;
+    min-height: auto;
+    margin-bottom: 12px;
+  }
+}
