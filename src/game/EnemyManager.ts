@@ -187,7 +187,12 @@ export class EnemyManager {
     return nearest;
   }
 
-  public handleSpawning(seconds: number, survivalTime: number, cam: Phaser.Cameras.Scene2D.Camera): void {
+  public handleSpawning(
+    seconds: number,
+    survivalTime: number,
+    cam: Phaser.Cameras.Scene2D.Camera,
+    killsCount = 0,
+  ): void {
     if (this.isSpawningStopped) return;
 
     // 1. Проверка появления босса миссии
@@ -196,7 +201,11 @@ export class EnemyManager {
       !this.bossSpawned &&
       this.currentMission.bossConfig
     ) {
-      if (survivalTime >= this.currentMission.bossConfig.spawnDelay) {
+      const spawnDelay = this.currentMission.bossConfig.spawnDelay ?? 60;
+      const spawnKills =
+        this.currentMission.bossConfig.spawnKills ??
+        (this.currentMission.targetKills ?? 20);
+      if (survivalTime >= spawnDelay || killsCount >= spawnKills) {
         this.spawnBoss(cam, this.currentMission.bossConfig);
         this.bossSpawned = true;
       }

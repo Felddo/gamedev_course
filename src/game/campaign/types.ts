@@ -25,6 +25,7 @@ export interface MissionBossConfig {
   bulletDamage: number;         // Урон снарядов босса
   bulletSpeed: number;          // Скорость снарядов
   spawnDelay: number;           // Задержка появления босса от начала миссии (в секундах)
+  spawnKills?: number;          // Порог сбитых врагов для раннего вызова босса
   spreadCount: number;          // Количество снарядов в залпе (3, 5 и т.д.)
   tint?: number;                // Цветовой оттенок спрайта
 }
@@ -38,6 +39,7 @@ export interface CampaignMission {
   briefing: string;             // Краткое тактическое описание
   isBoss: boolean;              // Является ли миссия боссовой (1-5, 2-5, 3-5)
   targetDuration: number;       // Продолжительность миссии в секундах (обычные: 120-150s, боссы: 180-220s)
+  targetKills?: number;         // Необходимое количество сбитых врагов для завершения миссии или вызова босса
   enemyConfig: MissionEnemyConfig;
   bossConfig?: MissionBossConfig;
 }

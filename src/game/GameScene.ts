@@ -37,7 +37,6 @@ import { AtmosphereManager } from './AtmosphereManager';
 import { HudManager } from './HudManager';
 import { MeteorManager } from './MeteorManager';
 import { SpaceStationManager } from './SpaceStationManager';
-import { ExperienceManager } from './ExperienceManager';
 import { ScrapManager } from './ScrapManager';
 import { getEnemyScrapDrop } from './campaign/scrapConfig';
 import { buildPartsCatalog } from './shipBuilder/partsCatalog';
@@ -62,7 +61,6 @@ export class GameScene extends Phaser.Scene {
   public hudManager!: HudManager;
   private meteorManager!: MeteorManager;
   private spaceStationManager!: SpaceStationManager;
-  private experienceManager!: ExperienceManager;
   private scrapManager!: ScrapManager;
 
   // Опасные зоны плазменного шлейфа двигателей
@@ -223,16 +221,8 @@ export class GameScene extends Phaser.Scene {
         this.triggerMissionVictory();
       }
     };
-    this.enemyManager.onBossSpawned = (boss) => {
-      window.dispatchEvent(
-        new CustomEvent('phase-changed', {
-          detail: {
-            phase: 2,
-            title: boss.bossName || 'БОСС СЕКТОРА',
-            subtitle: 'ТРЕВОГА // В СЕКТОР ВОШЕЛ ВРАЖЕСКИЙ ФЛАГМАН!',
-          },
-        }),
-      );
+    this.enemyManager.onBossSpawned = (_boss) => {
+      // Окошко фаз убрано, индикация босса отображается на верхней панели HUD
     };
 
     // 6. Настройка камеры для слежения за кораблем
@@ -251,10 +241,7 @@ export class GameScene extends Phaser.Scene {
     this.spaceStationManager = new SpaceStationManager(this);
     this.spaceStationManager.createInitialStations(2);
 
-    // 8.2. Инициализация менеджера фиолетового голографического опыта
-    this.experienceManager = new ExperienceManager(this);
-
-    // 8.3. Инициализация менеджера валюты «Металлолом»
+    // 8.2. Инициализация менеджера валюты «Металлолом»
     this.scrapManager = new ScrapManager(this);
 
     // 9. Установка начальной фазы боя
@@ -283,7 +270,6 @@ export class GameScene extends Phaser.Scene {
       this.hudManager.destroy();
       this.meteorManager.destroy();
       this.spaceStationManager.destroy();
-      this.experienceManager.destroy();
       this.scrapManager.destroy();
     });
   }
@@ -295,7 +281,6 @@ export class GameScene extends Phaser.Scene {
     this.playerShip.setVisible(false);
     this.playerShip.setAutopilot(false);
     this.hudManager.setVisible(false);
-    this.experienceManager.reset();
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
     this.wasBossKilled = false;
@@ -318,7 +303,6 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.reset();
     this.weaponSystem.reset();
     this.weaponSystem.resetUpgrades();
-    this.experienceManager.reset();
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
     this.wasBossKilled = false;
@@ -343,7 +327,6 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.reset();
     this.weaponSystem.reset();
     this.weaponSystem.resetUpgrades();
-    this.experienceManager.reset();
     this.scrapManager.reset();
 
     this.enemyManager.setMission(this.currentMission);
@@ -369,7 +352,6 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setFollowOffset(0, 0);
     this.hudManager.setVisible(true);
 
-    this.notifyPhaseChange(1);
     this.playerShip.emitDashState();
     this.playerShip.emitSuperState();
   }
@@ -378,8 +360,8 @@ export class GameScene extends Phaser.Scene {
    * Подготовка боевой сессии для голографического конструктора:
    * Игра замирает, корабль игрока и HUD скрываются, сцена на паузе
    */
-  public pauseCombatSessionForBuilder(): void {
-    this.startCombatSession();
+  public pauseCombatSessionForBuilder(customMission?: CampaignMission): void {
+    this.startCombatSession(customMission);
     this.playerShip.setVisible(false);
     this.hudManager.setVisible(false);
     this.scene.pause();
@@ -433,13 +415,27 @@ export class GameScene extends Phaser.Scene {
     isBoss?: boolean,
   ): void {
     this.killsCount += 1;
-    this.experienceManager.spawnOrbs(ex, ey, scoreGained);
+    this.score += scoreGained;
+    this.checkPhaseProgression();
     const scrapDrop = getEnemyScrapDrop(enemyType, isBoss);
     if (scrapDrop > 0) {
       this.scrapManager.spawnScrap(ex, ey, scrapDrop);
     }
     if (isBoss) {
       this.wasBossKilled = true;
+    }
+
+    // Проверка победы в обычной миссии кампании (по числу уничтоженных врагов)
+    if (
+      this.currentMission &&
+      !this.currentMission.isBoss &&
+      !this.isGameOver &&
+      !this.isMissionWon
+    ) {
+      const targetKills = this.currentMission.targetKills ?? 25;
+      if (this.killsCount >= targetKills) {
+        this.triggerMissionVictory();
+      }
     }
   }
 
@@ -469,16 +465,18 @@ export class GameScene extends Phaser.Scene {
 
     this.survivalTime += seconds;
 
-    // Проверка победы в обычной миссии кампании (по истечении времени выживания)
+    // Проверка победы в обычной миссии кампании (по числу уничтоженных врагов)
     if (
       this.currentMission &&
       !this.currentMission.isBoss &&
-      this.survivalTime >= this.currentMission.targetDuration &&
       !this.isGameOver &&
       !this.isMissionWon
     ) {
-      this.triggerMissionVictory();
-      return;
+      const targetKills = this.currentMission.targetKills ?? 25;
+      if (this.killsCount >= targetKills) {
+        this.triggerMissionVictory();
+        return;
+      }
     }
 
     // 1. Процедурный космос: движение звезд и мерцание звездной пыли
@@ -590,8 +588,9 @@ export class GameScene extends Phaser.Scene {
     this.meteorManager.checkLaserCollisions(
       this.weaponSystem,
       this.particleManager,
-      (scoreGained, mx, my) => {
-        this.experienceManager.spawnOrbs(mx, my, scoreGained);
+      (scoreGained) => {
+        this.score += scoreGained;
+        this.checkPhaseProgression();
       },
     );
 
@@ -609,10 +608,9 @@ export class GameScene extends Phaser.Scene {
     this.spaceStationManager.checkLaserCollisions(
       this.weaponSystem,
       this.particleManager,
-      (scoreGained, sx, sy) => {
-        const dropX = sx ?? this.playerShip.x;
-        const dropY = sy ?? this.playerShip.y;
-        this.experienceManager.spawnOrbs(dropX, dropY, scoreGained);
+      (scoreGained) => {
+        this.score += scoreGained;
+        this.checkPhaseProgression();
       },
       this.enemyManager,
       this.meteorManager,
@@ -620,10 +618,10 @@ export class GameScene extends Phaser.Scene {
     );
 
     // 6. Спавн и поведение кораблей противника
-    this.enemyManager.handleSpawning(seconds, this.survivalTime, this.cameras.main);
+    this.enemyManager.handleSpawning(seconds, this.survivalTime, this.cameras.main, this.killsCount);
     this.enemyManager.update(seconds, this.playerShip.x, this.playerShip.y, this.particleManager);
 
-    // 7. Попадания снарядов по вражеским кораблям (выпадение сфер опыта и металлолома)
+    // 7. Попадания снарядов по вражеским кораблям (выпадение металлолома)
     this.enemyManager.checkLaserCollisions(
       this.weaponSystem,
       this.particleManager,
@@ -655,10 +653,9 @@ export class GameScene extends Phaser.Scene {
           hazard.radius,
           0.4,
           this.particleManager,
-          (scoreGained, sx, sy) => {
-            const dropX = sx ?? hazard.x;
-            const dropY = sy ?? hazard.y;
-            this.experienceManager.spawnOrbs(dropX, dropY, scoreGained);
+          (scoreGained) => {
+            this.score += scoreGained;
+            this.checkPhaseProgression();
           },
           this.enemyManager,
           this.meteorManager,
@@ -686,19 +683,7 @@ export class GameScene extends Phaser.Scene {
       },
     );
 
-    // 8.1. Обновление фиолетового голографического опыта: притягивание и сбор
-    this.experienceManager.update(
-      seconds,
-      this.playerShip.x,
-      this.playerShip.y,
-      (expGained) => {
-        this.score += expGained;
-        this.checkPhaseProgression();
-      },
-      this.particleManager,
-    );
-
-    // 8.2. Обновление фрагментов металлолома: разлет, притягивание и сбор
+    // 8.1. Обновление фрагментов металлолома: разлет, притягивание и сбор
     this.scrapManager.update(
       seconds,
       this.playerShip.x,
@@ -712,7 +697,7 @@ export class GameScene extends Phaser.Scene {
     // 9. Обновление частиц и спецэффектов
     this.particleManager.update(seconds);
 
-    // 10. Обновление интерфейса HUD, фиолетовой полоски опыта, металлолома и тактического радара
+    // 10. Обновление интерфейса HUD, металлолома и тактического радара
     this.hudManager.update(
       this.playerShip.hp,
       this.survivalTime,
@@ -728,7 +713,6 @@ export class GameScene extends Phaser.Scene {
       this.meteorManager.getMeteors(),
       this.spaceStationManager.getStations(),
       this.spaceStationManager.getTargetedStation(),
-      this.experienceManager.getOrbs(),
       this.enemyManager.getActiveBoss(),
       this.inMissionScrapCollected,
       this.scrapManager.getItems(),
@@ -805,33 +789,12 @@ export class GameScene extends Phaser.Scene {
       this.currentPhase = nextPhase;
       this.enemyManager.setPhase(this.currentPhase);
       this.meteorManager.setPhase(this.currentPhase);
-      this.notifyPhaseChange(this.currentPhase);
+      // Окошко фаз убрано
     }
   }
 
-  private notifyPhaseChange(phaseNumber: number): void {
-    const phaseInfo = GAME_PHASES.find((p) => p.number === phaseNumber) || {
-      number: phaseNumber,
-      title: `Фаза ${phaseNumber}`,
-      subtitle: '',
-      scoreThreshold: 0,
-      allowTerminator: true,
-      spawnIntensity: 1.0,
-      healthMultiplier: 1.0,
-    };
-
-    soundFx.playPhaseNotification(phaseNumber);
-
-    window.dispatchEvent(
-      new CustomEvent('phase-changed', {
-        detail: {
-          phase: phaseNumber,
-          title: phaseInfo.title,
-          subtitle: phaseInfo.subtitle,
-          scoreThreshold: phaseInfo.scoreThreshold,
-        },
-      }),
-    );
+  private notifyPhaseChange(_phaseNumber: number): void {
+    // Окошко фаз убрано из игры
   }
 
   private triggerGameOver(reason?: string): void {

@@ -1,13 +1,11 @@
 import './style.css';
 import { createGame } from './game/config';
 import { soundFx } from './game/audio';
-import { getRandomUpgrades, ShipUpgrade, isTacticalUpgradeRewardMission } from './game/upgrades';
 import { GAME_PHASES } from './game/constants';
 import { GameScene } from './game/GameScene';
 import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
 import { campaignManager } from './game/campaign/CampaignManager';
 import { ScrapVictoryBreakdown } from './game/campaign/types';
-import { isModuleRewardMission, getAvailableRewardModules, ShipModule } from './game/shipBuilder/modulesCatalog';
 import menuBgUrl from './assets/menu_bg.jpg';
 
 let phaserGame: Phaser.Game | null = null;
@@ -44,13 +42,14 @@ const btnStartTitle = document.getElementById('btn-start-title') as HTMLElement;
 const btnStartSub = document.getElementById('btn-start-sub') as HTMLElement;
 const menuCampaignStatus = document.getElementById('menu-campaign-status') as HTMLElement;
 const btnSettings = document.getElementById('btn-settings') as HTMLButtonElement;
+const btnResetProgress = document.getElementById('btn-reset-progress') as HTMLButtonElement;
 const btnExit = document.getElementById('btn-exit') as HTMLButtonElement;
 
 // Pause Modal Elements
 const modalPause = document.getElementById('modal-pause') as HTMLElement;
 const btnPauseResume = document.getElementById('btn-pause-resume') as HTMLButtonElement;
-const btnPauseShipyard = document.getElementById('btn-pause-shipyard') as HTMLButtonElement;
 const btnPauseSettings = document.getElementById('btn-pause-settings') as HTMLButtonElement;
+const btnPauseReset = document.getElementById('btn-pause-reset') as HTMLButtonElement;
 const btnPauseMenu = document.getElementById('btn-pause-menu') as HTMLButtonElement;
 const btnPauseExit = document.getElementById('btn-pause-exit') as HTMLButtonElement;
 const pauseVolumeSlider = document.getElementById('pause-volume-slider') as HTMLInputElement;
@@ -121,160 +120,9 @@ const superLabelText = document.getElementById('super-label-text') as HTMLElemen
 // Top-left Esc Pause Button Element
 const topEscBtn = document.getElementById('btn-top-esc') as HTMLButtonElement;
 
-// Phase Banner & Upgrades Elements (Голограмма фаз боя и выбор тактических апгрейдов)
-const phaseBanner = document.getElementById('phase-banner') as HTMLElement;
-const phaseMainTitle = document.getElementById('phase-main-title') as HTMLElement;
-const phaseSubtitle = document.getElementById('phase-subtitle') as HTMLElement;
-const phaseHeaderCode = document.getElementById('phase-header-code') as HTMLElement;
-const phaseUpgradesSection = document.getElementById('phase-upgrades-section') as HTMLElement;
-const phaseUpgradesGrid = document.getElementById('phase-upgrades-grid') as HTMLElement;
-let phaseBannerTimer: number | null = null;
-const appliedUpgradeIds = new Set<string>();
-
-/**
- * Отрисовка 3 блоков улучшений башни и гусениц
- */
-function renderUpgradeCards(upgrades: ShipUpgrade[]): void {
-  if (!phaseUpgradesGrid) return;
-  phaseUpgradesGrid.innerHTML = '';
-
-  upgrades.forEach((upgrade) => {
-    const card = document.createElement('div');
-    card.className = `upgrade-card target-${upgrade.target}`;
-    card.style.setProperty('--card-accent', upgrade.accentColor);
-    card.style.setProperty('--card-glow', `${upgrade.accentColor}80`);
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-
-    card.innerHTML = `
-      <span class="corner-bracket corner-tl"></span>
-      <span class="corner-bracket corner-tr"></span>
-      <span class="corner-bracket corner-bl"></span>
-      <span class="corner-bracket corner-br"></span>
-
-      <span class="upgrade-badge">${upgrade.badgeText}</span>
-      <div class="upgrade-icon-wrap" style="border-color: ${upgrade.accentColor}70; box-shadow: 0 0 16px ${upgrade.accentColor}40;">
-        ${upgrade.iconSvg}
-      </div>
-      <h3 class="upgrade-title">${upgrade.title}</h3>
-      <div class="upgrade-short-desc" style="color: ${upgrade.accentColor};">${upgrade.shortDesc}</div>
-      <p class="upgrade-desc">${upgrade.description}</p>
-      <button class="upgrade-select-btn" type="button">ВЫБРАТЬ МОДУЛЬ</button>
-    `;
-
-    card.addEventListener('mouseenter', () => {
-      soundFx.playUiHover();
-    });
-
-    const selectUpgrade = () => {
-      if (card.classList.contains('selected')) return;
-      card.classList.add('selected');
-      soundFx.playUpgradeSelect();
-
-      // Фиксация выбранного улучшения в пуле и отправка в сцену
-      appliedUpgradeIds.add(upgrade.id);
-      window.dispatchEvent(
-        new CustomEvent('apply-tank-upgrade', {
-          detail: { id: upgrade.id },
-        }),
-      );
-
-      // Короткая пауза для светового эффекта подтверждения перед возвратом в бой
-      window.setTimeout(() => {
-        hidePhaseAnnouncement();
-        if (phaserGame) {
-          const scene = phaserGame.scene.getScene('GameScene');
-          if (scene && scene.scene.isPaused() && !isGamePaused) {
-            scene.scene.resume();
-          }
-        }
-      }, 340);
-    };
-
-    card.addEventListener('click', selectUpgrade);
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        selectUpgrade();
-      }
-    });
-
-    phaseUpgradesGrid.appendChild(card);
-  });
-}
-
-/**
- * Отображение голографического оповещения о смене/старте боевой фазы
- */
-function showPhaseAnnouncement(phaseNumber: number, title?: string, subtitle?: string): void {
-  if (!phaseBanner) return;
-
-  if (phaseBannerTimer !== null) {
-    window.clearTimeout(phaseBannerTimer);
-    phaseBannerTimer = null;
-  }
-
-  const phaseTitle = title || `Фаза ${phaseNumber}`;
-  let defaultSubtitle = '';
-  if (phaseNumber === 1) {
-    defaultSubtitle = 'ПРОТОКОЛ: ЗАЧИСТКА ПЕРИМЕТРА // СЛЕДУЮЩАЯ ФАЗА: 1000 ОЧКОВ';
-  } else if (phaseNumber === 2) {
-    defaultSubtitle = 'ВНИМАНИЕ: ОБНАРУЖЕНЫ ТЯЖЕЛЫЕ КИБОРГИ Т-800!';
-  } else {
-    defaultSubtitle = `БОЕВОЙ СЕКТОР ОБНОВЛЕН // ФАЗА ${phaseNumber}`;
-  }
-
-  if (phaseMainTitle) phaseMainTitle.textContent = phaseTitle;
-  if (phaseSubtitle) phaseSubtitle.textContent = subtitle || defaultSubtitle;
-  if (phaseHeaderCode) {
-    phaseHeaderCode.textContent =
-      phaseNumber === 2
-        ? 'SYS_WARNING // ТАКТИЧЕСКАЯ УГРОЗА ВЫСШЕГО УРОВНЯ'
-        : 'SYS_TACTICAL // ОБНОВЛЕНИЕ БОЕВОГО СЕКТОРА';
-  }
-
-  // Переход между фазами больше не выдает карточки улучшений и не приостанавливает бой
-  phaseBanner.classList.remove('has-upgrades');
-  if (phaseNumber >= 2) {
-    phaseBanner.classList.add('phase-alert');
-  } else {
-    phaseBanner.classList.remove('phase-alert');
-  }
-
-  if (phaseUpgradesSection) {
-    phaseUpgradesSection.classList.add('hidden');
-  }
-  if (phaseUpgradesGrid) {
-    phaseUpgradesGrid.innerHTML = '';
-  }
-
-  // Оповещение автоматически скрывается через 3.5 секунды
-  phaseBannerTimer = window.setTimeout(() => {
-    phaseBanner.classList.add('hidden');
-    phaseBanner.classList.remove('animate-pulse');
-    phaseBannerTimer = null;
-  }, 3500);
-
-  phaseBanner.classList.remove('hidden');
-  phaseBanner.classList.remove('animate-pulse');
-  void phaseBanner.offsetWidth; // Принудительный reflow для перезапуска CSS анимации
-  phaseBanner.classList.add('animate-pulse');
-}
-
-function hidePhaseAnnouncement(): void {
-  if (phaseBannerTimer !== null) {
-    window.clearTimeout(phaseBannerTimer);
-    phaseBannerTimer = null;
-  }
-  if (phaseBanner) {
-    phaseBanner.classList.add('hidden');
-    phaseBanner.classList.remove('animate-pulse');
-    phaseBanner.classList.remove('has-upgrades');
-  }
-  if (phaseUpgradesSection) {
-    phaseUpgradesSection.classList.add('hidden');
-  }
-}
+// Окошко фаз полностью убрано из игры
+function showPhaseAnnouncement(_phaseNumber?: number, _title?: string, _subtitle?: string): void {}
+function hidePhaseAnnouncement(): void {}
 
 /**
  * Инициализация звуковых эффектов при наведении на голографические кнопки
@@ -288,10 +136,11 @@ function attachAudioHover(button: HTMLElement): void {
 [
   btnStart,
   btnSettings,
+  btnResetProgress,
   btnExit,
   btnPauseResume,
-  btnPauseShipyard,
   btnPauseSettings,
+  btnPauseReset,
   btnPauseMenu,
   btnPauseExit,
   toggleAudioBtn,
@@ -543,26 +392,33 @@ updateVolumeSliderUI(100);
 
 // Кнопки меню паузы
 btnPauseResume?.addEventListener('click', resumeGame);
+btnPauseSettings?.addEventListener('click', openSettings);
 
-btnPauseShipyard?.addEventListener('click', () => {
+function handleResetProgress(): void {
   soundFx.playUiClick();
-  modalPause.classList.add('hidden');
-  dashHud?.classList.add('hidden');
-  topEscBtn?.classList.add('hidden');
+  const confirmed = window.confirm(
+    'Вы уверены, что хотите сбросить весь прогресс кампании?\nВсе пройденные миссии, баланс металлолома и улучшения будут сброшены к миссии 1-1.'
+  );
+  if (!confirmed) return;
+
+  campaignManager.resetCampaign();
+  shipBuilderModal.loadDefaultShipPreset();
+
   if (phaserGame) {
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
     if (scene) {
-      scene.playerShip.setVisible(false);
-      scene.hudManager.setVisible(false);
-      if (!scene.scene.isPaused()) {
-        scene.scene.pause();
-      }
+      scene.activeShipAssembly = null;
+      scene.startCombatSession();
     }
   }
-  shipBuilderModal.open();
-});
 
-btnPauseSettings?.addEventListener('click', openSettings);
+  updateMenuCampaignInfo();
+  modalPause?.classList.add('hidden');
+  returnToMainMenu();
+}
+
+btnResetProgress?.addEventListener('click', handleResetProgress);
+btnPauseReset?.addEventListener('click', handleResetProgress);
 
 btnPauseMenu?.addEventListener('click', () => {
   soundFx.playUiClick();
@@ -782,202 +638,6 @@ function returnToMenuFromGameOver(): void {
 modalGoRestartBtn?.addEventListener('click', restartFromGameOver);
 modalGoMenuBtn?.addEventListener('click', returnToMenuFromGameOver);
 
-function getModuleCategoryLabel(category: string): string {
-  switch (category) {
-    case 'body':
-      return '🛡️ КОРПУС';
-    case 'guns':
-      return '⚡ ПУШКА';
-    case 'engines':
-      return '🚀 ДВИГАТЕЛЬ';
-    case 'wings':
-      return '🪽 КРЫЛЬЯ';
-    case 'pilot':
-      return '👤 КАБИНА';
-    default:
-      return category.toUpperCase();
-  }
-}
-
-function renderMissionModuleRewards(
-  container: HTMLElement,
-  missionId: string,
-  modules: ShipModule[],
-  onSelect?: () => void
-): void {
-  container.innerHTML = `
-    <div class="reward-modules-header">
-      <div class="reward-badge-wrap">
-        <span class="reward-badge-icon">🎖️</span>
-        <span class="reward-modules-badge">ТАКТИЧЕСКАЯ НАГРАДА // ВЫБОР МОДУЛЯ</span>
-      </div>
-      <h3 class="reward-modules-title">ВЫБЕРИТЕ 1 БОЕВОЙ МОДУЛЬ ДЛЯ КОРАБЛЯ</h3>
-      <p class="reward-modules-sub">Модуль будет немедленно разблокирован и доступен для сборки в ангаре</p>
-    </div>
-    <div class="reward-modules-grid"></div>
-  `;
-
-  const grid = container.querySelector('.reward-modules-grid') as HTMLElement;
-  if (!grid) return;
-
-  modules.forEach((mod) => {
-    const part = shipBuilderModal.findPartById(mod.partId);
-    const imgUrl = part?.url || '';
-
-    const card = document.createElement('div');
-    card.className = 'reward-module-card';
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('data-mod-id', mod.id);
-
-    card.innerHTML = `
-      <span class="corner-bracket corner-tl"></span>
-      <span class="corner-bracket corner-tr"></span>
-      <span class="corner-bracket corner-bl"></span>
-      <span class="corner-bracket corner-br"></span>
-      <div class="reward-card-category">${getModuleCategoryLabel(mod.category)}</div>
-      <div class="reward-card-img-wrap">
-        <img src="${imgUrl}" alt="${mod.name}" class="reward-card-img" />
-      </div>
-      <h4 class="reward-card-title">${mod.name}</h4>
-      <div class="reward-card-eng">${mod.englishName}</div>
-      <div class="reward-card-desc">${mod.description}</div>
-      <div class="reward-card-stats-box">
-        <span class="stats-box-label">ЭФФЕКТ:</span>
-        <span class="stats-box-val">${mod.statsDescription}</span>
-      </div>
-      <button class="reward-card-choose-btn" type="button">РАЗБЛОКИРОВАТЬ</button>
-    `;
-
-    card.addEventListener('mouseenter', () => soundFx.playUiHover());
-
-    const pickModule = () => {
-      if (card.classList.contains('selected') || card.classList.contains('disabled')) return;
-
-      campaignManager.recordModuleReward(missionId, mod.id);
-      soundFx.playUpgradeSelect();
-
-      card.classList.add('selected');
-      const allCards = grid.querySelectorAll('.reward-module-card');
-      allCards.forEach((c) => {
-        if (c !== card) {
-          c.classList.add('disabled');
-        }
-      });
-
-      const btn = card.querySelector('.reward-card-choose-btn');
-      if (btn) btn.textContent = '✓ РАЗБЛОКИРОВАНО';
-
-      onSelect?.();
-    };
-
-    card.addEventListener('click', pickModule);
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        pickModule();
-      }
-    });
-
-    grid.appendChild(card);
-  });
-}
-
-/**
- * Отрисовка карточек тактических улучшений корабля после победы в миссиях 1-2, 1-4, 2-2, 2-4, 3-2, 3-4
- */
-function renderMissionTacticalRewards(
-  container: HTMLElement,
-  missionId: string,
-  upgrades: ShipUpgrade[],
-  onSelect?: () => void
-): void {
-  container.innerHTML = `
-    <div class="reward-modules-header">
-      <div class="reward-badge-wrap" style="border-color: rgba(56, 189, 248, 0.5); background: rgba(14, 165, 233, 0.15);">
-        <span class="reward-badge-icon">⚡</span>
-        <span class="reward-modules-badge" style="color: #38bdf8;">ТАКТИЧЕСКАЯ НАГРАДА // ТАКТИЧЕСКОЕ УЛУЧШЕНИЕ</span>
-      </div>
-      <h3 class="reward-modules-title" style="text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);">ВЫБЕРИТЕ 1 ТАКТИЧЕСКОЕ УЛУЧШЕНИЕ</h3>
-      <p class="reward-modules-sub" style="color: #bae6fd;">Улучшение сохраняется и действует во всех последующих миссиях кампании</p>
-    </div>
-    <div class="reward-modules-grid"></div>
-  `;
-
-  const grid = container.querySelector('.reward-modules-grid') as HTMLElement;
-  if (!grid) return;
-
-  upgrades.forEach((upg) => {
-    const card = document.createElement('div');
-    card.className = `reward-module-card reward-tactical-card target-${upg.target}`;
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('data-upgrade-id', upg.id);
-
-    card.innerHTML = `
-      <span class="corner-bracket corner-tl"></span>
-      <span class="corner-bracket corner-tr"></span>
-      <span class="corner-bracket corner-bl"></span>
-      <span class="corner-bracket corner-br"></span>
-      <div class="reward-card-category" style="color: ${upg.accentColor}; background: ${upg.accentColor}25; border: 1px solid ${upg.accentColor}50;">
-        ${upg.badgeText}
-      </div>
-      <div class="reward-card-img-wrap" style="border: 1px solid ${upg.accentColor}60; border-radius: 4px; box-shadow: 0 0 12px ${upg.accentColor}30; width: 50px; height: 50px; padding: 4px;">
-        ${upg.iconSvg}
-      </div>
-      <h4 class="reward-card-title">${upg.title}</h4>
-      <div class="reward-card-eng" style="color: ${upg.accentColor}; font-weight: 700;">${upg.shortDesc}</div>
-      <div class="reward-card-desc">${upg.description}</div>
-      <button class="reward-card-choose-btn" type="button" style="background: linear-gradient(135deg, ${upg.secondaryColor} 0%, ${upg.accentColor} 100%);">ВЫБРАТЬ</button>
-    `;
-
-    card.addEventListener('mouseenter', () => soundFx.playUiHover());
-
-    const pickUpgrade = () => {
-      if (card.classList.contains('selected') || card.classList.contains('disabled')) return;
-
-      campaignManager.recordTacticalUpgradeReward(missionId, upg.id);
-      soundFx.playUpgradeSelect();
-
-      // Оповещаем активную сцену для немедленного обновления корабля
-      window.dispatchEvent(
-        new CustomEvent('apply-tank-upgrade', {
-          detail: { id: upg.id },
-        })
-      );
-
-      card.classList.add('selected');
-      const allCards = grid.querySelectorAll('.reward-module-card');
-      allCards.forEach((c) => {
-        if (c !== card) {
-          c.classList.add('disabled');
-        }
-      });
-
-      const btn = card.querySelector('.reward-card-choose-btn') as HTMLElement;
-      if (btn) {
-        btn.textContent = '✓ УСТАНОВЛЕНО';
-        btn.style.background = 'rgba(56, 189, 248, 0.25)';
-        btn.style.color = '#38bdf8';
-        btn.style.border = '1px solid #38bdf8';
-        btn.style.cursor = 'default';
-      }
-
-      onSelect?.();
-    };
-
-    card.addEventListener('click', pickUpgrade);
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        pickUpgrade();
-      }
-    });
-
-    grid.appendChild(card);
-  });
-}
-
 // Управление окнами завершения миссии и кампании
 function showMissionComplete(
   missionId: string,
@@ -1025,64 +685,9 @@ function showMissionComplete(
     if (mcScrapBalance) mcScrapBalance.textContent = currentBalance.toString();
   }
 
-  // Награды за вехи кампании: модули (1-1, 1-3, 2-1, 2-3, 3-1, 3-3) или тактические улучшения (1-2, 1-4, 2-2, 2-4, 3-2, 3-4)
-  const rewardsSlot = document.getElementById('mission-rewards-slot');
-  const shouldOfferModuleReward =
-    isModuleRewardMission(missionId) && !campaignManager.isModuleMissionRewarded(missionId);
-  const shouldOfferTacticalReward =
-    isTacticalUpgradeRewardMission(missionId) && !campaignManager.isTacticalMissionRewarded(missionId);
-
-  let hasPendingChoice = false;
-
-  const unlockNextBtn = () => {
-    if (btnMcNext) btnMcNext.disabled = false;
-    if (btnMcNextText) {
-      btnMcNextText.textContent = `СЛЕДУЮЩАЯ МИССИЯ [${nextSector}-${nextMission}]`;
-    }
-  };
-
-  if (rewardsSlot) {
-    if (shouldOfferModuleReward) {
-      const availableModules = getAvailableRewardModules(
-        missionId,
-        campaignManager.getUnlockedModuleIds()
-      );
-
-      if (availableModules.length > 0) {
-        hasPendingChoice = true;
-        renderMissionModuleRewards(rewardsSlot, missionId, availableModules, () => {
-          unlockNextBtn();
-        });
-        rewardsSlot.classList.remove('hidden');
-      } else {
-        rewardsSlot.classList.add('hidden');
-        rewardsSlot.innerHTML = '';
-      }
-    } else if (shouldOfferTacticalReward) {
-      const appliedSet = new Set(campaignManager.getAppliedUpgradeIds());
-      const availableUpgrades = getRandomUpgrades(3, appliedSet);
-
-      if (availableUpgrades.length > 0) {
-        hasPendingChoice = true;
-        renderMissionTacticalRewards(rewardsSlot, missionId, availableUpgrades, () => {
-          unlockNextBtn();
-        });
-        rewardsSlot.classList.remove('hidden');
-      } else {
-        rewardsSlot.classList.add('hidden');
-        rewardsSlot.innerHTML = '';
-      }
-    } else {
-      rewardsSlot.classList.add('hidden');
-      rewardsSlot.innerHTML = '';
-    }
-  }
-
-  if (hasPendingChoice) {
-    if (btnMcNext) btnMcNext.disabled = true;
-    if (btnMcNextText) btnMcNextText.textContent = 'ВЫБЕРИТЕ НАГРАДУ ВЫШЕ';
-  } else {
-    unlockNextBtn();
+  if (btnMcNext) btnMcNext.disabled = false;
+  if (btnMcNextText) {
+    btnMcNextText.textContent = `ДАЛЕЕ // ВЕРФЬ [${nextSector}-${nextMission}]`;
   }
 
   modalMissionComplete?.classList.remove('hidden');
@@ -1114,16 +719,6 @@ function hideCampaignComplete(): void {
 }
 
 function startNextMission(): void {
-  // Если на экране завершения отображаются карточки наград и выбор еще не сделан, требуем выбрать
-  const rewardsSlot = document.getElementById('mission-rewards-slot');
-  if (rewardsSlot && !rewardsSlot.classList.contains('hidden')) {
-    const hasSelected = rewardsSlot.querySelector('.reward-module-card.selected');
-    if (!hasSelected) {
-      soundFx.playHit();
-      return;
-    }
-  }
-
   soundFx.playUiClick();
   hideMissionComplete();
 
@@ -1134,22 +729,22 @@ function startNextMission(): void {
 
   const nextMission = campaignManager.getCurrentMission();
 
-  dashHud?.classList.remove('hidden');
-  topEscBtn?.classList.remove('hidden');
-  isGamePaused = false;
+  dashHud?.classList.add('hidden');
+  topEscBtn?.classList.add('hidden');
+  modalPause?.classList.add('hidden');
+  isGamePaused = true;
   isGameStarted = true;
 
   if (phaserGame) {
+    phaserGame.scale.refresh();
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
     if (scene) {
-      if (scene.scene.isPaused()) {
-        scene.scene.resume();
-      }
-      scene.startCombatSession(nextMission);
+      scene.pauseCombatSessionForBuilder(nextMission);
     }
   }
 
-  showPhaseAnnouncement(1, nextMission.title, `${nextMission.subtitle} // ${nextMission.briefing}`);
+  // Открытие конструктора корабля перед следующей миссией
+  shipBuilderModal.open();
 
   window.requestAnimationFrame(() => {
     phaserGame?.scale.refresh();
@@ -1239,12 +834,6 @@ function updateMenuCampaignInfo(): void {
 window.addEventListener('tank-destroyed', ((e: CustomEvent) => {
   const detail = e.detail || {};
   showGameOver(detail.time || '00:00', detail.kills || 0, detail.score || 0, detail.reason);
-}) as EventListener);
-
-// Голографическое оповещение при смене фазы боя
-window.addEventListener('phase-changed', ((e: CustomEvent) => {
-  const detail = e.detail || {};
-  showPhaseAnnouncement(detail.phase || 1, detail.title, detail.subtitle);
 }) as EventListener);
 
 // Интерактивный клик по плашке ракетного рывка внизу экрана

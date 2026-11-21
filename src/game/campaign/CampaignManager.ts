@@ -1,7 +1,7 @@
 import { CAMPAIGN_MISSIONS } from './campaignData';
 import { CampaignMission, CampaignSaveData, SavedDroppedPart, ScrapVictoryBreakdown } from './types';
 import { SCRAP_CONFIG, rollScrap } from './scrapConfig';
-import { DEFAULT_UNLOCKED_MODULES, isModuleRewardMission } from '../shipBuilder/modulesCatalog';
+import { DEFAULT_UNLOCKED_MODULES, isModuleRewardMission, SHIP_MODULES_CATALOG } from '../shipBuilder/modulesCatalog';
 
 const STORAGE_KEY = 'iron_resolve_campaign_save';
 
@@ -340,6 +340,15 @@ export class CampaignManager {
       this.saveData.currentSector = nextSector;
       this.saveData.currentMission = nextMission;
     }
+
+    // Автоматическая разблокировка новых боевых модулей для конструктора:
+    // По завершении миссий открываются модули соответствующего уровня
+    const maxTierToUnlock = Math.min(3, Math.max(1, nextSector));
+    SHIP_MODULES_CATALOG.forEach((mod) => {
+      if (mod.tier <= maxTierToUnlock && !this.saveData.unlockedModuleIds.includes(mod.id)) {
+        this.saveData.unlockedModuleIds.push(mod.id);
+      }
+    });
 
     // Мгновенная фиксация в localStorage
     this.saveToStorage();

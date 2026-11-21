@@ -152,21 +152,6 @@ export interface SpaceStation {
 }
 
 /**
- * Фиолетовая голографическая сфера опыта, выпадающая из врагов
- */
-export interface ExpOrb {
-  sprite: Phaser.GameObjects.Sprite;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  value: number;
-  isMagnetized: boolean;
-  pulseTimer: number;
-  baseScale: number;
-}
-
-/**
  * Объект выпавшего металлолома (единственная игровая валюта)
  */
 export interface ScrapPickup {

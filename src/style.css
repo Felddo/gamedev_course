@@ -422,6 +422,54 @@ canvas {
   transition-duration: 0.08s;
 }
 
+/* Кнопка сброса прогресса в главном меню */
+.btn-danger-holo .holo-plate {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.btn-danger-holo .holo-edge-notch {
+  background: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.btn-danger-holo .holo-index {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.btn-danger-holo .holo-title {
+  color: #fca5a5;
+}
+
+.btn-danger-holo .holo-sub {
+  color: rgba(254, 202, 202, 0.7);
+}
+
+.btn-danger-holo:hover .holo-plate {
+  border-color: #ef4444;
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.45), inset 0 0 16px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger-holo:hover .holo-edge-notch {
+  background: #ef4444;
+  box-shadow: 0 0 12px #ef4444;
+}
+
+.btn-danger-holo:hover .holo-index {
+  color: #ffffff;
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+}
+
+.btn-danger-holo:hover .holo-title {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+}
+
+.btn-danger-holo:hover .holo-sub {
+  color: #fecaca;
+}
+
 /* ==========================================================
    HUD FOOTER
    ========================================================== */
@@ -826,6 +874,132 @@ canvas {
   color: #021a12;
   box-shadow: 0 0 20px rgba(52, 211, 153, 0.7);
   transform: translateY(-1px);
+}
+
+/* ==========================================================
+   HORIZONTAL END-OF-LEVEL MODAL WINDOWS (Горизонтальные окна конца уровня)
+   ========================================================== */
+.holo-modal-window.modal-horizontal,
+#modal-mission-complete .holo-modal-window,
+#modal-campaign-complete .holo-modal-window,
+#modal-gameover .holo-modal-window {
+  max-width: 960px;
+  width: min(960px, 94vw);
+  padding: 24px 30px;
+}
+
+#modal-mission-complete .modal-card-header,
+#modal-campaign-complete .modal-card-header,
+#modal-gameover .modal-card-header {
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mc-header-sub {
+  margin: 0 !important;
+  font-family: var(--font-mono);
+  font-size: 13px !important;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #6ee7b7 !important;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 4px 12px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.mc-content-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.mc-stats-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mc-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.mc-section-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #34d399;
+  text-transform: uppercase;
+}
+
+.mc-horizontal-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0;
+  height: 100%;
+}
+
+.mc-horizontal-stats .debrief-card {
+  height: 100%;
+  padding: 16px 8px;
+}
+
+.mc-scrap-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.mc-scrap-column .mc-scrap-panel {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.go-horizontal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.go-desc-wide {
+  margin: 0 !important;
+  font-size: 15px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid #ef4444;
+  padding: 8px 14px;
+  border-radius: 0 4px 4px 0;
+}
+
+.go-stats-grid {
+  margin: 0;
+}
+
+.cc-debrief-grid {
+  margin: 10px 0;
+}
+
+@media (max-width: 768px) {
+  .mc-content-split {
+    grid-template-columns: 1fr;
+  }
+  .mc-header-sub {
+    white-space: normal;
+  }
 }
 
 /* ==========================================================
@@ -2674,6 +2848,53 @@ canvas {
 .pause-menu-btn.btn-exit:hover .pause-btn-title {
   color: #fecaca;
   text-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+}
+
+/* Кнопка сброса прогресса в меню паузы */
+.pause-menu-btn.btn-danger-pause .pause-btn-plate {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.pause-menu-btn.btn-danger-pause .holo-edge-notch {
+  background: rgba(239, 68, 68, 0.5);
+}
+
+.pause-menu-btn.btn-danger-pause .pause-btn-num {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.pause-menu-btn.btn-danger-pause .pause-btn-title {
+  color: #fca5a5;
+}
+
+.pause-menu-btn.btn-danger-pause .pause-btn-hint {
+  color: rgba(254, 202, 202, 0.65);
+}
+
+.pause-menu-btn.btn-danger-pause:hover .pause-btn-plate {
+  border-color: #ef4444;
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.15);
+}
+
+.pause-menu-btn.btn-danger-pause:hover .holo-edge-notch {
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+}
+
+.pause-menu-btn.btn-danger-pause:hover .pause-btn-num {
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #ffffff;
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.pause-menu-btn.btn-danger-pause:hover .pause-btn-title {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+}
+
+.pause-menu-btn.btn-danger-pause:hover .pause-btn-hint {
+  color: #fecaca;
 }
 
 .pause-footer {

@@ -31,49 +31,6 @@
       </kbd>
     </button>
 
-    <!-- Голографическое оповещение о боевой фазе по центру экрана -->
-    <div id="phase-banner" class="phase-banner hidden" aria-live="assertive">
-      <div class="phase-holo-card">
-        <div class="phase-scanlines"></div>
-        <div class="phase-glow-sweep"></div>
-        <span class="corner-bracket corner-tl"></span>
-        <span class="corner-bracket corner-tr"></span>
-        <span class="corner-bracket corner-bl"></span>
-        <span class="corner-bracket corner-br"></span>
-
-        <div class="phase-header-badge">
-          <span class="phase-pulse-dot"></span>
-          <span class="phase-header-code" id="phase-header-code">SYS_TACTICAL // ОБНОВЛЕНИЕ СЕКТОРА</span>
-        </div>
-
-        <h2 class="phase-main-title" id="phase-main-title">Фаза 1</h2>
-
-        <div class="phase-divider">
-          <span class="phase-divider-line"></span>
-          <span class="phase-divider-notch">◆</span>
-          <span class="phase-divider-line"></span>
-        </div>
-
-        <div class="phase-sub-wrap">
-          <span class="phase-subtitle" id="phase-subtitle">ПРОТОКОЛ: ЗАЧИСТКА ПЕРИМЕТРА // СЛЕДУЮЩАЯ ФАЗА: 1000
-            ОЧКОВ</span>
-        </div>
-
-        <!-- СНИЗУ: 3 блока улучшений башни и гусениц (для всех фаз кроме первой) -->
-        <div id="phase-upgrades-section" class="phase-upgrades-section hidden">
-          <div class="phase-upgrades-prompt">
-            <span class="phase-prompt-line"></span>
-            <span class="phase-prompt-text">ВЫБЕРИТЕ МОДЕРНИЗАЦИЮ ТАНКА</span>
-            <span class="phase-prompt-line"></span>
-          </div>
-          <div id="phase-upgrades-grid" class="phase-upgrades-grid" role="group"
-            aria-label="Тактические улучшения танка">
-            <!-- 3 блока тактических улучшений генерируются динамически из пула -->
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Тактический виджет ракетного рывка (Rocket Dash HUD в нижней части экрана) -->
     <aside id="dash-hud" class="dash-hud hidden" aria-label="Тактический ракетный ускоритель">
       <div class="dash-hud-card" id="dash-trigger-card">
@@ -269,14 +226,32 @@
               </div>
             </button>
 
-            <!-- 3. Выход -->
-            <button id="btn-exit" class="holo-btn" type="button" data-action="exit">
+            <!-- 3. Сброс прогресса -->
+            <button id="btn-reset-progress" class="holo-btn btn-danger-holo" type="button" data-action="reset">
               <div class="holo-plate">
                 <div class="holo-scanlines"></div>
                 <div class="holo-glow-sweep"></div>
                 <div class="holo-edge-notch"></div>
                 <div class="holo-content">
                   <span class="holo-index">03</span>
+                  <div class="holo-titles">
+                    <span class="holo-title">СБРОС ПРОГРЕССА</span>
+                    <span class="holo-sub">SYS_RESET // НАЧАТЬ С 1-1</span>
+                  </div>
+                </div>
+                <span class="corner-bracket corner-tl"></span>
+                <span class="corner-bracket corner-br"></span>
+              </div>
+            </button>
+
+            <!-- 4. Выход -->
+            <button id="btn-exit" class="holo-btn" type="button" data-action="exit">
+              <div class="holo-plate">
+                <div class="holo-scanlines"></div>
+                <div class="holo-glow-sweep"></div>
+                <div class="holo-edge-notch"></div>
+                <div class="holo-content">
+                  <span class="holo-index">04</span>
                   <div class="holo-titles">
                     <span class="holo-title">ВЫХОД</span>
                     <span class="holo-sub">SYS_ABORT // ЗАВЕРШЕНИЕ</span>
@@ -350,7 +325,7 @@
             </div>
           </div>
 
-          <!-- 4 Кнопки меню паузы: Продолжить, Настройки, Главное Меню, Выход -->
+          <!-- Кнопки меню паузы: Продолжить, Настройки, Сброс прогресса, Главное Меню, Выход -->
           <nav class="pause-btn-group" aria-label="Управление паузой">
             <!-- 1. Продолжить -->
             <button id="btn-pause-resume" class="pause-menu-btn btn-resume" type="button">
@@ -370,8 +345,8 @@
               </div>
             </button>
 
-            <!-- 2. Конструктор корабля -->
-            <button id="btn-pause-shipyard" class="pause-menu-btn" type="button">
+            <!-- 2. Настройки -->
+            <button id="btn-pause-settings" class="pause-menu-btn" type="button">
               <div class="pause-btn-plate">
                 <div class="holo-scanlines"></div>
                 <div class="holo-glow-sweep"></div>
@@ -379,8 +354,8 @@
                 <div class="pause-btn-content">
                   <span class="pause-btn-num">02</span>
                   <div class="pause-btn-text">
-                    <span class="pause-btn-title">КОНСТРУКТОР КОРАБЛЯ</span>
-                    <span class="pause-btn-hint">SYS_SHIPYARD // ВЕРФЬ МОДУЛЕЙ</span>
+                    <span class="pause-btn-title">НАСТРОЙКИ</span>
+                    <span class="pause-btn-hint">SYS_CONFIG // ПАРАМЕТРЫ СИСТЕМЫ</span>
                   </div>
                 </div>
                 <span class="corner-bracket corner-tl"></span>
@@ -388,8 +363,8 @@
               </div>
             </button>
 
-            <!-- 3. Настройки -->
-            <button id="btn-pause-settings" class="pause-menu-btn" type="button">
+            <!-- 3. Сброс прогресса -->
+            <button id="btn-pause-reset" class="pause-menu-btn btn-danger-pause" type="button">
               <div class="pause-btn-plate">
                 <div class="holo-scanlines"></div>
                 <div class="holo-glow-sweep"></div>
@@ -397,8 +372,8 @@
                 <div class="pause-btn-content">
                   <span class="pause-btn-num">03</span>
                   <div class="pause-btn-text">
-                    <span class="pause-btn-title">НАСТРОЙКИ</span>
-                    <span class="pause-btn-hint">SYS_CONFIG // ПАРАМЕТРЫ СИСТЕМЫ</span>
+                    <span class="pause-btn-title">СБРОС ПРОГРЕССА</span>
+                    <span class="pause-btn-hint">SYS_RESET // СБРОСИТЬ КАМПАНИЮ В 1-1</span>
                   </div>
                 </div>
                 <span class="corner-bracket corner-tl"></span>
@@ -547,7 +522,7 @@
 
     <!-- Голографическое окно поражения: Конец боя (Game Over) -->
     <div id="modal-gameover" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true">
-      <div class="holo-modal-window">
+      <div class="holo-modal-window modal-horizontal">
         <div class="modal-card-scanlines"></div>
         <span class="corner-bracket corner-tl"></span>
         <span class="corner-bracket corner-tr"></span>
@@ -557,29 +532,30 @@
         <header class="modal-card-header">
           <div class="modal-card-title-wrap">
             <span class="modal-badge alert-badge"
-              style="border-color: #34d399; background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">СБОЙ // FAILURE</span>
+              style="border-color: #ef4444; background: rgba(239, 68, 68, 0.2); color: #fca5a5;">СБОЙ // FAILURE</span>
             <h2>КРИТИЧЕСКИЙ СБОЙ БРОНИ</h2>
           </div>
         </header>
 
         <div class="modal-card-body">
-          <p id="go-desc" class="modal-desc-text"
-            style="color: #a7f3d0; margin: 0 0 6px 0; font-family: 'Rajdhani', sans-serif; font-size: 15px;">
-            Космический корабль уничтожен в глубоком космосе. Протокол прерван.
-          </p>
+          <div class="go-horizontal-content">
+            <p id="go-desc" class="modal-desc-text go-desc-wide">
+              Космический корабль уничтожен в глубоком космосе. Протокол прерван.
+            </p>
 
-          <div class="modal-debrief-grid">
-            <div class="debrief-card">
-              <span class="debrief-label">ВРЕМЯ БОЯ</span>
-              <span id="go-time" class="debrief-value">00:00</span>
-            </div>
-            <div class="debrief-card">
-              <span class="debrief-label">ЛИКВИДИРОВАНО</span>
-              <span id="go-kills" class="debrief-value">0</span>
-            </div>
-            <div class="debrief-card">
-              <span class="debrief-label">БОЕВОЙ СЧЕТ</span>
-              <span id="go-score" class="debrief-value score-val">0</span>
+            <div class="modal-debrief-grid go-stats-grid">
+              <div class="debrief-card">
+                <span class="debrief-label">ВРЕМЯ БОЯ</span>
+                <span id="go-time" class="debrief-value">00:00</span>
+              </div>
+              <div class="debrief-card">
+                <span class="debrief-label">ЛИКВИДИРОВАНО</span>
+                <span id="go-kills" class="debrief-value">0</span>
+              </div>
+              <div class="debrief-card">
+                <span class="debrief-label">БОЕВОЙ СЧЕТ</span>
+                <span id="go-score" class="debrief-value score-val">0</span>
+              </div>
             </div>
           </div>
         </div>
@@ -597,7 +573,7 @@
 
     <!-- Голографическое окно завершения миссии (Mission Complete) -->
     <div id="modal-mission-complete" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Миссия выполнена">
-      <div class="holo-modal-window">
+      <div class="holo-modal-window modal-horizontal">
         <div class="modal-card-scanlines"></div>
         <span class="corner-bracket corner-tl"></span>
         <span class="corner-bracket corner-tr"></span>
@@ -609,75 +585,78 @@
             <span class="modal-badge" id="mc-badge" style="border-color: #34d399; background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">ПОБЕДА // VICTORY</span>
             <h2 id="mc-title">МИССИЯ 1-1 ВЫПОЛНЕНА</h2>
           </div>
+          <p id="mc-subtitle" class="modal-desc-text mc-header-sub">
+            СЕКТОР 1 // ПАТРУЛЬ АВАНПОСТА // ЦЕЛИ МИССИИ ДОСТИГНУТЫ
+          </p>
         </header>
 
         <div class="modal-card-body">
-          <p id="mc-subtitle" class="modal-desc-text"
-            style="color: #a7f3d0; margin: 0 0 14px 0; font-family: 'Rajdhani', sans-serif; font-size: 15px;">
-            СЕКТОР 1 // ПАТРУЛЬ АВАНПОСТА // ЦЕЛИ МИССИИ ДОСТИГНУТЫ
-          </p>
-
-          <div class="modal-debrief-grid">
-            <div class="debrief-card">
-              <span class="debrief-label">ВРЕМЯ МИССИИ</span>
-              <span id="mc-time" class="debrief-value">02:00</span>
-            </div>
-            <div class="debrief-card">
-              <span class="debrief-label">ЛИКВИДИРОВАНО</span>
-              <span id="mc-kills" class="debrief-value">0</span>
-            </div>
-            <div class="debrief-card">
-              <span class="debrief-label">НАБРАНО ОЧКОВ</span>
-              <span id="mc-score" class="debrief-value score-val">0</span>
-            </div>
-          </div>
-
-          <!-- Панель награды валюты: Металлолом -->
-          <div id="mc-scrap-panel" class="mc-scrap-panel">
-            <div class="mc-scrap-header">
-              <span class="mc-scrap-badge">ВАЛЮТА // REWARD</span>
-              <span class="mc-scrap-title">ДОБЫТЫЙ МЕТАЛЛОЛОМ</span>
-            </div>
-
-            <div class="mc-scrap-list">
-              <div class="mc-scrap-row">
-                <span class="mc-scrap-label">Сбитые противники:</span>
-                <span id="mc-scrap-enemies" class="mc-scrap-val">+0</span>
+          <div class="mc-content-split">
+            <!-- Левая колонка: Показатели вылета -->
+            <div class="mc-stats-column">
+              <div class="mc-section-header">
+                <span class="mc-section-tag">ПОКАЗАТЕЛИ // COMBAT STATS</span>
               </div>
-              <div class="mc-scrap-row">
-                <span class="mc-scrap-label">Награда за сектор:</span>
-                <span id="mc-scrap-mission" class="mc-scrap-val">+0</span>
-              </div>
-              <div class="mc-scrap-row hidden" id="mc-scrap-boss-row">
-                <span class="mc-scrap-label">Ликвидация флагмана (босс):</span>
-                <span id="mc-scrap-boss" class="mc-scrap-val">+0</span>
+              <div class="modal-debrief-grid mc-horizontal-stats">
+                <div class="debrief-card">
+                  <span class="debrief-label">ВРЕМЯ МИССИИ</span>
+                  <span id="mc-time" class="debrief-value">02:00</span>
+                </div>
+                <div class="debrief-card">
+                  <span class="debrief-label">ЛИКВИДИРОВАНО</span>
+                  <span id="mc-kills" class="debrief-value">0</span>
+                </div>
+                <div class="debrief-card">
+                  <span class="debrief-label">НАБРАНО ОЧКОВ</span>
+                  <span id="mc-score" class="debrief-value score-val">0</span>
+                </div>
               </div>
             </div>
 
-            <div class="mc-scrap-summary">
-              <div class="mc-scrap-summary-item">
-                <span class="mc-scrap-summary-label">ВСЕГО ЗА ВЫЛЕТ</span>
-                <span id="mc-scrap-total" class="mc-scrap-summary-val scrap-total-val">+0</span>
-              </div>
-              <div class="mc-scrap-summary-item balance-item">
-                <span class="mc-scrap-summary-label">БАЛАНС МЕТАЛЛОЛОМА</span>
-                <span id="mc-scrap-balance" class="mc-scrap-summary-val scrap-balance-val">0</span>
+            <!-- Правая колонка: Добытый металлолом -->
+            <div class="mc-scrap-column">
+              <div id="mc-scrap-panel" class="mc-scrap-panel">
+                <div class="mc-scrap-header">
+                  <span class="mc-scrap-badge">ВАЛЮТА // REWARD</span>
+                  <span class="mc-scrap-title">ДОБЫТЫЙ МЕТАЛЛОЛОМ</span>
+                </div>
+
+                <div class="mc-scrap-list">
+                  <div class="mc-scrap-row">
+                    <span class="mc-scrap-label">Сбитые противники:</span>
+                    <span id="mc-scrap-enemies" class="mc-scrap-val">+0</span>
+                  </div>
+                  <div class="mc-scrap-row">
+                    <span class="mc-scrap-label">Награда за сектор:</span>
+                    <span id="mc-scrap-mission" class="mc-scrap-val">+0</span>
+                  </div>
+                  <div class="mc-scrap-row hidden" id="mc-scrap-boss-row">
+                    <span class="mc-scrap-label">Ликвидация флагмана (босс):</span>
+                    <span id="mc-scrap-boss" class="mc-scrap-val">+0</span>
+                  </div>
+                </div>
+
+                <div class="mc-scrap-summary">
+                  <div class="mc-scrap-summary-item">
+                    <span class="mc-scrap-summary-label">ВСЕГО ЗА ВЫЛЕТ</span>
+                    <span id="mc-scrap-total" class="mc-scrap-summary-val scrap-total-val">+0</span>
+                  </div>
+                  <div class="mc-scrap-summary-item balance-item">
+                    <span class="mc-scrap-summary-label">БАЛАНС МЕТАЛЛОЛОМА</span>
+                    <span id="mc-scrap-balance" class="mc-scrap-summary-val scrap-balance-val">0</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- Слот для карточек модулей и тактических улучшений (будущие обновления) -->
-          <div id="mission-rewards-slot" class="mission-rewards-slot hidden" aria-label="Тактические модули">
-            <!-- Зарезервированный слот для подключения модулей -->
           </div>
         </div>
 
-        <footer class="modal-card-footer row-buttons" style="margin-top: 24px;">
+        <footer class="modal-card-footer row-buttons" style="margin-top: 22px;">
           <button id="btn-mc-menu" class="modal-action-btn btn-secondary" type="button">
             В ГЛАВНОЕ МЕНЮ
           </button>
           <button id="btn-mc-next" class="modal-action-btn btn-holo-restart" type="button">
-            <span id="btn-mc-next-text">СЛЕДУЮЩАЯ МИССИЯ [SPACE]</span>
+            <span id="btn-mc-next-text">ДАЛЕЕ // ВЕРФЬ [SPACE]</span>
           </button>
         </footer>
       </div>
@@ -685,7 +664,7 @@
 
     <!-- Голографическое окно завершения всей кампании (Campaign Complete) -->
     <div id="modal-campaign-complete" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Кампания завершена">
-      <div class="holo-modal-window">
+      <div class="holo-modal-window modal-horizontal">
         <div class="modal-card-scanlines"></div>
         <span class="corner-bracket corner-tl"></span>
         <span class="corner-bracket corner-tr"></span>
@@ -705,7 +684,7 @@
             ВСЕ 3 СЕКТОРА ОСВОБОЖДЕНЫ! ВЕРХОВНЫЙ ДРЕДНОУТ "АПОКАЛИПСИС" ПОВЕРЖЕН.
           </p>
 
-          <div class="modal-debrief-grid" style="grid-template-columns: repeat(4, 1fr);">
+          <div class="modal-debrief-grid cc-debrief-grid" style="grid-template-columns: repeat(4, 1fr);">
             <div class="debrief-card">
               <span class="debrief-label">МИССИЙ ПРОЙДЕНО</span>
               <span class="debrief-value" style="color: #34d399;">15 / 15</span>
