@@ -23,10 +23,11 @@ export const SUPER_BLASTER_DAMAGE = 5.5; // увеличенный урон тя
 export const SHIP_SCALE = 0.62;
 export const TANK_SCALE = SHIP_SCALE; // Алиас для совместимости
 
-// Параметры носового бластера
+// Параметры носового бластера и зоны поражения корабля игрока
+export const PLAYER_ATTACK_RADIUS = 280; // Небольшой тактический радиус автонаведения и начала стрельбы
 export const BLASTER_COOLDOWN = 0.2; // интервал между выстрелами
 export const BLASTER_SPEED = 740;
-export const BLASTER_RANGE = 620;
+export const BLASTER_RANGE = 330; // дальность полета плазменного заряда (покрывает радиус поражения)
 export const BLASTER_DAMAGE = 1.5;
 
 // Параметры легкого вражеского корабля-разведчика (spaceShips_005)

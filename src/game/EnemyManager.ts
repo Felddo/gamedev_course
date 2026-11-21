@@ -3,6 +3,7 @@ import { soundFx } from './audio';
 import {
   BLASTER_RANGE,
   BLASTER_DAMAGE,
+  PLAYER_ATTACK_RADIUS,
   ENEMY_SCOUT_HP,
   ENEMY_SCOUT_SPEED,
   ENEMY_SCOUT_SCORE,
@@ -166,7 +167,7 @@ export class EnemyManager {
     enemy.sprite.destroy();
   }
 
-  public findNearestEnemy(playerX: number, playerY: number, maxRange = 850): EnemyShip | null {
+  public findNearestEnemy(playerX: number, playerY: number, maxRange = PLAYER_ATTACK_RADIUS): EnemyShip | null {
     let nearest: EnemyShip | null = null;
     let minDist = maxRange;
 

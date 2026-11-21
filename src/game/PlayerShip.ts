@@ -12,6 +12,7 @@ import {
   SHIP_SCALE,
   MAP_WIDTH,
   MAP_HEIGHT,
+  PLAYER_ATTACK_RADIUS,
 } from './constants';
 import { EnemyShip } from './types';
 import { AtmosphereManager } from './AtmosphereManager';
@@ -38,6 +39,8 @@ export class PlayerShip {
   private shieldSprite!: Phaser.GameObjects.Sprite;
   public leftFlameSprite!: Phaser.GameObjects.Sprite;
   public rightFlameSprite!: Phaser.GameObjects.Sprite;
+  public engineFlames: Array<{ left: Phaser.GameObjects.Sprite; right: Phaser.GameObjects.Sprite }> = [];
+  public attackRangeCircle!: Phaser.GameObjects.Graphics;
 
   // Совместимый геттер для корпуса
   public get hullSprite(): Phaser.GameObjects.Sprite {
@@ -153,6 +156,15 @@ export class PlayerShip {
     this.rightFlameSprite = this.scene.add.sprite(startX, startY, 'space_effect_001');
     this.rightFlameSprite.setOrigin(0.5, 0);
     this.rightFlameSprite.setDepth(9);
+
+    this.engineFlames = [{ left: this.leftFlameSprite, right: this.rightFlameSprite }];
+
+    // 2.5 Малозаметный круг боевого радиуса поражения корабля
+    this.attackRangeCircle = this.scene.add.graphics();
+    this.attackRangeCircle.setDepth(4);
+    this.drawAttackRangeCircle();
+    this.attackRangeCircle.setPosition(startX, startY);
+    this.attackRangeCircle.setVisible(false);
 
     // 3. Голографический силовой щит форсажа и неуязвимости
     this.shieldSprite = this.scene.add.sprite(startX, startY, 'shield_aura');
@@ -331,10 +343,76 @@ export class PlayerShip {
     // Скрываем стандартный монолитный корпус и активируем собранный корабль
     this.shipSprite.setVisible(false);
     this.customShipContainer.setVisible(shouldShow);
+
+    // Синхронизируем пламя для всех двигателей (включая второй двигатель)
+    this.syncEngineFlames(shouldShow);
   }
 
   /**
-   * Вычисление мировой точки выхлопа сопла двигателя, установленного игроком
+   * Синхронизация спрайтов пламени для каждого установленного двигателя (1-й, 2-й и т.д.)
+   */
+  private syncEngineFlames(shouldShow: boolean): void {
+    const requiredEngines =
+      this.customAssembly && this.customAssembly.engineOffsets.length > 0
+        ? this.customAssembly.engineOffsets.length
+        : 1;
+
+    while (this.engineFlames.length < requiredEngines) {
+      const left = this.scene.add.sprite(this.shipSprite.x, this.shipSprite.y, 'space_effect_001');
+      left.setOrigin(0.5, 0);
+      left.setDepth(9);
+      left.setVisible(shouldShow);
+
+      const right = this.scene.add.sprite(this.shipSprite.x, this.shipSprite.y, 'space_effect_001');
+      right.setOrigin(0.5, 0);
+      right.setDepth(9);
+      right.setVisible(shouldShow);
+
+      this.engineFlames.push({ left, right });
+    }
+
+    while (this.engineFlames.length > requiredEngines) {
+      const removed = this.engineFlames.pop();
+      if (removed) {
+        removed.left.destroy();
+        removed.right.destroy();
+      }
+    }
+
+    if (this.engineFlames.length > 0) {
+      this.leftFlameSprite = this.engineFlames[0].left;
+      this.rightFlameSprite = this.engineFlames[0].right;
+    }
+  }
+
+  /**
+   * Отрисовка визуально малозаметного круга радиуса поражения корабля
+   */
+  private drawAttackRangeCircle(): void {
+    if (!this.attackRangeCircle) return;
+    this.attackRangeCircle.clear();
+
+    const radius = PLAYER_ATTACK_RADIUS;
+
+    // Мягкая малозаметная полупрозрачная подсветка зоны поражения
+    this.attackRangeCircle.fillStyle(0x38bdf8, 0.02);
+    this.attackRangeCircle.fillCircle(0, 0, radius);
+
+    // Малозаметная тактическая неоновая окружность радиуса поражения
+    this.attackRangeCircle.lineStyle(1.2, 0x38bdf8, 0.22);
+    this.attackRangeCircle.strokeCircle(0, 0, radius);
+
+    // Аккуратные тактические риски по 4 направлениям
+    this.attackRangeCircle.lineStyle(1.5, 0x38bdf8, 0.35);
+    const tickLen = 6;
+    this.attackRangeCircle.lineBetween(-radius - tickLen, 0, -radius + tickLen, 0);
+    this.attackRangeCircle.lineBetween(radius - tickLen, 0, radius + tickLen, 0);
+    this.attackRangeCircle.lineBetween(0, -radius - tickLen, 0, -radius + tickLen);
+    this.attackRangeCircle.lineBetween(0, radius - tickLen, 0, radius + tickLen);
+  }
+
+  /**
+   * Вычисление мировой точки выхлопа сопла первого двигателя (для обратной совместимости)
    */
   public getEngineExhaustPoint(): { x: number; y: number; rearAngle: number } {
     let rearAngle = this.shipFacingAngle + Math.PI;
@@ -350,6 +428,26 @@ export class PlayerShip {
     }
 
     return { x: exhaustX, y: exhaustY, rearAngle };
+  }
+
+  /**
+   * Вычисление мировых точек выхлопа всех двигателей, установленных на корабль
+   */
+  public getAllEngineExhaustPoints(): Array<{ x: number; y: number; rearAngle: number }> {
+    if (this.customAssembly && this.customAssembly.engineOffsets.length > 0) {
+      const containerRot = this.shipFacingAngle + Math.PI / 2;
+      const cR = Math.cos(containerRot);
+      const sR = Math.sin(containerRot);
+
+      return this.customAssembly.engineOffsets.map((enz) => {
+        const exhaustX = this.shipSprite.x + cR * enz.x - sR * enz.y;
+        const exhaustY = this.shipSprite.y + sR * enz.x + cR * enz.y;
+        const rearAngle = this.shipFacingAngle + Math.PI + (enz.angleOffset * Math.PI) / 180;
+        return { x: exhaustX, y: exhaustY, rearAngle };
+      });
+    }
+
+    return [this.getEngineExhaustPoint()];
   }
 
   public tryTriggerDash(particleManager?: ParticleManager): void {
@@ -392,11 +490,13 @@ export class PlayerShip {
     this.shieldSprite.setVisible(true);
     this.shieldSprite.setAlpha(0.95);
 
-    // Вспышка сопел двигателей
+    // Вспышка сопел двигателей (для всех установленных двигателей)
     if (particleManager) {
-      const exhaust = this.getEngineExhaustPoint();
-      particleManager.spawnDashBurstFire(exhaust.x, exhaust.y, exhaust.rearAngle);
-      particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
+      const exhaustPoints = this.getAllEngineExhaustPoints();
+      for (const exhaust of exhaustPoints) {
+        particleManager.spawnDashBurstFire(exhaust.x, exhaust.y, exhaust.rearAngle);
+        particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
+      }
     }
 
     this.emitDashState();
@@ -414,9 +514,11 @@ export class PlayerShip {
     this.scene.cameras.main.shake(200, 0.008);
 
     if (particleManager) {
-      const exhaust = this.getEngineExhaustPoint();
-      particleManager.spawnSuperActivationBurst(exhaust.x, exhaust.y, exhaust.rearAngle);
-      particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
+      const exhaustPoints = this.getAllEngineExhaustPoints();
+      for (const exhaust of exhaustPoints) {
+        particleManager.spawnSuperActivationBurst(exhaust.x, exhaust.y, exhaust.rearAngle);
+        particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
+      }
     }
 
     this.emitSuperState();
@@ -484,9 +586,11 @@ export class PlayerShip {
     this.shieldSprite.setAlpha(0.95);
 
     if (particleManager) {
-      const exhaust = this.getEngineExhaustPoint();
-      particleManager.spawnDashBurstFire(exhaust.x, exhaust.y, exhaust.rearAngle);
-      particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
+      const exhaustPoints = this.getAllEngineExhaustPoints();
+      for (const exhaust of exhaustPoints) {
+        particleManager.spawnDashBurstFire(exhaust.x, exhaust.y, exhaust.rearAngle);
+        particleManager.spawnShipDashTrail(exhaust.x, exhaust.y, exhaust.rearAngle);
+      }
     }
   }
 
@@ -647,15 +751,17 @@ export class PlayerShip {
             this.normalFireTrailTimer += seconds;
             if (this.normalFireTrailTimer >= 0.12) {
               this.normalFireTrailTimer = 0;
-              const rearAngle = this.shipFacingAngle + Math.PI;
-              particleManager.spawnDashFireTrail(
-                this.shipSprite.x,
-                this.shipSprite.y,
-                rearAngle,
-                this.shipSprite.rotation,
-              );
-              if (this.onFireTrailSpawn) {
-                this.onFireTrailSpawn(this.shipSprite.x, this.shipSprite.y);
+              const exhaustPoints = this.getAllEngineExhaustPoints();
+              for (const exhaust of exhaustPoints) {
+                particleManager.spawnDashFireTrail(
+                  exhaust.x,
+                  exhaust.y,
+                  exhaust.rearAngle,
+                  this.shipSprite.rotation,
+                );
+                if (this.onFireTrailSpawn) {
+                  this.onFireTrailSpawn(exhaust.x, exhaust.y);
+                }
               }
             }
           }
@@ -680,105 +786,155 @@ export class PlayerShip {
       this.customShipContainer?.setVisible(false);
     }
 
-    // 2. Расчет позиций сопел двигателей (из двигателя, поставленного игроком, либо из дефолтного корпуса)
-    let leftNozzleX: number;
-    let leftNozzleY: number;
-    let rightNozzleX: number;
-    let rightNozzleY: number;
-    let flameRot: number;
-    let rearAngle = this.shipFacingAngle + Math.PI;
+    // 2. Расчет позиций сопел всех двигателей (для 1-го, 2-го и любых последующих двигателей)
+    interface EngineNozzlePair {
+      leftX: number;
+      leftY: number;
+      rightX: number;
+      rightY: number;
+      flameRot: number;
+      rearAngle: number;
+    }
+
+    const nozzlePairs: EngineNozzlePair[] = [];
 
     if (this.customAssembly && this.customAssembly.engineOffsets.length > 0) {
-      const enz = this.customAssembly.engineOffsets[0];
-      const enzRad = (enz.angleOffset * Math.PI) / 180;
-      flameRot = this.shipFacingAngle + Math.PI / 2 + enzRad;
-      rearAngle = this.shipFacingAngle + Math.PI + enzRad;
-
       const containerRot = this.shipFacingAngle + Math.PI / 2;
       const cR = Math.cos(containerRot);
       const sR = Math.sin(containerRot);
-
-      // Смещение парных сопел относительно центра сопла двигателя
       const nozzleSpread = 7 * SHIP_SCALE;
-      const enzNozzleSpreadX = Math.cos(enzRad) * nozzleSpread;
-      const enzNozzleSpreadY = Math.sin(enzRad) * nozzleSpread;
 
-      const p1X = enz.x - enzNozzleSpreadX;
-      const p1Y = enz.y - enzNozzleSpreadY;
-      const p2X = enz.x + enzNozzleSpreadX;
-      const p2Y = enz.y + enzNozzleSpreadY;
+      for (let i = 0; i < this.customAssembly.engineOffsets.length; i++) {
+        const enz = this.customAssembly.engineOffsets[i];
+        const enzRad = (enz.angleOffset * Math.PI) / 180;
+        const flameRot = this.shipFacingAngle + Math.PI / 2 + enzRad;
+        const rearAngle = this.shipFacingAngle + Math.PI + enzRad;
 
-      leftNozzleX = this.shipSprite.x + cR * p1X - sR * p1Y;
-      leftNozzleY = this.shipSprite.y + sR * p1X + cR * p1Y;
-      rightNozzleX = this.shipSprite.x + cR * p2X - sR * p2Y;
-      rightNozzleY = this.shipSprite.y + sR * p2X + cR * p2Y;
+        const enzNozzleSpreadX = Math.cos(enzRad) * nozzleSpread;
+        const enzNozzleSpreadY = Math.sin(enzRad) * nozzleSpread;
+
+        const p1X = enz.x - enzNozzleSpreadX;
+        const p1Y = enz.y - enzNozzleSpreadY;
+        const p2X = enz.x + enzNozzleSpreadX;
+        const p2Y = enz.y + enzNozzleSpreadY;
+
+        nozzlePairs.push({
+          leftX: this.shipSprite.x + cR * p1X - sR * p1Y,
+          leftY: this.shipSprite.y + sR * p1X + cR * p1Y,
+          rightX: this.shipSprite.x + cR * p2X - sR * p2Y,
+          rightY: this.shipSprite.y + sR * p2X + cR * p2Y,
+          flameRot,
+          rearAngle,
+        });
+      }
     } else {
       const rot = this.shipSprite.rotation;
-      flameRot = rot + Math.PI;
+      const flameRot = rot + Math.PI;
+      const rearAngle = this.shipFacingAngle + Math.PI;
       const cosR = Math.cos(rot);
       const sinR = Math.sin(rot);
 
       const nozzleOffsetY = -34 * SHIP_SCALE;
       const nozzleOffsetX = 16 * SHIP_SCALE;
-      leftNozzleX = this.shipSprite.x + cosR * nozzleOffsetX - sinR * nozzleOffsetY;
-      leftNozzleY = this.shipSprite.y + sinR * nozzleOffsetX + cosR * nozzleOffsetY;
-      rightNozzleX = this.shipSprite.x + cosR * (-nozzleOffsetX) - sinR * nozzleOffsetY;
-      rightNozzleY = this.shipSprite.y + sinR * (-nozzleOffsetX) + cosR * nozzleOffsetY;
+      nozzlePairs.push({
+        leftX: this.shipSprite.x + cosR * nozzleOffsetX - sinR * nozzleOffsetY,
+        leftY: this.shipSprite.y + sinR * nozzleOffsetX + cosR * nozzleOffsetY,
+        rightX: this.shipSprite.x + cosR * (-nozzleOffsetX) - sinR * nozzleOffsetY,
+        rightY: this.shipSprite.y + sinR * (-nozzleOffsetX) + cosR * nozzleOffsetY,
+        flameRot,
+        rearAngle,
+      });
     }
 
-    this.leftFlameSprite.setPosition(leftNozzleX, leftNozzleY);
-    this.leftFlameSprite.setRotation(flameRot);
-    this.rightFlameSprite.setPosition(rightNozzleX, rightNozzleY);
-    this.rightFlameSprite.setRotation(flameRot);
+    if (this.engineFlames.length !== nozzlePairs.length) {
+      this.syncEngineFlames(shouldShow);
+    }
 
-    // 3. Эффекты пламени сопел в зависимости от режима движения
+    // Позиционирование круга радиуса поражения корабля
+    this.attackRangeCircle?.setPosition(this.shipSprite.x, this.shipSprite.y);
+
+    // 3. Эффекты пламени сопел и выхлопа дыма/огня всех двигателей
     if (this.isDashing) {
-      this.leftFlameSprite.setTexture('space_effect_017');
-      this.rightFlameSprite.setTexture('space_effect_017');
       const sy = (1.9 + Math.random() * 0.4) * SHIP_SCALE;
       const sx = (1.15 + Math.random() * 0.2) * SHIP_SCALE;
-      this.leftFlameSprite.setScale(sx, sy).setAlpha(1.0);
-      this.rightFlameSprite.setScale(sx, sy).setAlpha(1.0);
+
+      for (let i = 0; i < nozzlePairs.length; i++) {
+        const n = nozzlePairs[i];
+        const flames = this.engineFlames[i];
+        if (flames) {
+          flames.left.setPosition(n.leftX, n.leftY).setRotation(n.flameRot);
+          flames.right.setPosition(n.rightX, n.rightY).setRotation(n.flameRot);
+          flames.left.setTexture('space_effect_017').setScale(sx, sy).setAlpha(1.0);
+          flames.right.setTexture('space_effect_017').setScale(sx, sy).setAlpha(1.0);
+        }
+      }
 
       this.dashFlameTimer += seconds;
       if (this.dashFlameTimer >= 0.02) {
         this.dashFlameTimer = 0;
-        particleManager.spawnShipDashTrail(leftNozzleX, leftNozzleY, rearAngle);
-        particleManager.spawnShipDashTrail(rightNozzleX, rightNozzleY, rearAngle);
+        for (const n of nozzlePairs) {
+          particleManager.spawnShipDashTrail(n.leftX, n.leftY, n.rearAngle);
+          particleManager.spawnShipDashTrail(n.rightX, n.rightY, n.rearAngle);
+        }
       }
     } else if (this.isSuperMode) {
-      this.leftFlameSprite.setTexture('space_effect_018');
-      this.rightFlameSprite.setTexture('space_effect_018');
       const sy = (1.6 + Math.random() * 0.35) * SHIP_SCALE;
       const sx = (1.05 + Math.random() * 0.2) * SHIP_SCALE;
-      this.leftFlameSprite.setScale(sx, sy).setAlpha(1.0);
-      this.rightFlameSprite.setScale(sx, sy).setAlpha(1.0);
+
+      for (let i = 0; i < nozzlePairs.length; i++) {
+        const n = nozzlePairs[i];
+        const flames = this.engineFlames[i];
+        if (flames) {
+          flames.left.setPosition(n.leftX, n.leftY).setRotation(n.flameRot);
+          flames.right.setPosition(n.rightX, n.rightY).setRotation(n.flameRot);
+          flames.left.setTexture('space_effect_018').setScale(sx, sy).setAlpha(1.0);
+          flames.right.setTexture('space_effect_018').setScale(sx, sy).setAlpha(1.0);
+        }
+      }
 
       this.superFlameTimer += seconds;
       if (this.superFlameTimer >= 0.03) {
         this.superFlameTimer = 0;
-        particleManager.spawnShipExhaust(leftNozzleX, leftNozzleY, rearAngle, true);
-        particleManager.spawnShipExhaust(rightNozzleX, rightNozzleY, rearAngle, true);
+        for (const n of nozzlePairs) {
+          particleManager.spawnShipExhaust(n.leftX, n.leftY, n.rearAngle, true);
+          particleManager.spawnShipExhaust(n.rightX, n.rightY, n.rearAngle, true);
+        }
       }
     } else if (isMoving) {
-      this.leftFlameSprite.setTexture('space_effect_004');
-      this.rightFlameSprite.setTexture('space_effect_004');
       const sy = (1.1 + Math.random() * 0.35) * SHIP_SCALE;
       const sx = (0.95 + Math.random() * 0.15) * SHIP_SCALE;
-      this.leftFlameSprite.setScale(sx, sy).setAlpha(0.95);
-      this.rightFlameSprite.setScale(sx, sy).setAlpha(0.95);
+
+      for (let i = 0; i < nozzlePairs.length; i++) {
+        const n = nozzlePairs[i];
+        const flames = this.engineFlames[i];
+        if (flames) {
+          flames.left.setPosition(n.leftX, n.leftY).setRotation(n.flameRot);
+          flames.right.setPosition(n.rightX, n.rightY).setRotation(n.flameRot);
+          flames.left.setTexture('space_effect_004').setScale(sx, sy).setAlpha(0.95);
+          flames.right.setTexture('space_effect_004').setScale(sx, sy).setAlpha(0.95);
+        }
+      }
 
       if (Math.random() < 0.35) {
-        particleManager.spawnShipExhaust(leftNozzleX, leftNozzleY, rearAngle, false);
-        particleManager.spawnShipExhaust(rightNozzleX, rightNozzleY, rearAngle, false);
+        for (const n of nozzlePairs) {
+          particleManager.spawnShipExhaust(n.leftX, n.leftY, n.rearAngle, false);
+          particleManager.spawnShipExhaust(n.rightX, n.rightY, n.rearAngle, false);
+        }
       }
     } else {
-      this.leftFlameSprite.setTexture('space_effect_001');
-      this.rightFlameSprite.setTexture('space_effect_001');
       const sy = (0.5 + Math.sin(survivalTime * 12) * 0.08) * SHIP_SCALE;
       const sx = 0.6 * SHIP_SCALE;
-      this.leftFlameSprite.setScale(sx, sy).setAlpha(0.65);
-      this.rightFlameSprite.setScale(sx, sy).setAlpha(0.65);
+
+      for (let i = 0; i < nozzlePairs.length; i++) {
+        const n = nozzlePairs[i];
+        const flames = this.engineFlames[i];
+        if (flames) {
+          flames.left.setPosition(n.leftX, n.leftY).setRotation(n.flameRot);
+          flames.right.setPosition(n.rightX, n.rightY).setRotation(n.flameRot);
+          flames.left.setTexture('space_effect_001').setScale(sx, sy).setAlpha(0.65);
+          flames.right.setTexture('space_effect_001').setScale(sx, sy).setAlpha(0.65);
+        }
+      }
     }
 
     // Затухание отдачи выстрелов
@@ -792,8 +948,10 @@ export class PlayerShip {
       const alpha = Math.floor(survivalTime * 18) % 2 === 0 ? 0.45 : 1;
       this.shipSprite.setAlpha(alpha);
       this.customShipContainer?.setAlpha(alpha);
-      this.leftFlameSprite?.setAlpha(alpha);
-      this.rightFlameSprite?.setAlpha(alpha);
+      for (const flames of this.engineFlames) {
+        flames.left?.setAlpha(alpha);
+        flames.right?.setAlpha(alpha);
+      }
 
       // Визуализация защитного силового поля при спавне
       if (!this.isDashing && this.shieldSprite) {
@@ -807,6 +965,10 @@ export class PlayerShip {
     } else {
       this.shipSprite.setAlpha(1);
       this.customShipContainer?.setAlpha(1);
+      for (const flames of this.engineFlames) {
+        flames.left?.setAlpha(1);
+        flames.right?.setAlpha(1);
+      }
       if (!this.isDashing && this.shieldSprite) {
         this.shieldSprite.setVisible(false);
       }
@@ -864,11 +1026,18 @@ export class PlayerShip {
       this.shipSprite.setVisible(shouldShow);
       this.customShipContainer?.setVisible(false);
     }
-    this.leftFlameSprite?.setVisible(shouldShow);
-    this.rightFlameSprite?.setVisible(shouldShow);
+    for (const flames of this.engineFlames) {
+      flames.left?.setVisible(shouldShow);
+      flames.right?.setVisible(shouldShow);
+    }
+    this.attackRangeCircle?.setVisible(shouldShow);
     if (!shouldShow) {
       this.shieldSprite?.setVisible(false);
     }
+  }
+
+  public getIsShipVisible(): boolean {
+    return this.isShipVisible;
   }
 
   public applyUpgrade(upgradeId: string): void {
@@ -893,8 +1062,11 @@ export class PlayerShip {
     this.shipSprite.setPosition(startX, startY);
     this.customShipContainer?.setPosition(startX, startY);
     this.customShipContainer?.setRotation(this.shipFacingAngle + Math.PI / 2);
-    this.leftFlameSprite?.setPosition(startX, startY);
-    this.rightFlameSprite?.setPosition(startX, startY);
+    for (const flames of this.engineFlames) {
+      flames.left?.setPosition(startX, startY);
+      flames.right?.setPosition(startX, startY);
+    }
+    this.attackRangeCircle?.setPosition(startX, startY);
     this.shieldSprite?.setPosition(startX, startY);
     this.hp = this.maxHp;
     this.invulnTimer = 3.0; // 3 секунды неуязвимости и активного щита при спавне/рестарте
@@ -940,8 +1112,12 @@ export class PlayerShip {
     this.shipSprite.destroy();
     this.customShipContainer?.destroy();
     this.shieldSprite.destroy();
-    this.leftFlameSprite?.destroy();
-    this.rightFlameSprite?.destroy();
+    for (const flames of this.engineFlames) {
+      flames.left?.destroy();
+      flames.right?.destroy();
+    }
+    this.engineFlames = [];
+    this.attackRangeCircle?.destroy();
   }
 }
 

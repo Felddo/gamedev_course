@@ -24,7 +24,13 @@ import evilShip005Url from '../assets/Sprites/EvilShips/spaceShips_005.png';
 import evilShip004Url from '../assets/Sprites/EvilShips/spaceShips_004.png';
 import evilShip006Url from '../assets/Sprites/EvilShips/spaceShips_006.png';
 
-import { MAP_WIDTH, MAP_HEIGHT, GAME_PHASES, PLAYER_MAX_HP } from './constants';
+import {
+  MAP_WIDTH,
+  MAP_HEIGHT,
+  GAME_PHASES,
+  PLAYER_MAX_HP,
+  PLAYER_ATTACK_RADIUS,
+} from './constants';
 export * from './constants';
 export * from './types';
 import { FireHazard } from './types';
@@ -541,7 +547,7 @@ export class GameScene extends Phaser.Scene {
         );
         const effectiveDist = Math.max(0, distToStation - targetedStation.boundingRadius);
         // Стреляем по захваченной базе, когда она в радиусе досягаемости орудий
-        if (effectiveDist <= 850) {
+        if (effectiveDist <= PLAYER_ATTACK_RADIUS) {
           hasTarget = true;
         }
         // Орудия направлены строго в центр базы
@@ -559,7 +565,7 @@ export class GameScene extends Phaser.Scene {
 
     // Если база НЕ захвачена, автонаводка стреляет по ближайшему противнику
     if (!this.spaceStationManager.getTargetedStation()) {
-      nearestEnemy = this.enemyManager.findNearestEnemy(this.playerShip.x, this.playerShip.y, 850);
+      nearestEnemy = this.enemyManager.findNearestEnemy(this.playerShip.x, this.playerShip.y, PLAYER_ATTACK_RADIUS);
       if (nearestEnemy && nearestEnemy.sprite?.active && nearestEnemy.hp > 0) {
         hasTarget = true;
         this.playerShip.aimAngle = Phaser.Math.Angle.Between(
