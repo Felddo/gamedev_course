@@ -100,9 +100,6 @@ export class ShipBuilderModal {
   private modalEl!: HTMLElement;
   private centerBayEl!: HTMLElement;
   private categoriesListEl!: HTMLElement;
-  private subfoldersColEl!: HTMLElement;
-  private subfoldersTagEl!: HTMLElement;
-  private subfoldersListEl!: HTMLElement;
   private partsColEl!: HTMLElement;
   private partsTagEl!: HTMLElement;
   private partsGridEl!: HTMLElement;
@@ -228,16 +225,6 @@ export class ShipBuilderModal {
               </div>
             </div>
 
-            <!-- 2. СТОЛБЕЦ: РАЗДЕЛЕНИЕ (если в группе есть папки, например цвета крыльев) -->
-            <div class="flow-col col-subfolders" id="col-subfolders">
-              <div class="col-head">
-                <span class="col-head-tag" id="subfolders-head-tag">02 // РАЗДЕЛЕНИЕ</span>
-              </div>
-              <div class="col-scroll">
-                <nav class="subfolders-list" id="shipyard-subfolders-list"></nav>
-              </div>
-            </div>
-
             <!-- 3. СТОЛБЕЦ: ФОТОГРАФИИ ДЕТАЛЕЙ (выбранного раздела или группы) -->
             <div class="flow-col col-parts" id="col-parts">
               <div class="col-head">
@@ -262,104 +249,109 @@ export class ShipBuilderModal {
                 <span class="prompt-text">Создай свой корабль, перемещая части в это поле</span>
               </div>
 
-              <!-- СРЕДНИЙ РЯД: СЛЕВА БЛОК 05, В ЦЕНТРЕ ОКНО С КОСМОЛЕТОМ, СПРАВА БЛОК 04 -->
+              <!-- СРЕДНИЙ РЯД: СЛЕВА БЛОК 05 И КНОПКА БАЗОВЫЙ СБОР, В ЦЕНТРЕ ОКНО С КОСМОЛЕТОМ И СТРЕЛКИ, СПРАВА БЛОК 04 И КНОПКА ОЧИСТКИ -->
               <div class="hangar-bay-wrapper">
-                <!-- БЛОК 05: СЛЕВА ОТ ОКНА С КОСМОЛЕТОМ (ВЫСОТА КАК У ОКНА, ПОУЖЕ) -->
-                <div class="hangar-panel-col selected-module-toolbar" id="selected-module-toolbar">
-                  <div class="panel-col-head">
-                    <span class="panel-col-head-tag">05 // УПРАВЛЕНИЕ</span>
-                  </div>
-                  <div class="panel-col-body">
-                    <div class="sel-tools">
-                      <button id="btn-layer-up" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой вперед" disabled>
-                        <span class="tool-icon">▲</span> Слой +1
-                      </button>
-                      <button id="btn-layer-down" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой назад" disabled>
-                        <span class="tool-icon">▼</span> Слой -1
-                      </button>
-                      <button id="btn-rotate-45" class="sel-tool-btn" type="button" title="Повернуть модуль на +45 градусов" disabled>
-                        <span class="tool-icon">⟳</span> +45°
-                      </button>
-                      <button id="btn-rotate-minus-45" class="sel-tool-btn" type="button" title="Повернуть модуль на -45 градусов" disabled>
-                        <span class="tool-icon">⟲</span> -45°
-                      </button>
-                      <button id="btn-rotate-90" class="sel-tool-btn" type="button" title="Повернуть модуль на 90 градусов" disabled>
-                        <span class="tool-icon">↷</span> +90°
-                      </button>
-                      <button id="btn-flip-x" class="sel-tool-btn" type="button" title="Отразить модуль по горизонтали" disabled>
-                        <span class="tool-icon">⇄</span> Отразить
-                      </button>
-                      <button id="btn-delete-selected" class="sel-tool-btn btn-danger" type="button" title="Удалить выбранный модуль" disabled>
-                        <span class="tool-icon">✕</span> Удалить
-                      </button>
+                <!-- ЛЕВАЯ КОЛОНКА: БЛОК 05 И ПОД НИМ ПРЯМОУГОЛЬНАЯ КНОПКА БАЗОВОГО СБОРА -->
+                <div class="hangar-side-col hangar-side-col-left">
+                  <div class="hangar-panel-col selected-module-toolbar" id="selected-module-toolbar">
+                    <div class="panel-col-head">
+                      <span class="panel-col-head-tag">05 // УПРАВЛЕНИЕ</span>
                     </div>
+                    <div class="panel-col-body">
+                      <div class="sel-tools">
+                        <button id="btn-layer-up" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой вперед" disabled>
+                          <span class="tool-icon">▲</span> Слой +1
+                        </button>
+                        <button id="btn-layer-down" class="sel-tool-btn" type="button" title="Переместить модуль на 1 слой назад" disabled>
+                          <span class="tool-icon">▼</span> Слой -1
+                        </button>
+                        <button id="btn-rotate-45" class="sel-tool-btn" type="button" title="Повернуть модуль на +45 градусов" disabled>
+                          <span class="tool-icon">⟳</span> +45°
+                        </button>
+                        <button id="btn-rotate-minus-45" class="sel-tool-btn" type="button" title="Повернуть модуль на -45 градусов" disabled>
+                          <span class="tool-icon">⟲</span> -45°
+                        </button>
+                        <button id="btn-rotate-90" class="sel-tool-btn" type="button" title="Повернуть модуль на 90 градусов" disabled>
+                          <span class="tool-icon">↷</span> +90°
+                        </button>
+                        <button id="btn-flip-x" class="sel-tool-btn" type="button" title="Отразить модуль по горизонтали" disabled>
+                          <span class="tool-icon">⇄</span> Отразить
+                        </button>
+                        <button id="btn-delete-selected" class="sel-tool-btn btn-danger" type="button" title="Удалить выбранный модуль" disabled>
+                          <span class="tool-icon">✕</span> Удалить
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- ПРЯМОУГОЛЬНАЯ КНОПКА БАЗОВЫЙ СБОР ПОД БЛОКОМ 05 -->
+                  <button id="shipyard-btn-preset" class="hangar-tool-btn hangar-side-btn btn-preset" type="button" title="Загрузить готовую сбалансированную сборку корабля">
+                    ⚡ БАЗОВЫЙ<br>СБОР
+                  </button>
+                </div>
+
+                <!-- ЦЕНТРАЛЬНАЯ КОЛОНКА: ОКНО С КОСМОЛЕТОМ И ПОД НИМ КНОПКИ СО СТРЕЛКАМИ -->
+                <div class="hangar-center-col-wrapper">
+                  <!-- ОТЦЕНТРИРОВАННОЕ ОКНО, ГДЕ СОБИРАЕТСЯ САМ КОСМОЛЕТ -->
+                  <div class="shipyard-center-bay" id="shipyard-center-bay" role="region" aria-label="Отсек сборки корабля">
+                    <div class="hangar-grid-lines"></div>
+                    <div class="hangar-reticle"></div>
+                    <span class="corner-bracket corner-tl"></span>
+                    <span class="corner-bracket corner-tr"></span>
+                    <span class="corner-bracket corner-bl"></span>
+                    <span class="corner-bracket corner-br"></span>
+
+                    <!-- Плейсхолдер при пустом отсеке -->
+                    <div class="hangar-empty-hint" id="hangar-empty-hint">
+                      <div class="hangar-ghost-silhouette">
+                        <svg viewBox="0 0 100 100" class="ghost-ship-svg">
+                          <polygon points="50,15 65,40 60,82 50,75 40,82 35,40" fill="none" stroke="rgba(52,211,153,0.3)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                          <polygon points="50,25 58,45 50,65 42,45" fill="none" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
+                          <line x1="20" y1="50" x2="80" y2="50" stroke="rgba(52,211,153,0.2)" stroke-dasharray="2 3"/>
+                          <line x1="50" y1="20" x2="50" y2="80" stroke="rgba(52,211,153,0.2)" stroke-dasharray="2 3"/>
+                        </svg>
+                      </div>
+                      <span class="hangar-hint-text">ПЕРЕТАЩИТЕ МОДУЛИ В АНГАР</span>
+                      <span class="hangar-hint-sub">1 Корпус, 1 Кабина, 2 Крыла, 1 Двигатель, до 2 Пушек</span>
+                    </div>
+
+                    <!-- Поверхность для размещения сброшенных деталей -->
+                    <div class="hangar-drop-surface" id="hangar-drop-surface"></div>
+                  </div>
+
+                  <!-- ПОД ОКНОМ С КОСМОЛЕТОМ 4 КНОПКИ СО СТРЕЛКАМИ (ТАКОЙ ЖЕ ШИРИНЫ) -->
+                  <div class="hangar-nudge-bar" id="hangar-nudge-bar">
+                    <button id="btn-nudge-left" class="nudge-btn" type="button" title="Сдвинуть деталь влево" disabled>
+                      <span class="nudge-arrow">◀</span>
+                    </button>
+                    <button id="btn-nudge-down" class="nudge-btn" type="button" title="Сдвинуть деталь вниз" disabled>
+                      <span class="nudge-arrow">▼</span>
+                    </button>
+                    <button id="btn-nudge-up" class="nudge-btn" type="button" title="Сдвинуть деталь вверх" disabled>
+                      <span class="nudge-arrow">▲</span>
+                    </button>
+                    <button id="btn-nudge-right" class="nudge-btn" type="button" title="Сдвинуть деталь вправо" disabled>
+                      <span class="nudge-arrow">▶</span>
+                    </button>
                   </div>
                 </div>
 
-                <!-- ОТЦЕНТРИРОВАННОЕ ОКНО, ГДЕ СОБИРАЕТСЯ САМ КОСМОЛЕТ -->
-                <div class="shipyard-center-bay" id="shipyard-center-bay" role="region" aria-label="Отсек сборки корабля">
-                  <div class="hangar-grid-lines"></div>
-                  <div class="hangar-reticle"></div>
-                  <span class="corner-bracket corner-tl"></span>
-                  <span class="corner-bracket corner-tr"></span>
-                  <span class="corner-bracket corner-bl"></span>
-                  <span class="corner-bracket corner-br"></span>
-
-                  <!-- Плейсхолдер при пустом отсеке -->
-                  <div class="hangar-empty-hint" id="hangar-empty-hint">
-                    <div class="hangar-ghost-silhouette">
-                      <svg viewBox="0 0 100 100" class="ghost-ship-svg">
-                        <polygon points="50,15 65,40 60,82 50,75 40,82 35,40" fill="none" stroke="rgba(52,211,153,0.3)" stroke-width="1.5" stroke-dasharray="4 3"/>
-                        <polygon points="50,25 58,45 50,65 42,45" fill="none" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
-                        <line x1="20" y1="50" x2="80" y2="50" stroke="rgba(52,211,153,0.2)" stroke-dasharray="2 3"/>
-                        <line x1="50" y1="20" x2="50" y2="80" stroke="rgba(52,211,153,0.2)" stroke-dasharray="2 3"/>
-                      </svg>
+                <!-- ПРАВАЯ КОЛОНКА: БЛОК 04 И ПОД НИМ ПРЯМОУГОЛЬНАЯ КНОПКА ОЧИСТКИ ВСЕГО -->
+                <div class="hangar-side-col hangar-side-col-right">
+                  <div class="hangar-panel-col hangar-limits-panel" id="hangar-limits-panel">
+                    <div class="panel-col-head">
+                      <span class="panel-col-head-tag">04 // ЧАСТИ</span>
                     </div>
-                    <span class="hangar-hint-text">ПЕРЕТАЩИТЕ МОДУЛИ В АНГАР</span>
-                    <span class="hangar-hint-sub">1 Корпус, 1 Кабина, 2 Крыла, 1 Двигатель, до 2 Пушек</span>
-                  </div>
-
-                  <!-- Поверхность для размещения сброшенных деталей -->
-                  <div class="hangar-drop-surface" id="hangar-drop-surface"></div>
-                </div>
-
-                <!-- БЛОК 04: В ПРАВОЙ ЧАСТИ ОТ ОКНА С КОСМОЛЕТОМ, ТАКОЙ ЖЕ ВЫСОТЫ -->
-                <div class="hangar-panel-col hangar-limits-panel" id="hangar-limits-panel">
-                  <div class="panel-col-head">
-                    <span class="panel-col-head-tag">04 // ЧАСТИ</span>
-                  </div>
-                  <div class="panel-col-body">
-                    <div class="hangar-limits-grid" id="hangar-limits-grid" title="Требуемое количество частей">
-                      <!-- Динамически: Кабина, Корпус, Крылья, Двигатели, Пушки -->
+                    <div class="panel-col-body">
+                      <div class="hangar-limits-grid" id="hangar-limits-grid" title="Требуемое количество частей">
+                        <!-- Динамически: Кабина, Корпус, Крылья, Двигатели, Пушки -->
+                      </div>
                     </div>
                   </div>
+                  <!-- ПРЯМОУГОЛЬНАЯ КНОПКА ОЧИСТИТЬ ВСЕ ПОД БЛОКОМ 04 -->
+                  <button id="shipyard-btn-clear" class="hangar-tool-btn hangar-side-btn btn-clear" type="button" title="Очистить все детали из отсека сборки">
+                    ✕ ОЧИСТИТЬ<br>ВСЕ
+                  </button>
                 </div>
-              </div>
-
-              <!-- ПОД ОКНОМ С КОСМОЛЕТОМ 4 КНОПКИ СО СТРЕЛКАМИ (ТАКОЙ ЖЕ ШИРИНЫ) -->
-              <div class="hangar-nudge-bar" id="hangar-nudge-bar">
-                <button id="btn-nudge-left" class="nudge-btn" type="button" title="Сдвинуть деталь влево" disabled>
-                  <span class="nudge-arrow">◀</span>
-                </button>
-                <button id="btn-nudge-down" class="nudge-btn" type="button" title="Сдвинуть деталь вниз" disabled>
-                  <span class="nudge-arrow">▼</span>
-                </button>
-                <button id="btn-nudge-up" class="nudge-btn" type="button" title="Сдвинуть деталь вверх" disabled>
-                  <span class="nudge-arrow">▲</span>
-                </button>
-                <button id="btn-nudge-right" class="nudge-btn" type="button" title="Сдвинуть деталь вправо" disabled>
-                  <span class="nudge-arrow">▶</span>
-                </button>
-              </div>
-
-              <!-- ПОД КНОПКАМИ СО СТРЕЛКАМИ: СЛЕВА КНОПКА БАЗОВОГО СБОРА, СПРАВА КНОПКА ОЧИСТКИ -->
-              <div class="hangar-controls-bar">
-                <button id="shipyard-btn-preset" class="hangar-tool-btn btn-preset" type="button" title="Загрузить готовую сбалансированную сборку корабля">
-                  ⚡ БАЗОВЫЙ СБОР
-                </button>
-                <button id="shipyard-btn-clear" class="hangar-tool-btn" type="button" title="Очистить все детали из отсека сборки">
-                  ✕ ОЧИСТИТЬ ВСЕ
-                </button>
               </div>
 
             </div>
@@ -389,9 +381,6 @@ export class ShipBuilderModal {
     this.modalEl = modal;
     this.centerBayEl = modal.querySelector('#shipyard-center-bay') as HTMLElement;
     this.categoriesListEl = modal.querySelector('#shipyard-categories-list') as HTMLElement;
-    this.subfoldersColEl = modal.querySelector('#col-subfolders') as HTMLElement;
-    this.subfoldersTagEl = modal.querySelector('#subfolders-head-tag') as HTMLElement;
-    this.subfoldersListEl = modal.querySelector('#shipyard-subfolders-list') as HTMLElement;
     this.partsColEl = modal.querySelector('#col-parts') as HTMLElement;
     this.partsTagEl = modal.querySelector('#parts-head-tag') as HTMLElement;
     this.partsGridEl = modal.querySelector('#shipyard-parts-grid') as HTMLElement;
@@ -1121,7 +1110,7 @@ export class ShipBuilderModal {
   private render(): void {
     this.updateScrapDisplay();
     this.renderCategoriesColumn();
-    this.renderSubfoldersAndParts();
+    this.renderPartsColumn();
     this.renderLimitsGrid();
     this.renderDroppedParts();
     this.updateSelectedToolbar();
@@ -1176,6 +1165,7 @@ export class ShipBuilderModal {
 
   /**
    * 1. РЕНДЕРИНГ ЛЕВОГО СТОЛБЦА: МОДУЛИ (Кабина, Тело, Крылья, Двигатели, Пушки)
+   * Вертикальный порядок: Значок -> Название части -> Количество
    */
   private renderCategoriesColumn(): void {
     this.categoriesListEl.innerHTML = '';
@@ -1195,11 +1185,8 @@ export class ShipBuilderModal {
       btn.innerHTML = `
         <div class="col-btn-inner">
           <div class="cat-icon-box">${cat.iconSvg}</div>
-          <div class="cat-text-box">
-            <span class="cat-title">${cat.title}</span>
-            <span class="cat-count-badge ${isFull ? 'badge-full' : isMissing ? 'badge-missing' : ''}">${count}/${limit}</span>
-          </div>
-          <span class="active-chevron">▶</span>
+          <span class="cat-title">${cat.title}</span>
+          <span class="cat-count-badge ${isFull ? 'badge-full' : isMissing ? 'badge-missing' : ''}">${count}/${limit}</span>
         </div>
       `;
 
@@ -1222,78 +1209,21 @@ export class ShipBuilderModal {
     this.activeRarityFilter = 'all';
 
     this.renderCategoriesColumn();
-    this.renderSubfoldersAndParts();
+    this.renderPartsColumn();
 
     const flowEl = this.modalEl.querySelector('#shipyard-columns-flow');
     if (flowEl) flowEl.scrollLeft = 0;
   }
 
   /**
-   * 2 & 3. РЕНДЕРИНГ СТОЛБЦА ПОДПАПОК И СТОЛБЦА ДЕТАЛЕЙ
-   * Все 3 колонки (МОДУЛИ, РАЗДЕЛЕНИЕ, ДЕТАЛИ) всегда одновременно видны!
+   * 2. РЕНДЕРИНГ СТОЛБЦА ДЕТАЛЕЙ (03 // ДЕТАЛИ)
+   * Все детали выбранной категории распределяются по 3 колонкам редкости.
    */
-  private renderSubfoldersAndParts(): void {
+  private renderPartsColumn(): void {
     const activeCat = this.catalog.find((c) => c.id === this.activeCategoryId);
     if (!activeCat) return;
 
     const items = activeCat.directItems;
-    const commonCount = items.filter((p) => {
-      const m = getModuleByPartId(p.id);
-      return getModuleRarity(m).type === 'common';
-    }).length;
-    const rareCount = items.filter((p) => {
-      const m = getModuleByPartId(p.id);
-      return getModuleRarity(m).type === 'rare';
-    }).length;
-    const legendaryCount = items.filter((p) => {
-      const m = getModuleByPartId(p.id);
-      return getModuleRarity(m).type === 'legendary';
-    }).length;
-
-    // Столбец 2: Разделение по редкости (Все / Обычные / Редкие / Легендарные)
-    this.subfoldersColEl.style.display = 'flex';
-    this.subfoldersTagEl.textContent = `02 // РАЗДЕЛЕНИЕ`;
-    this.subfoldersListEl.innerHTML = '';
-
-    const filterOptions: Array<{
-      id: 'all' | 'common' | 'rare' | 'legendary';
-      name: string;
-      icon: string;
-      count: number;
-      color?: string;
-    }> = [
-        { id: 'all', name: 'Все детали', icon: '📂', count: items.length },
-        { id: 'common', name: 'Обычные', icon: '⚪', count: commonCount, color: '#94a3b8' },
-        { id: 'rare', name: 'Редкие', icon: '🟡', count: rareCount, color: '#facc15' },
-        { id: 'legendary', name: 'Легендарные', icon: '🔴', count: legendaryCount, color: '#ef4444' },
-      ];
-
-    filterOptions.forEach((opt) => {
-      const btn = document.createElement('button');
-      const isSelected = this.activeRarityFilter === opt.id;
-      btn.className = `subfolder-col-btn ${isSelected ? 'active' : ''}`;
-      btn.type = 'button';
-
-      btn.innerHTML = `
-        <div class="subfolder-btn-inner">
-          <span class="subfolder-icon" ${opt.color ? `style="color: ${opt.color};"` : ''}>${opt.icon}</span>
-          <div class="subfolder-text-wrap">
-            <span class="subfolder-name" ${isSelected && opt.color ? `style="color: ${opt.color};"` : ''}>${opt.name}</span>
-            <span class="subfolder-count">${opt.count} дет.</span>
-          </div>
-          <span class="active-chevron">▶</span>
-        </div>
-      `;
-
-      btn.addEventListener('mouseenter', () => soundFx.playUiHover());
-      btn.addEventListener('click', () => {
-        soundFx.playUiClick();
-        this.activeRarityFilter = opt.id;
-        this.renderSubfoldersAndParts();
-      });
-
-      this.subfoldersListEl.appendChild(btn);
-    });
 
     // Столбец 3: Сетка деталей
     this.partsColEl.style.display = 'flex';
