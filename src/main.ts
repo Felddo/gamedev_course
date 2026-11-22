@@ -1,7 +1,6 @@
 import './style.css';
 import { createGame } from './game/config';
 import { soundFx } from './game/audio';
-import { GAME_PHASES } from './game/constants';
 import { GameScene } from './game/GameScene';
 import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
 import { shipModificationModal } from './game/modifications/ShipModificationModal';
@@ -656,48 +655,6 @@ document.addEventListener('fullscreenchange', () => {
   } else {
     toggleFullscreenBtn.classList.remove('active');
     if (indicator) indicator.textContent = 'ЭКРАН';
-  }
-});
-
-// Настройка количества метеоритов в фазах из меню настроек
-const toggleMeteorDensityBtn = document.getElementById('toggle-meteor-density-btn') as HTMLButtonElement;
-const meteorDensityText = document.getElementById('meteor-density-text') as HTMLElement;
-const meteorDensityHint = document.getElementById('meteor-density-hint') as HTMLElement;
-
-const METEOR_PRESETS = [
-  { name: 'МАЛО [5 / 10]', p1: 5, p2: 10, int1: 3.0, int2: 1.8 },
-  { name: 'НОРМА [10 / 22]', p1: 10, p2: 22, int1: 2.2, int2: 1.1 },
-  { name: 'ШТОРМ [18 / 36]', p1: 18, p2: 36, int1: 1.4, int2: 0.7 },
-  { name: 'ХАОС [30 / 60]', p1: 30, p2: 60, int1: 0.8, int2: 0.4 },
-];
-let currentMeteorPresetIndex = 1;
-
-toggleMeteorDensityBtn?.addEventListener('click', () => {
-  soundFx.playUiClick();
-  currentMeteorPresetIndex = (currentMeteorPresetIndex + 1) % METEOR_PRESETS.length;
-  const preset = METEOR_PRESETS[currentMeteorPresetIndex];
-
-  // Применяем настройки в GAME_PHASES
-  if (GAME_PHASES[0]) {
-    GAME_PHASES[0].maxMeteors = preset.p1;
-    GAME_PHASES[0].meteorSpawnInterval = preset.int1;
-  }
-  if (GAME_PHASES[1]) {
-    GAME_PHASES[1].maxMeteors = preset.p2;
-    GAME_PHASES[1].meteorSpawnInterval = preset.int2;
-  }
-
-  if (meteorDensityText) meteorDensityText.textContent = preset.name;
-  if (meteorDensityHint) {
-    meteorDensityHint.textContent = `Настройка количества активных метеоров (Фаза 1: ${preset.p1}, Фаза 2: ${preset.p2})`;
-  }
-
-  // Применяем сразу в активную сцену игры
-  if (phaserGame) {
-    const scene = phaserGame.scene.getScene('GameScene') as any;
-    if (scene && scene.meteorManager) {
-      scene.meteorManager.setPhase(scene.currentPhase || 1);
-    }
   }
 });
 
