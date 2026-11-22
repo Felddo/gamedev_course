@@ -94,6 +94,11 @@ const modalSettingsCloseBtn = document.getElementById('modal-settings-close-btn'
 const modalSettingsX = document.getElementById('modal-settings-x') as HTMLButtonElement;
 const toggleAudioBtn = document.getElementById('toggle-audio-btn') as HTMLButtonElement;
 const toggleFullscreenBtn = document.getElementById('toggle-fullscreen-btn') as HTMLButtonElement;
+const btnMenuFullscreen = document.getElementById('btn-menu-fullscreen') as HTMLButtonElement;
+const menuFullscreenNotice = document.getElementById('menu-fullscreen-notice') as HTMLElement;
+const noticeTag = document.getElementById('notice-tag') as HTMLElement;
+const noticeDesc = document.getElementById('notice-desc') as HTMLElement;
+const menuFsBtnText = document.getElementById('menu-fs-btn-text') as HTMLElement;
 
 const modalExit = document.getElementById('modal-exit') as HTMLElement;
 const modalExitCancelBtn = document.getElementById('modal-exit-cancel-btn') as HTMLButtonElement;
@@ -130,10 +135,6 @@ const btnCcRestart = document.getElementById('btn-cc-restart') as HTMLButtonElem
 
 // Scrap Currency UI Elements
 const menuScrapBalance = document.getElementById('menu-scrap-balance') as HTMLElement;
-const mcScrapEnemies = document.getElementById('mc-scrap-enemies') as HTMLElement;
-const mcScrapMission = document.getElementById('mc-scrap-mission') as HTMLElement;
-const mcScrapBoss = document.getElementById('mc-scrap-boss') as HTMLElement;
-const mcScrapBossRow = document.getElementById('mc-scrap-boss-row') as HTMLElement;
 const mcScrapTotal = document.getElementById('mc-scrap-total') as HTMLElement;
 const mcScrapBalance = document.getElementById('mc-scrap-balance') as HTMLElement;
 
@@ -248,6 +249,7 @@ function attachAudioHover(button: HTMLElement): void {
   btnPauseExit,
   toggleAudioBtn,
   toggleFullscreenBtn,
+  btnMenuFullscreen,
   modalSettingsCloseBtn,
   modalSettingsX,
   modalExitCancelBtn,
@@ -630,32 +632,59 @@ toggleAudioBtn?.addEventListener('click', () => {
   }
 });
 
-// Переключатель полного экрана
-toggleFullscreenBtn?.addEventListener('click', () => {
-  soundFx.playUiClick();
-  const indicator = toggleFullscreenBtn.querySelector('.toggle-text');
+// Переключатель полного экрана (синхронизируется для настроек и главного меню)
+function syncFullscreenUI(): void {
+  const isFs = !!document.fullscreenElement;
 
+  if (toggleFullscreenBtn) {
+    const indicator = toggleFullscreenBtn.querySelector('.toggle-text');
+    if (isFs) {
+      toggleFullscreenBtn.classList.add('active');
+      if (indicator) indicator.textContent = 'ВЫЙТИ';
+    } else {
+      toggleFullscreenBtn.classList.remove('active');
+      if (indicator) indicator.textContent = 'ЭКРАН';
+    }
+  }
+
+  if (btnMenuFullscreen) {
+    if (isFs) {
+      btnMenuFullscreen.classList.add('active');
+      if (menuFsBtnText) menuFsBtnText.innerHTML = 'ВЫЙТИ';
+    } else {
+      btnMenuFullscreen.classList.remove('active');
+      if (menuFsBtnText) menuFsBtnText.innerHTML = 'НА ВЕСЬ<br>ЭКРАН';
+    }
+  }
+
+  if (menuFullscreenNotice) {
+    if (isFs) {
+      menuFullscreenNotice.classList.add('is-fullscreen');
+      if (noticeTag) noticeTag.textContent = 'АКТИВЕН // FULLSCREEN';
+      if (noticeDesc) noticeDesc.innerHTML = 'Полноэкранный режим<br>активирован';
+    } else {
+      menuFullscreenNotice.classList.remove('is-fullscreen');
+      if (noticeTag) noticeTag.textContent = 'РЕКОМЕНДАЦИЯ // DISPLAY';
+      if (noticeDesc) noticeDesc.innerHTML = 'Для лучшего ощущения<br>включите полноэкранный режим';
+    }
+  }
+}
+
+function handleToggleFullscreen(): void {
+  soundFx.playUiClick();
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(() => { });
-    toggleFullscreenBtn.classList.add('active');
-    if (indicator) indicator.textContent = 'ВЫЙТИ';
   } else {
     document.exitFullscreen().catch(() => { });
-    toggleFullscreenBtn.classList.remove('active');
-    if (indicator) indicator.textContent = 'ЭКРАН';
   }
-});
+}
 
-document.addEventListener('fullscreenchange', () => {
-  const indicator = toggleFullscreenBtn.querySelector('.toggle-text');
-  if (document.fullscreenElement) {
-    toggleFullscreenBtn.classList.add('active');
-    if (indicator) indicator.textContent = 'ВЫЙТИ';
-  } else {
-    toggleFullscreenBtn.classList.remove('active');
-    if (indicator) indicator.textContent = 'ЭКРАН';
-  }
-});
+toggleFullscreenBtn?.addEventListener('click', handleToggleFullscreen);
+btnMenuFullscreen?.addEventListener('click', handleToggleFullscreen);
+document.addEventListener('fullscreenchange', syncFullscreenUI);
+
+// Начальная синхронизация состояния
+syncFullscreenUI();
 
 // Кнопка "Выход"
 function openExit(): void {
@@ -864,23 +893,10 @@ function showMissionComplete(
 
   // Заполнение информации о добытом металлоломе
   if (scrapBreakdown) {
-    if (mcScrapEnemies) mcScrapEnemies.textContent = `+${scrapBreakdown.enemyScrap}`;
-    if (mcScrapMission) mcScrapMission.textContent = `+${scrapBreakdown.missionReward}`;
-    if (mcScrapBossRow && mcScrapBoss) {
-      if (scrapBreakdown.bossBonus > 0) {
-        mcScrapBossRow.classList.remove('hidden');
-        mcScrapBoss.textContent = `+${scrapBreakdown.bossBonus}`;
-      } else {
-        mcScrapBossRow.classList.add('hidden');
-      }
-    }
     if (mcScrapTotal) mcScrapTotal.textContent = `+${scrapBreakdown.totalEarned}`;
     if (mcScrapBalance) mcScrapBalance.textContent = scrapBreakdown.newBalance.toString();
   } else {
     const currentBalance = campaignManager.getScrapBalance();
-    if (mcScrapEnemies) mcScrapEnemies.textContent = '+0';
-    if (mcScrapMission) mcScrapMission.textContent = '+0';
-    if (mcScrapBossRow) mcScrapBossRow.classList.add('hidden');
     if (mcScrapTotal) mcScrapTotal.textContent = '+0';
     if (mcScrapBalance) mcScrapBalance.textContent = currentBalance.toString();
   }

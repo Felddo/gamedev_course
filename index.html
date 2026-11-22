@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#02140e" />
   <title>Iron Resolve: Survivor Protocol</title>
 
@@ -30,7 +31,8 @@
     </div>
 
     <!-- Кнопка тактической паузы [ESC] в верхнем левом углу экрана -->
-    <button id="btn-top-esc" class="top-esc-btn hidden" type="button" aria-label="Пауза игры [ESC]" title="Пауза игры [ESC]">
+    <button id="btn-top-esc" class="top-esc-btn hidden" type="button" aria-label="Пауза игры [ESC]"
+      title="Пауза игры [ESC]">
       <kbd class="top-esc-keycap">
         <span class="top-esc-text">ESC</span>
         <span class="top-esc-pause-bars" aria-hidden="true">
@@ -199,23 +201,52 @@
 
           <!-- 3 вертикальные кнопки под углом в спокойном зеленом голографическом стиле -->
           <nav class="holo-nav" aria-label="Главное меню игры">
-            <!-- 1. Начать игру -->
-            <button id="btn-start" class="holo-btn" type="button" data-action="start">
-              <div class="holo-plate">
-                <div class="holo-scanlines"></div>
-                <div class="holo-glow-sweep"></div>
-                <div class="holo-edge-notch"></div>
-                <div class="holo-content">
-                  <span class="holo-index">01</span>
-                  <div class="holo-titles">
-                    <span class="holo-title" id="btn-start-title">НАЧАТЬ ИГРУ</span>
-                    <span class="holo-sub" id="btn-start-sub">SYS_LAUNCH // БОЕВОЙ ВЫХОД</span>
+            <div class="menu-start-row">
+              <!-- 1. Начать игру / Продолжить -->
+              <button id="btn-start" class="holo-btn" type="button" data-action="start">
+                <div class="holo-plate">
+                  <div class="holo-scanlines"></div>
+                  <div class="holo-glow-sweep"></div>
+                  <div class="holo-edge-notch"></div>
+                  <div class="holo-content">
+                    <span class="holo-index">01</span>
+                    <div class="holo-titles">
+                      <span class="holo-title" id="btn-start-title">НАЧАТЬ ИГРУ</span>
+                      <span class="holo-sub" id="btn-start-sub">SYS_LAUNCH // БОЕВОЙ ВЫХОД</span>
+                    </div>
                   </div>
+                  <span class="corner-bracket corner-tl"></span>
+                  <span class="corner-bracket corner-br"></span>
                 </div>
+              </button>
+
+              <!-- Заметное уведомление о полноэкранном режиме с кнопкой переключения -->
+              <div id="menu-fullscreen-notice" class="menu-fullscreen-notice" role="note"
+                aria-label="Рекомендация полноэкранного режима">
+                <div class="notice-scanlines"></div>
                 <span class="corner-bracket corner-tl"></span>
                 <span class="corner-bracket corner-br"></span>
+                <div class="notice-inner">
+                  <div class="notice-icon-box">
+                    <svg class="notice-fullscreen-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path
+                        d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                      </path>
+                    </svg>
+                  </div>
+                  <div class="notice-text-wrap">
+                    <span id="notice-tag" class="notice-tag">РЕКОМЕНДАЦИЯ // DISPLAY</span>
+                    <span id="notice-desc" class="notice-desc">Для лучшего ощущения<br>включите полноэкранный режим</span>
+                  </div>
+                  <button id="btn-menu-fullscreen" class="menu-fullscreen-btn" type="button"
+                    title="Переключить полноэкранный режим">
+                    <span class="menu-fs-btn-icon">⛶</span>
+                    <span id="menu-fs-btn-text" class="menu-fs-btn-text">НА ВЕСЬ<br>ЭКРАН</span>
+                  </button>
+                </div>
               </div>
-            </button>
+            </div>
 
             <!-- 2. Настройки -->
             <button id="btn-settings" class="holo-btn" type="button" data-action="settings">
@@ -556,7 +587,8 @@
     </div>
 
     <!-- Голографическое окно завершения миссии (Mission Complete) -->
-    <div id="modal-mission-complete" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Миссия выполнена">
+    <div id="modal-mission-complete" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true"
+      aria-label="Миссия выполнена">
       <div class="holo-modal-window modal-horizontal">
         <div class="modal-card-scanlines"></div>
         <span class="corner-bracket corner-tl"></span>
@@ -580,9 +612,6 @@
           <div class="mc-content-split">
             <!-- Левая колонка: Показатели вылета -->
             <div class="mc-stats-column">
-              <div class="mc-section-header">
-                <span class="mc-section-tag">ПОКАЗАТЕЛИ // COMBAT STATS</span>
-              </div>
               <div class="modal-debrief-grid mc-horizontal-stats">
                 <div class="debrief-card">
                   <span class="debrief-label">ВРЕМЯ МИССИИ</span>
@@ -600,21 +629,6 @@
               <div id="mc-scrap-panel" class="mc-scrap-panel">
                 <div class="mc-scrap-header">
                   <span class="mc-scrap-title">ДОБЫТЫЙ МЕТАЛЛОЛОМ</span>
-                </div>
-
-                <div class="mc-scrap-list">
-                  <div class="mc-scrap-row">
-                    <span class="mc-scrap-label">Сбитые противники:</span>
-                    <span id="mc-scrap-enemies" class="mc-scrap-val">+0</span>
-                  </div>
-                  <div class="mc-scrap-row">
-                    <span class="mc-scrap-label">Награда за сектор:</span>
-                    <span id="mc-scrap-mission" class="mc-scrap-val">+0</span>
-                  </div>
-                  <div class="mc-scrap-row hidden" id="mc-scrap-boss-row">
-                    <span class="mc-scrap-label">Ликвидация флагмана (босс):</span>
-                    <span id="mc-scrap-boss" class="mc-scrap-val">+0</span>
-                  </div>
                 </div>
 
                 <div class="mc-scrap-summary">
@@ -644,7 +658,8 @@
     </div>
 
     <!-- Голографическое окно завершения всей кампании (Campaign Complete) -->
-    <div id="modal-campaign-complete" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Кампания завершена">
+    <div id="modal-campaign-complete" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true"
+      aria-label="Кампания завершена">
       <div class="holo-modal-window modal-horizontal">
         <div class="modal-card-scanlines"></div>
         <span class="corner-bracket corner-tl"></span>
@@ -654,7 +669,9 @@
 
         <header class="modal-card-header">
           <div class="modal-card-title-wrap">
-            <span class="modal-badge" style="border-color: #facc15; background: rgba(234, 179, 8, 0.2); color: #fde047;">ТРИУМФ // TRIUMPH</span>
+            <span class="modal-badge"
+              style="border-color: #facc15; background: rgba(234, 179, 8, 0.2); color: #fde047;">ТРИУМФ //
+              TRIUMPH</span>
             <h2>КАМПАНИЯ ЗАВЕРШЕНА!</h2>
           </div>
         </header>
@@ -680,7 +697,8 @@
             </div>
             <div class="debrief-card">
               <span class="debrief-label">БАЛАНС МЕТАЛЛА</span>
-              <span id="cc-total-scrap" class="debrief-value" style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.45);">0</span>
+              <span id="cc-total-scrap" class="debrief-value"
+                style="color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.45);">0</span>
             </div>
           </div>
         </div>
@@ -708,15 +726,19 @@
         <div class="orientation-anim-box">
           <div class="phone-rotate-anim">
             <svg class="phone-svg" viewBox="0 0 44 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="2" width="40" height="68" rx="8" stroke="#34d399" stroke-width="2.5" fill="rgba(6, 78, 59, 0.6)" />
-              <rect x="7" y="10" width="30" height="48" rx="3" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981" stroke-width="1.2" />
+              <rect x="2" y="2" width="40" height="68" rx="8" stroke="#34d399" stroke-width="2.5"
+                fill="rgba(6, 78, 59, 0.6)" />
+              <rect x="7" y="10" width="30" height="48" rx="3" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981"
+                stroke-width="1.2" />
               <circle cx="22" cy="64" r="2.5" fill="#34d399" />
               <line x1="17" y1="6" x2="27" y2="6" stroke="#34d399" stroke-width="2" stroke-linecap="round" />
             </svg>
             <div class="phone-arrow-icon">
               <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 20 A 12 12 0 0 1 26 10" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 2" />
-                <polyline points="22,5 28,10 22,15" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M8 20 A 12 12 0 0 1 26 10" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round"
+                  stroke-dasharray="3 2" />
+                <polyline points="22,5 28,10 22,15" fill="none" stroke="#6ee7b7" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
           </div>
