@@ -2,6 +2,18 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Сетка конструктора корабля 9х9 для телефонов и мгновенное уведомление об ориентации экрана
+
+**Что сделано:**
+- **Окно сборки корабля 9х9 квадратиков для телефонов:**
+  - В [shipBuilder.css](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/shipBuilder.css) размер отсека сборки (`--ship-bay-size`) для смартфонов переведен на ровно **9х9 квадратиков** (198px при размере клетки 22px).
+  - Сетка чертежа (`.hangar-grid-lines`) настроена на `calc(100% / 9) calc(100% / 9)` для гарантированного отображения ровно 9х9 ячеек без обрезания клеток.
+  - В [ShipBuilderModal.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/ShipBuilderModal.ts) адаптировано базовое позиционирование для телефонов (центр отсека: 99px) и добавлен механизм `ensurePartsInBay()` для автоцентрирования и предотвращения выхода деталей за границы сетки 9х9 при открытии сборки с ПК.
+- **Мгновенное уведомление о переходе в горизонтальный режим при входе с телефона:**
+  - В [main.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/main.ts) устранено ограничение, блокировавшее показ предупреждения в главном меню (`!isGameStarted || !mainMenu.classList.contains('hidden')`).
+  - Добавлена мгновенная проверка ориентации `checkOrientation()` при инициализации страницы, по событию `DOMContentLoaded`, первому касанию `touchstart`, а также по событиям `resize` и `orientationchange`.
+  - В [deviceUtils.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/deviceUtils.ts) функция `isMobileOrTabletDevice()` усилена проверками `isMobilePhone() || isTabletDevice()`.
+
 ## Настройка размеров отсека сборки корабля: уменьшение для ПК и увеличение для телефонов
 
 **Что сделано:**

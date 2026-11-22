@@ -2224,7 +2224,7 @@ screen and (max-height: 500px) {
      ПРАВАЯ ПОЛОВИНА ЭКРАНА ТЕЛЕФОНА (59%): БЛОКИ 05, ОКНО, 04
      ======================================================== */
   .shipyard-center-col {
-    --ship-bay-size: clamp(150px, min(calc(100dvh - 74px), calc(59vw - 122px)), 295px) !important;
+    --ship-bay-size: 198px !important; /* Окно сбора корабля ровно 9х9 квадратиков сетки (9 * 22px = 198px) */
     flex: 0 0 calc(59% - 3px) !important;
     width: calc(59% - 3px) !important;
     max-width: calc(59% - 3px) !important;
@@ -2382,6 +2382,11 @@ screen and (max-height: 500px) {
     border-radius: 4px !important;
   }
 
+  /* Сетка чертежа для телефонов: ровно 9х9 квадратиков */
+  .hangar-grid-lines {
+    background-size: calc(100% / 9) calc(100% / 9) !important;
+  }
+
   /* Модули корабля в ангаре на мобилках и планшетах строго того же размера, что и на мониторах */
   .dropped-part-wrap img {
     max-width: 66px !important;
@@ -2512,4 +2517,13 @@ screen and (max-height: 500px) {
     max-height: calc(100dvh - 16px);
     border-radius: 8px;
   }
+}
+
+/* Специальные правила для мобильных телефонов (body.is-phone): окно 9х9 квадратиков */
+body.is-phone .shipyard-center-col {
+  --ship-bay-size: 198px !important;
+}
+
+body.is-phone .hangar-grid-lines {
+  background-size: calc(100% / 9) calc(100% / 9) !important;
 }

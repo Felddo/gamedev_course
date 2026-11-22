@@ -2,6 +2,7 @@ import { buildPartsCatalog, CategoryData, FolderNode, PartItem } from './partsCa
 import { soundFx } from '../audio';
 import { campaignManager } from '../campaign/CampaignManager';
 import { SavedDroppedPart } from '../campaign/types';
+import { isMobilePhone } from '../deviceUtils';
 import {
   getModuleByPartId,
   getModuleRarity,
@@ -675,8 +676,17 @@ export class ShipBuilderModal {
     const gunsPart = this.findPartById('guns_0') || findPart('guns');
 
     const bayRect = this.centerBayEl ? this.centerBayEl.getBoundingClientRect() : null;
-    const cx = bayRect && bayRect.width > 0 ? bayRect.width / 2 : 200;
-    const cy = bayRect && bayRect.height > 0 ? bayRect.height / 2 : 200;
+    let cx = bayRect && bayRect.width > 0 ? bayRect.width / 2 : 0;
+    let cy = bayRect && bayRect.height > 0 ? bayRect.height / 2 : 0;
+    if (cx <= 0 || cy <= 0) {
+      if (isMobilePhone()) {
+        cx = 99; // 198 / 2 для сетки 9х9
+        cy = 99;
+      } else {
+        cx = 175; // 350 / 2
+        cy = 175;
+      }
+    }
 
     // 1. Корпус (центр)
     if (bodyPart) {
@@ -1077,7 +1087,62 @@ export class ShipBuilderModal {
     const flowEl = this.modalEl.querySelector('#shipyard-columns-flow');
     if (flowEl) flowEl.scrollLeft = 0;
     this.updateScrapDisplay();
+    this.ensurePartsInBay();
     this.render();
+  }
+
+  /**
+   * Проверка и центрирование деталей корабля внутри отсека сборки
+   * (предотвращает выход деталей за границы 9х9 сетки на телефонах при загрузке сборки с ПК)
+   */
+  private ensurePartsInBay(): void {
+    if (!this.centerBayEl || this.droppedParts.length === 0) return;
+    const rect = this.centerBayEl.getBoundingClientRect();
+    const bayW = rect && rect.width > 0 ? rect.width : (isMobilePhone() ? 198 : 350);
+    const bayH = rect && rect.height > 0 ? rect.height : (isMobilePhone() ? 198 : 350);
+
+    const bodyPart = this.droppedParts.find((p) => p.part.category === 'body');
+    const pilotPart = this.droppedParts.find((p) => p.part.category === 'pilot');
+    let anchorX = 0;
+    let anchorY = 0;
+    if (bodyPart) {
+      anchorX = bodyPart.x;
+      anchorY = bodyPart.y;
+    } else if (pilotPart) {
+      anchorX = pilotPart.x;
+      anchorY = pilotPart.y;
+    } else {
+      let sumX = 0;
+      let sumY = 0;
+      this.droppedParts.forEach((p) => {
+        sumX += p.x;
+        sumY += p.y;
+      });
+      anchorX = sumX / this.droppedParts.length;
+      anchorY = sumY / this.droppedParts.length;
+    }
+
+    const targetX = bayW / 2;
+    const targetY = bayH / 2;
+
+    let isOutOfBounds = false;
+    for (const p of this.droppedParts) {
+      if (p.x < 15 || p.x > bayW - 15 || p.y < 15 || p.y > bayH - 15) {
+        isOutOfBounds = true;
+        break;
+      }
+    }
+
+    if (isOutOfBounds || Math.abs(anchorX - targetX) > 40 || Math.abs(anchorY - targetY) > 40) {
+      const shiftX = targetX - anchorX;
+      const shiftY = targetY - anchorY;
+      this.droppedParts.forEach((p) => {
+        p.x = Math.max(15, Math.min(bayW - 15, p.x + shiftX));
+        p.y = Math.max(15, Math.min(bayH - 15, p.y + shiftY));
+      });
+      this.renderDroppedParts();
+      this.persistAssembly();
+    }
   }
 
   /**

@@ -28,6 +28,7 @@ export {
 updateDeviceClasses();
 window.addEventListener('touchstart', () => {
   updateDeviceClasses();
+  checkOrientation();
 }, { once: true });
 
 let phaserGame: Phaser.Game | null = null;
@@ -178,13 +179,6 @@ export function updateJoystickVisibility(): void {
 }
 
 export function checkOrientation(): void {
-  // Не показываем в главном меню
-  if (!isGameStarted || (mainMenu && !mainMenu.classList.contains('hidden'))) {
-    if (orientationWarning) orientationWarning.classList.add('hidden');
-    wasPausedByOrientation = false;
-    return;
-  }
-
   // Только на мобильных устройствах
   if (!isMobileOrTabletDevice()) {
     if (orientationWarning) orientationWarning.classList.add('hidden');
@@ -198,7 +192,7 @@ export function checkOrientation(): void {
     if (orientationWarning) orientationWarning.classList.remove('hidden');
     if (!wasPausedByOrientation) {
       wasPausedByOrientation = true;
-      if (phaserGame) {
+      if (isGameStarted && phaserGame) {
         const scene = phaserGame.scene.getScene('GameScene') as GameScene;
         if (scene && scene.scene.isActive() && !scene.scene.isPaused()) {
           scene.scene.pause();
@@ -210,7 +204,7 @@ export function checkOrientation(): void {
     if (orientationWarning) orientationWarning.classList.add('hidden');
     if (wasPausedByOrientation) {
       wasPausedByOrientation = false;
-      if (!isGamePaused && (!modalPause || modalPause.classList.contains('hidden'))) {
+      if (isGameStarted && !isGamePaused && (!modalPause || modalPause.classList.contains('hidden'))) {
         if (phaserGame) {
           const scene = phaserGame.scene.getScene('GameScene') as GameScene;
           if (scene && scene.scene.isPaused()) {
@@ -220,9 +214,14 @@ export function checkOrientation(): void {
       }
     }
     updateJoystickVisibility();
-    phaserGame?.scale.refresh();
+    if (isGameStarted && phaserGame) {
+      phaserGame.scale.refresh();
+    }
   }
 }
+
+// Мгновенная проверка ориентации при входе в игру
+checkOrientation();
 
 // Окошко фаз полностью убрано из игры
 function showPhaseAnnouncement(_phaseNumber?: number, _title?: string, _subtitle?: string): void { }
@@ -500,6 +499,7 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('orientationchange', () => {
   updateDeviceClasses();
+  checkOrientation();
   setTimeout(() => {
     updateDeviceClasses();
     if (phaserGame && isGameStarted) {
@@ -509,6 +509,16 @@ window.addEventListener('orientationchange', () => {
     updateJoystickVisibility();
   }, 150);
 });
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    updateDeviceClasses();
+    checkOrientation();
+  });
+} else {
+  updateDeviceClasses();
+  checkOrientation();
+}
 
 // Кнопка "Начать игру"
 btnStart?.addEventListener('click', () => {

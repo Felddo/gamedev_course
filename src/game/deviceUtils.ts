@@ -93,11 +93,12 @@ export function isTabletDevice(): boolean {
  */
 export function isMobileOrTabletDevice(): boolean {
   if (typeof window === 'undefined') return false;
+  if (isMobilePhone() || isTabletDevice()) return true;
   const hasTouch = Boolean('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
   const ua = navigator.userAgent || '';
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
   const isIPad = Boolean((navigator.maxTouchPoints && navigator.maxTouchPoints > 1) && /Macintosh/i.test(ua));
-  return Boolean(hasTouch && (isMobileUA || isIPad));
+  return Boolean((hasTouch && (isMobileUA || isIPad)) || isMobileUA);
 }
 
 /**
