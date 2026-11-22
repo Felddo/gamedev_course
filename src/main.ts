@@ -8,30 +8,26 @@ import { campaignManager } from './game/campaign/CampaignManager';
 import { CampaignMission, ScrapVictoryBreakdown } from './game/campaign/types';
 import { VirtualJoystick } from './game/VirtualJoystick';
 import menuBgUrl from './assets/menu_bg.jpg';
+import {
+  isMobilePhone,
+  isTabletDevice,
+  isMobileOrTabletDevice,
+  isPortraitOrientation,
+  updateDeviceClasses,
+} from './game/deviceUtils';
 
-export function isMobileOrTabletDevice(): boolean {
-  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  const userAgent = navigator.userAgent || '';
-  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
-  const isIPad = navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent);
-  return hasTouch && (isMobileUA || isIPad);
-}
-
-export function isPortraitOrientation(): boolean {
-  if (window.matchMedia && window.matchMedia('(orientation: portrait)').matches) {
-    return true;
-  }
-  return window.innerHeight > window.innerWidth;
-}
+export {
+  isMobilePhone,
+  isTabletDevice,
+  isMobileOrTabletDevice,
+  isPortraitOrientation,
+  updateDeviceClasses,
+};
 
 // Применение классов устройства к body
-if (isMobileOrTabletDevice()) {
-  document.body.classList.add('is-mobile', 'touch-device');
-} else {
-  document.body.classList.add('is-desktop');
-}
+updateDeviceClasses();
 window.addEventListener('touchstart', () => {
-  document.body.classList.add('touch-device');
+  updateDeviceClasses();
 }, { once: true });
 
 let phaserGame: Phaser.Game | null = null;
@@ -492,6 +488,7 @@ window.addEventListener('return-to-menu', () => {
 });
 
 window.addEventListener('resize', () => {
+  updateDeviceClasses();
   if (phaserGame && isGameStarted) {
     phaserGame.scale.refresh();
   }
@@ -500,7 +497,9 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('orientationchange', () => {
+  updateDeviceClasses();
   setTimeout(() => {
+    updateDeviceClasses();
     if (phaserGame && isGameStarted) {
       phaserGame.scale.refresh();
     }

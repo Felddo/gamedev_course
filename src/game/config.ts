@@ -6,6 +6,7 @@ export function createGame(parent: string): Phaser.Game {
     type: Phaser.AUTO,
     parent,
     backgroundColor: '#02040a',
+    roundPixels: true,
     scale: {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,

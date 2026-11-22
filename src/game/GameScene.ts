@@ -55,6 +55,7 @@ import { buildPartsCatalog } from './shipBuilder/partsCatalog';
 import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
 import { CampaignMission } from './campaign/types';
 import { campaignManager } from './campaign/CampaignManager';
+import { isMobilePhone } from './deviceUtils';
 
 /**
  * Основная боевая сцена космического выживания:
@@ -284,6 +285,7 @@ export class GameScene extends Phaser.Scene {
     // 10. Адаптивность при изменении размера окна
     const resizeListener = (gameSize: Phaser.Structs.Size) => {
       this.hudManager.handleResize(gameSize.width, gameSize.height);
+      this.updateCameraZoom();
     };
     this.scale.on('resize', resizeListener, this);
 
@@ -345,6 +347,31 @@ export class GameScene extends Phaser.Scene {
     this.wasBossKilled = false;
   }
 
+  /**
+   * Вычисление целевого масштаба камеры (Zoom).
+   * Если игрок играет со смартфона/телефона (НЕ ПЛАНШЕТА), увеличиваем обзор,
+   * отдаляя камеру (зум 0.62-0.70) для обеспечения комфортного поля видимости ~570-600px по вертикали.
+   * На планшетах и ПК масштаб остается 1.0.
+   */
+  public getTargetCameraZoom(): number {
+    if (this.isMenuMode) {
+      return 1.0;
+    }
+    if (isMobilePhone()) {
+      const { height } = this.scale;
+      return Phaser.Math.Clamp(height / 570, 0.62, 0.70);
+    }
+    return 1.0;
+  }
+
+  public updateCameraZoom(): void {
+    const targetZoom = this.getTargetCameraZoom();
+    this.cameras.main.setZoom(targetZoom);
+    if (this.hudManager) {
+      this.hudManager.syncZoomTransform();
+    }
+  }
+
   public startCombatSession(customMission?: CampaignMission): void {
     this.isMenuMode = false;
     this.isGameOver = false;
@@ -389,7 +416,7 @@ export class GameScene extends Phaser.Scene {
     this.playerShip.setAutopilot(false);
 
     this.tweens.killTweensOf(this.cameras.main);
-    this.cameras.main.setZoom(1.0);
+    this.updateCameraZoom();
     this.cameras.main.setFollowOffset(0, 0);
     this.hudManager.setVisible(true);
 
@@ -432,6 +459,7 @@ export class GameScene extends Phaser.Scene {
     this.applyCampaignUpgrades();
     this.playerShip.setVisible(true);
     this.cameras.main.centerOn(this.playerShip.x, this.playerShip.y);
+    this.updateCameraZoom();
     this.meteorManager.clearMeteorsNear(this.playerShip.x, this.playerShip.y, 750);
     this.hudManager.setVisible(true);
     if (this.scene.isPaused()) {

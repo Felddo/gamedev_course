@@ -87,6 +87,9 @@ body {
 
 canvas {
   display: block;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* ==========================================================
@@ -2641,6 +2644,38 @@ canvas {
 .top-esc-btn:hover .top-esc-pause-bars .pause-bar {
   background: #6ee7b7;
   box-shadow: 0 0 8px #6ee7b7;
+}
+
+/* Компактный размер кнопки тактической паузы [ESC] для смартфонов (НЕ ПЛАНШЕТОВ) */
+.is-phone .top-esc-btn {
+  top: max(4px, env(safe-area-inset-top, 4px));
+  left: max(6px, env(safe-area-inset-left, 6px));
+  min-width: 38px;
+  min-height: 38px;
+  padding: 2px;
+}
+
+.is-phone .top-esc-keycap {
+  height: 28px;
+  padding: 0 8px;
+  gap: 5px;
+  border-radius: 4px;
+}
+
+.is-phone .top-esc-text {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.is-phone .top-esc-pause-bars {
+  height: 10px;
+  gap: 2px;
+}
+
+.is-phone .top-esc-pause-bars .pause-bar {
+  width: 2px;
+  height: 10px;
 }
 
 /* Клавиша Q для боевого овердрайва */
