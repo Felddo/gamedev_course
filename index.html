@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#02140e" />
   <title>Iron Resolve: Survivor Protocol</title>
 
@@ -19,6 +19,15 @@
   <main id="app">
     <!-- Игровой холст Phaser (активируется при нажатии "Начать игру") -->
     <div id="game" class="game-container hidden"></div>
+
+    <!-- Виртуальный сенсорный джойстик (только для мобильных устройств в бою) -->
+    <div id="virtual-joystick" class="virtual-joystick hidden" aria-label="Сенсорный джойстик">
+      <div class="joystick-base" id="joystick-base">
+        <div class="joystick-ring"></div>
+        <div class="joystick-crosshair"></div>
+        <div class="joystick-stick" id="joystick-stick"></div>
+      </div>
+    </div>
 
     <!-- Кнопка тактической паузы [ESC] в верхнем левом углу экрана -->
     <button id="btn-top-esc" class="top-esc-btn hidden" type="button" aria-label="Пауза игры [ESC]" title="Пауза игры [ESC]">
@@ -709,6 +718,37 @@
             НАЧАТЬ ЗАНОВО [1-1]
           </button>
         </footer>
+      </div>
+    </div>
+
+    <!-- Голографическое уведомление о необходимости горизонтальной ориентации экрана -->
+    <div id="orientation-warning" class="orientation-warning-overlay hidden" role="alert" aria-live="assertive">
+      <div class="orientation-warning-card">
+        <div class="modal-card-scanlines"></div>
+        <span class="corner-bracket corner-tl"></span>
+        <span class="corner-bracket corner-tr"></span>
+        <span class="corner-bracket corner-bl"></span>
+        <span class="corner-bracket corner-br"></span>
+
+        <div class="orientation-anim-box">
+          <div class="phone-rotate-anim">
+            <svg class="phone-svg" viewBox="0 0 44 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="40" height="68" rx="8" stroke="#34d399" stroke-width="2.5" fill="rgba(6, 78, 59, 0.6)" />
+              <rect x="7" y="10" width="30" height="48" rx="3" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981" stroke-width="1.2" />
+              <circle cx="22" cy="64" r="2.5" fill="#34d399" />
+              <line x1="17" y1="6" x2="27" y2="6" stroke="#34d399" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <div class="phone-arrow-icon">
+              <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 20 A 12 12 0 0 1 26 10" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 2" />
+                <polyline points="22,5 28,10 22,15" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="orientation-title">ПОВЕРНИТЕ УСТРОЙСТВО</h2>
+        <p class="orientation-desc">Для комфортной игры необходимо использовать горизонтальную ориентацию экрана.</p>
       </div>
     </div>
   </main>

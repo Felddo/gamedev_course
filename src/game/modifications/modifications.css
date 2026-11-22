@@ -364,7 +364,7 @@
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 680px) and (min-height: 521px) {
   #modal-modification {
     padding: 10px;
     align-items: flex-start;
@@ -418,4 +418,87 @@
     min-height: auto;
     margin-bottom: 12px;
   }
+}
+
+@media (max-height: 520px) {
+  #modal-modification {
+    padding: max(6px, env(safe-area-inset-top, 6px)) max(10px, env(safe-area-inset-right, 10px)) max(6px, env(safe-area-inset-bottom, 6px)) max(10px, env(safe-area-inset-left, 10px));
+    align-items: center;
+  }
+  .modal-modification-window {
+    padding: 10px 14px;
+    max-height: min(94vh, 94dvh);
+    overflow-y: auto;
+  }
+  .mod-header-wrap {
+    margin-bottom: 6px;
+  }
+  .mod-badge {
+    font-size: 8.5px;
+    padding: 2px 8px;
+    margin-bottom: 2px;
+  }
+  .mod-title {
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+  .mod-subtitle {
+    font-size: 10px;
+  }
+  .mod-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .mod-card {
+    padding: 6px 8px;
+  }
+  .mod-icon-wrapper {
+    width: 38px;
+    height: 38px;
+    margin-bottom: 4px;
+  }
+  .mod-icon-svg {
+    width: 26px;
+    height: 26px;
+  }
+  .mod-name {
+    font-size: 11px;
+    min-height: auto;
+    margin-bottom: 3px;
+  }
+  .mod-bonus-badge {
+    font-size: 9px;
+    padding: 2px 5px;
+    margin-bottom: 3px;
+  }
+  .mod-desc,
+  .mod-short-desc {
+    font-size: 10px;
+    min-height: auto;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .mod-select-btn {
+    padding: 4px 6px;
+    font-size: 10px;
+    min-height: 34px;
+  }
+  .mod-footer {
+    display: none;
+  }
+}
+
+.mod-card:active {
+  transform: scale(0.97);
+  filter: brightness(1.2);
+}
+
+.mod-select-btn {
+  min-height: 42px;
+  touch-action: manipulation;
+}
+
+.mod-select-btn:active {
+  transform: scale(0.96);
 }

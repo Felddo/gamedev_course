@@ -112,6 +112,30 @@ export class PlayerShip {
   public superCooldownTimer = 0;
   private superFlameTimer = 0;
 
+  // Управление с виртуального джойстика (сенсорный ввод)
+  public joystickVector = { x: 0, y: 0 };
+  public isJoystickActive = false;
+
+  public setJoystickVector(x: number, y: number): void {
+    const len = Math.hypot(x, y);
+    if (len > 0.05) {
+      const normLen = Math.min(1.0, len);
+      this.joystickVector.x = (x / len) * normLen;
+      this.joystickVector.y = (y / len) * normLen;
+      this.isJoystickActive = true;
+    } else {
+      this.joystickVector.x = 0;
+      this.joystickVector.y = 0;
+      this.isJoystickActive = false;
+    }
+  }
+
+  public resetJoystick(): void {
+    this.joystickVector.x = 0;
+    this.joystickVector.y = 0;
+    this.isJoystickActive = false;
+  }
+
   // Управление
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
@@ -470,6 +494,11 @@ export class PlayerShip {
     if (this.cursors.up.isDown || this.wasd.up.isDown) dy -= 1;
     if (this.cursors.down.isDown || this.wasd.down.isDown) dy += 1;
 
+    if (dx === 0 && dy === 0 && this.isJoystickActive) {
+      dx = this.joystickVector.x;
+      dy = this.joystickVector.y;
+    }
+
     let moveAngle = this.lastMoveAngle;
     if (dx !== 0 || dy !== 0) {
       moveAngle = Math.atan2(dy, dx);
@@ -734,13 +763,28 @@ export class PlayerShip {
         if (this.cursors.up.isDown || this.wasd.up.isDown) dy -= 1;
         if (this.cursors.down.isDown || this.wasd.down.isDown) dy += 1;
 
-        isMoving = dx !== 0 || dy !== 0;
+        let inputMagnitude = 1.0;
+
+        if (dx !== 0 || dy !== 0) {
+          const kLen = Math.hypot(dx, dy);
+          dx /= kLen;
+          dy /= kLen;
+          inputMagnitude = 1.0;
+          isMoving = true;
+        } else if (this.isJoystickActive) {
+          const jLen = Math.hypot(this.joystickVector.x, this.joystickVector.y);
+          if (jLen > 0.05) {
+            inputMagnitude = Math.min(1.0, jLen);
+            dx = this.joystickVector.x / jLen;
+            dy = this.joystickVector.y / jLen;
+            isMoving = true;
+          }
+        }
 
         if (isMoving) {
           const modSpeedMult = this.installedStats?.speedMultiplier || 1.0;
-          const len = Math.hypot(dx, dy);
-          const moveX = (dx / len) * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * this.modMoveSpeedMultiplier * seconds;
-          const moveY = (dy / len) * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * this.modMoveSpeedMultiplier * seconds;
+          const moveX = dx * inputMagnitude * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * this.modMoveSpeedMultiplier * seconds;
+          const moveY = dy * inputMagnitude * PLAYER_SPEED * this.speedMultiplier * modSpeedMult * this.modMoveSpeedMultiplier * seconds;
 
           this.shipSprite.x += moveX;
           this.shipSprite.y += moveY;

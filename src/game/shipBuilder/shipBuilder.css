@@ -2199,68 +2199,88 @@
   }
 
   .col-categories {
-    width: 40px !important;
-    flex: 0 0 40px !important;
-    min-width: 38px !important;
+    width: 46px !important;
+    flex: 0 0 46px !important;
+    min-width: 44px !important;
   }
 
   .col-subfolders {
-    width: 42px !important;
-    flex: 0 0 42px !important;
-    min-width: 38px !important;
+    width: 46px !important;
+    flex: 0 0 46px !important;
+    min-width: 44px !important;
   }
 
   .col-parts {
-    width: 185px !important;
-    flex: 0 0 185px !important;
-    min-width: 175px !important;
+    width: 195px !important;
+    flex: 0 0 195px !important;
+    min-width: 180px !important;
   }
 
   .part-preview-wrap {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
   }
 
   .part-preview-img {
-    max-width: 38px;
-    max-height: 38px;
+    max-width: 40px;
+    max-height: 40px;
   }
 
   .part-name-tag {
-    font-size: 7px;
+    font-size: 8.5px;
   }
 
   .part-advantage-tag {
-    font-size: 6.5px;
+    font-size: 8px;
   }
 
   .hangar-limits-panel {
-    width: 76px !important;
-    flex: 0 0 76px !important;
+    width: 82px !important;
+    flex: 0 0 82px !important;
   }
 
   .selected-module-toolbar {
-    width: 80px !important;
-    flex: 0 0 80px !important;
+    width: 86px !important;
+    flex: 0 0 86px !important;
   }
 
   .limit-chip {
-    font-size: 6.5px;
-    padding: 2px 2px;
+    font-size: 8.5px;
+    padding: 3px 2px;
   }
 
   .limit-label {
-    font-size: 6.5px;
+    font-size: 8.5px;
   }
 
   .limit-val {
-    font-size: 6.5px;
+    font-size: 8.5px;
   }
 
   .sel-tool-btn {
-    font-size: 6.5px;
-    padding: 2px 1px;
+    font-size: 8.5px;
+    min-height: 30px;
+    padding: 4px 2px;
   }
+}
+
+/* Сенсорный отклик при нажатии на интерактивные элементы верфи */
+.shipyard-action-btn:active,
+.col-nav-btn:active,
+.subfolder-btn:active,
+.part-card:active,
+.sel-tool-btn:active,
+.nudge-btn:active {
+  transform: scale(0.96);
+  filter: brightness(1.25);
+}
+
+.categories-scroll,
+.subfolders-scroll,
+.parts-scroll,
+.hangar-side-panels {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Перекрываем общие ограничения базового модального окна игры */

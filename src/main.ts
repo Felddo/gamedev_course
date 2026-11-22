@@ -7,14 +7,51 @@ import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBui
 import { shipModificationModal } from './game/modifications/ShipModificationModal';
 import { campaignManager } from './game/campaign/CampaignManager';
 import { CampaignMission, ScrapVictoryBreakdown } from './game/campaign/types';
+import { VirtualJoystick } from './game/VirtualJoystick';
 import menuBgUrl from './assets/menu_bg.jpg';
+
+export function isMobileOrTabletDevice(): boolean {
+  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const userAgent = navigator.userAgent || '';
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
+  const isIPad = navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent);
+  return hasTouch && (isMobileUA || isIPad);
+}
+
+export function isPortraitOrientation(): boolean {
+  if (window.matchMedia && window.matchMedia('(orientation: portrait)').matches) {
+    return true;
+  }
+  return window.innerHeight > window.innerWidth;
+}
+
+// Применение классов устройства к body
+if (isMobileOrTabletDevice()) {
+  document.body.classList.add('is-mobile', 'touch-device');
+} else {
+  document.body.classList.add('is-desktop');
+}
+window.addEventListener('touchstart', () => {
+  document.body.classList.add('touch-device');
+}, { once: true });
 
 let phaserGame: Phaser.Game | null = null;
 let isGameStarted = false;
 let isGamePaused = false;
+let wasPausedByOrientation = false;
 
 // Голографический конструктор корабля (Ship Builder)
 const shipBuilderModal = new ShipBuilderModal();
+
+// Сенсорный джойстик для мобильных устройств
+export const virtualJoystick = new VirtualJoystick((x, y) => {
+  if (phaserGame) {
+    const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+    if (scene) {
+      scene.setJoystickVector(x, y);
+    }
+  }
+});
 
 // DOM Elements
 const mainMenu = document.getElementById('main-menu') as HTMLElement;
@@ -123,10 +160,77 @@ const superLabelText = document.getElementById('super-label-text') as HTMLElemen
 
 // Top-left Esc Pause Button Element
 const topEscBtn = document.getElementById('btn-top-esc') as HTMLButtonElement;
+const orientationWarning = document.getElementById('orientation-warning') as HTMLElement | null;
+
+export function updateJoystickVisibility(): void {
+  if (!virtualJoystick) return;
+  const inCombat =
+    isGameStarted &&
+    !isGamePaused &&
+    mainMenu.classList.contains('hidden') &&
+    (modalPause ? modalPause.classList.contains('hidden') : true) &&
+    (modalSettings ? modalSettings.classList.contains('hidden') : true) &&
+    (modalExit ? modalExit.classList.contains('hidden') : true) &&
+    (modalGameOver ? modalGameOver.classList.contains('hidden') : true) &&
+    (modalMissionComplete ? modalMissionComplete.classList.contains('hidden') : true) &&
+    (modalCampaignComplete ? modalCampaignComplete.classList.contains('hidden') : true) &&
+    !shipBuilderModal.isOpen() &&
+    !shipModificationModal.isOpen();
+
+  const shouldShow = isMobileOrTabletDevice() && inCombat && !isPortraitOrientation();
+  virtualJoystick.setVisible(shouldShow);
+}
+
+export function checkOrientation(): void {
+  // Не показываем в главном меню
+  if (!isGameStarted || (mainMenu && !mainMenu.classList.contains('hidden'))) {
+    if (orientationWarning) orientationWarning.classList.add('hidden');
+    wasPausedByOrientation = false;
+    return;
+  }
+
+  // Только на мобильных устройствах
+  if (!isMobileOrTabletDevice()) {
+    if (orientationWarning) orientationWarning.classList.add('hidden');
+    wasPausedByOrientation = false;
+    return;
+  }
+
+  const isPortrait = isPortraitOrientation();
+
+  if (isPortrait) {
+    if (orientationWarning) orientationWarning.classList.remove('hidden');
+    if (!wasPausedByOrientation) {
+      wasPausedByOrientation = true;
+      if (phaserGame) {
+        const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+        if (scene && scene.scene.isActive() && !scene.scene.isPaused()) {
+          scene.scene.pause();
+        }
+      }
+      virtualJoystick.setVisible(false);
+    }
+  } else {
+    if (orientationWarning) orientationWarning.classList.add('hidden');
+    if (wasPausedByOrientation) {
+      wasPausedByOrientation = false;
+      if (!isGamePaused && (!modalPause || modalPause.classList.contains('hidden'))) {
+        if (phaserGame) {
+          const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+          if (scene && scene.scene.isPaused()) {
+            scene.scene.resume();
+          }
+        }
+      }
+    }
+    updateJoystickVisibility();
+    phaserGame?.scale.refresh();
+  }
+}
 
 // Окошко фаз полностью убрано из игры
-function showPhaseAnnouncement(_phaseNumber?: number, _title?: string, _subtitle?: string): void {}
-function hidePhaseAnnouncement(): void {}
+function showPhaseAnnouncement(_phaseNumber?: number, _title?: string, _subtitle?: string): void { }
+function hidePhaseAnnouncement(): void { }
 
 /**
  * Инициализация звуковых эффектов при наведении на голографические кнопки
@@ -176,10 +280,11 @@ function pauseGame(): void {
   isGamePaused = true;
   soundFx.playUiClick();
   modalPause.classList.remove('hidden');
+  updateJoystickVisibility();
 
   if (phaserGame) {
     const scene = phaserGame.scene.getScene('GameScene');
-    if (scene && scene.scene.isActive()) {
+    if (scene && scene.scene.isActive() && !scene.scene.isPaused()) {
       scene.scene.pause();
     }
   }
@@ -194,6 +299,7 @@ function resumeGame(): void {
   modalPause.classList.add('hidden');
   modalSettings.classList.add('hidden');
   modalExit.classList.add('hidden');
+  updateJoystickVisibility();
 
   if (phaserGame) {
     const scene = phaserGame.scene.getScene('GameScene');
@@ -225,6 +331,8 @@ function launchGame(): void {
   hideCampaignComplete();
   isGamePaused = true;
   isGameStarted = true;
+  updateJoystickVisibility();
+  checkOrientation();
 
   hidePhaseAnnouncement();
 
@@ -239,6 +347,7 @@ function launchGame(): void {
   // Проверяем, есть ли неразыгранная модификация за завершенную контрольную миссию (например, после перезагрузки)
   const pendingMission = campaignManager.getPendingModificationMission();
   if (pendingMission) {
+    updateJoystickVisibility();
     shipModificationModal.open(pendingMission, () => {
       if (phaserGame) {
         const scene = phaserGame.scene.getScene('GameScene') as GameScene;
@@ -276,6 +385,8 @@ function launchDirectCombat(nextMission: CampaignMission): void {
   hideMissionComplete();
   hideCampaignComplete();
   hideGameOver();
+  updateJoystickVisibility();
+  checkOrientation();
 
   if (phaserGame) {
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
@@ -309,6 +420,8 @@ function startCombatFromBuilder(assembly?: CustomShipAssembly): void {
   isGamePaused = false;
   dashHud?.classList.remove('hidden');
   topEscBtn?.classList.remove('hidden');
+  updateJoystickVisibility();
+  checkOrientation();
 
   if (phaserGame) {
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
@@ -354,6 +467,8 @@ function returnToMainMenu(): void {
   modalExit?.classList.add('hidden');
   isGamePaused = false;
   isGameStarted = false;
+  updateJoystickVisibility();
+  checkOrientation();
 
   updateMenuCampaignInfo();
 
@@ -381,6 +496,18 @@ window.addEventListener('resize', () => {
   if (phaserGame && isGameStarted) {
     phaserGame.scale.refresh();
   }
+  checkOrientation();
+  updateJoystickVisibility();
+});
+
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    if (phaserGame && isGameStarted) {
+      phaserGame.scale.refresh();
+    }
+    checkOrientation();
+    updateJoystickVisibility();
+  }, 150);
 });
 
 // Кнопка "Начать игру"
@@ -392,11 +519,13 @@ btnStart?.addEventListener('click', () => {
 function openSettings(): void {
   soundFx.playUiClick();
   modalSettings.classList.remove('hidden');
+  updateJoystickVisibility();
 }
 
 function closeSettings(): void {
   soundFx.playUiClick();
   modalSettings.classList.add('hidden');
+  updateJoystickVisibility();
 }
 
 btnSettings?.addEventListener('click', openSettings);
@@ -509,11 +638,11 @@ toggleFullscreenBtn?.addEventListener('click', () => {
   const indicator = toggleFullscreenBtn.querySelector('.toggle-text');
 
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
+    document.documentElement.requestFullscreen().catch(() => { });
     toggleFullscreenBtn.classList.add('active');
     if (indicator) indicator.textContent = 'ВЫЙТИ';
   } else {
-    document.exitFullscreen().catch(() => {});
+    document.exitFullscreen().catch(() => { });
     toggleFullscreenBtn.classList.remove('active');
     if (indicator) indicator.textContent = 'ЭКРАН';
   }
@@ -576,11 +705,13 @@ toggleMeteorDensityBtn?.addEventListener('click', () => {
 function openExit(): void {
   soundFx.playUiClick();
   modalExit.classList.remove('hidden');
+  updateJoystickVisibility();
 }
 
 function closeExit(): void {
   soundFx.playUiClick();
   modalExit.classList.add('hidden');
+  updateJoystickVisibility();
 }
 
 btnExit?.addEventListener('click', openExit);
@@ -597,7 +728,7 @@ modalExitConfirmBtn?.addEventListener('click', () => {
 
   if (phaserGame) {
     const scene = phaserGame.scene.getScene('GameScene');
-    if (scene && scene.scene.isActive()) {
+    if (scene && scene.scene.isActive() && !scene.scene.isPaused()) {
       scene.scene.pause();
     }
   }
@@ -652,6 +783,7 @@ function showGameOver(time: string, kills: number, score: number, reason?: strin
   modalPause?.classList.add('hidden');
   isGamePaused = false;
   modalGameOver?.classList.remove('hidden');
+  updateJoystickVisibility();
 }
 
 function hideGameOver(): void {
@@ -670,6 +802,7 @@ function restartFromGameOver(): void {
   topEscBtn?.classList.add('hidden');
   isGameStarted = true;
   isGamePaused = true;
+  updateJoystickVisibility();
 
   if (phaserGame) {
     phaserGame.scale.refresh();
@@ -713,6 +846,7 @@ function showMissionComplete(
   isGamePaused = true;
   dashHud?.classList.add('hidden');
   topEscBtn?.classList.add('hidden');
+  updateJoystickVisibility();
 
   if (mcTitle) mcTitle.textContent = `МИССИЯ ${missionId} ВЫПОЛНЕНА`;
   if (mcSubtitle) mcSubtitle.textContent = '';
@@ -796,7 +930,7 @@ function showMissionComplete(
   }
 
   const isModReward = campaignManager.isModificationRewardMission(missionId) &&
-                      !campaignManager.isModificationMissionRewarded(missionId);
+    !campaignManager.isModificationMissionRewarded(missionId);
 
   if (btnMcNext) btnMcNext.disabled = false;
   if (btnMcNextText) {
@@ -823,6 +957,7 @@ function showCampaignComplete(totalScore: number, scrapBalance?: number): void {
   isGamePaused = true;
   dashHud?.classList.add('hidden');
   topEscBtn?.classList.add('hidden');
+  updateJoystickVisibility();
 
   if (ccTotalScore) ccTotalScore.textContent = totalScore.toString();
   if (ccTotalScrap) {
@@ -848,6 +983,7 @@ function startNextMission(): void {
   // Проверяем, полагается ли выбор модификации за завершенную контрольную миссию
   const pendingMission = campaignManager.getPendingModificationMission();
   if (pendingMission) {
+    updateJoystickVisibility();
     shipModificationModal.open(pendingMission, (_selectedMod) => {
       // Модификация немедленно применяется к кораблю в сцене
       if (phaserGame) {
@@ -874,6 +1010,7 @@ function openShipyardBeforeNextMission(): void {
   modalPause?.classList.add('hidden');
   isGamePaused = true;
   isGameStarted = true;
+  updateJoystickVisibility();
 
   if (phaserGame) {
     phaserGame.scale.refresh();
@@ -976,20 +1113,32 @@ window.addEventListener('tank-destroyed', ((e: CustomEvent) => {
   showGameOver(detail.time || '00:00', detail.kills || 0, detail.score || 0, detail.reason);
 }) as EventListener);
 
-// Интерактивный клик по плашке ракетного рывка внизу экрана
-dashTriggerCard?.addEventListener('click', () => {
+function addTouchClick(el: HTMLElement | null, handler: (e: Event) => void): void {
+  if (!el) return;
+  let lastTrigger = 0;
+  const trigger = (e: Event) => {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastTrigger < 250) return;
+    lastTrigger = now;
+    handler(e);
+  };
+  el.addEventListener('pointerdown', trigger);
+  el.addEventListener('click', trigger);
+}
+
+// Интерактивный клик/тап по плашке ракетного рывка внизу экрана
+addTouchClick(dashTriggerCard, () => {
   window.dispatchEvent(new CustomEvent('request-tank-dash'));
 });
 
-// Интерактивный клик по плашке супертанка внизу экрана
-superTriggerCard?.addEventListener('click', (e) => {
-  e.preventDefault();
+// Интерактивный клик/тап по плашке супертанка внизу экрана
+addTouchClick(superTriggerCard, () => {
   window.dispatchEvent(new CustomEvent('request-tank-super'));
 });
 
-// Клик по кнопке паузы [ESC] в левом верхнем углу
-topEscBtn?.addEventListener('click', (e) => {
-  e.preventDefault();
+// Клик/тап по кнопке паузы [ESC] в левом верхнем углу
+addTouchClick(topEscBtn, () => {
   if (!modalPause.classList.contains('hidden')) {
     resumeGame();
   } else if (isGameStarted && mainMenu.classList.contains('hidden')) {
@@ -1231,6 +1380,7 @@ window.addEventListener('keydown', (e) => {
 
 // Инициализация Phaser игрового мира сразу при загрузке страницы для главного экрана
 phaserGame = createGame('game');
+(window as unknown as { __PHASER_GAME__: Phaser.Game }).__PHASER_GAME__ = phaserGame;
 
 // Инициализация отображения текущей миссии кампании в главном меню
 updateMenuCampaignInfo();

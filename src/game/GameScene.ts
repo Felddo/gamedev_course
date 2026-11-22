@@ -209,6 +209,14 @@ export class GameScene extends Phaser.Scene {
       // ЛКМ / тап: выбор базы для фокусированной стрельбы или отмена выбора
       if (pointer.button === 0 || pointer.button === -1 || pointer.leftButtonDown()) {
         if (!this.isMenuMode && !this.isGameOver && !this.scene.isPaused()) {
+          // Защита от выбора станций при касании области виртуального джойстика (левый нижний угол)
+          if (pointer.x < 190 && pointer.y > this.scale.height - 190) {
+            return;
+          }
+          // Защита от выбора станций при касании области кнопок способностей (правый нижний угол)
+          if (pointer.x > this.scale.width - 320 && pointer.y > this.scale.height - 140) {
+            return;
+          }
           const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
           this.spaceStationManager.toggleTargetStationAt(worldPoint.x, worldPoint.y);
         }
@@ -397,7 +405,9 @@ export class GameScene extends Phaser.Scene {
     this.startCombatSession(customMission);
     this.playerShip.setVisible(false);
     this.hudManager.setVisible(false);
-    this.scene.pause();
+    if (this.scene.isActive() && !this.scene.isPaused()) {
+      this.scene.pause();
+    }
   }
 
   /**
@@ -426,6 +436,18 @@ export class GameScene extends Phaser.Scene {
     this.hudManager.setVisible(true);
     if (this.scene.isPaused()) {
       this.scene.resume();
+    }
+  }
+
+  public setJoystickVector(x: number, y: number): void {
+    if (this.playerShip) {
+      this.playerShip.setJoystickVector(x, y);
+    }
+  }
+
+  public resetJoystick(): void {
+    if (this.playerShip) {
+      this.playerShip.resetJoystick();
     }
   }
 

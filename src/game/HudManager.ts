@@ -43,6 +43,10 @@ export class HudManager {
   private radarLabel!: Phaser.GameObjects.Text;
   private coordsText!: Phaser.GameObjects.Text;
 
+  // Динамические адаптивные размеры для мобильных экранов
+  private currentHpBarWidth: number = 140;
+  private currentRadarSize: number = RADAR_SIZE;
+
   constructor(scene: Phaser.Scene, width: number, height: number) {
     this.scene = scene;
     this.createHud(width, height);
@@ -210,7 +214,6 @@ export class HudManager {
 
     // 2. Тактический радар сектора (Мини-карта)
     this.radarContainer = this.scene.add.container(0, 0);
-    this.positionRadar(width, height);
     this.radarContainer.setScrollFactor(0);
     this.radarContainer.setDepth(30);
 
@@ -236,11 +239,14 @@ export class HudManager {
 
     this.radarGraphics = this.scene.add.graphics();
     this.radarContainer.add([this.radarBg, this.radarGraphics, this.radarLabel, this.coordsText]);
+
+    this.positionRadar(width, height);
   }
 
   public layoutHud(width: number): void {
     const topBarHeight = 44;
-    const padX = 18;
+    const isSmall = width < 850;
+    const isVerySmall = width < 680;
 
     this.hudGraphics.clear();
     this.hudGraphics.fillStyle(0x02130e, 0.88);
@@ -249,81 +255,122 @@ export class HudManager {
     this.hudGraphics.lineStyle(1.5, 0x10b981, 0.95);
     this.hudGraphics.lineBetween(0, topBarHeight, width, topBarHeight);
 
+    const padX = isSmall ? 8 : 18;
     this.hudGraphics.lineStyle(1, 0x059669, 0.35);
     this.hudGraphics.strokeRect(padX - 4, 6, width - padX * 2 + 8, topBarHeight - 12);
 
-    const hpOffset = 58;
-    this.hpLabel.setPosition(padX + 4 + hpOffset, 8);
-    this.hpBg.setPosition(padX + 4 + hpOffset, 28);
-    this.hpBarFill.setPosition(padX + 4 + hpOffset, 28);
-    this.hpText.setPosition(padX + 152 + hpOffset, 28);
+    // 1. Здоровье игрока (слева, с учетом кнопки ESC слева)
+    const hpStartX = isSmall ? 56 : 76;
+    this.currentHpBarWidth = isVerySmall ? 65 : (isSmall ? 85 : 140);
+    this.hpBg.setSize(this.currentHpBarWidth, 12);
 
-    const centerX = width / 2;
-    this.timerLabel.setPosition(centerX, 12);
-    this.timerText.setPosition(centerX, 28);
+    this.hpLabel.setPosition(hpStartX, 8);
+    this.hpLabel.setFontSize(isSmall ? '9px' : '11px');
+    this.hpLabel.setText(isSmall ? 'HP' : 'ПРОЧНОСТЬ КОРАБЛЯ // HP');
 
-    const killsX = centerX - 140;
-    this.killsLabel.setPosition(killsX, 12);
-    this.killsText.setPosition(killsX, 28);
+    this.hpBg.setPosition(hpStartX, 28);
+    this.hpBarFill.setPosition(hpStartX, 28);
+    this.hpText.setPosition(hpStartX + this.currentHpBarWidth + 6, 28);
+    this.hpText.setFontSize(isSmall ? '10px' : '12px');
 
-    const scrapX = centerX + 140;
-    this.scrapLabel.setPosition(scrapX, 12);
-    this.scrapText.setPosition(scrapX, 28);
+    const hpRightEdge = hpStartX + this.currentHpBarWidth + (isSmall ? 34 : 46);
 
-    const phaseX = width - padX - 80;
-    this.phaseLabel.setPosition(phaseX, 12);
-    this.phaseText.setPosition(phaseX, 28);
-
-    // 1. Выделенный контейнер для целей миссии (сколько целей надо убить)
-    const killsBoxW = 124;
-    const killsBoxH = 34;
-    const killsBoxX = killsX - killsBoxW / 2;
-    const killsBoxY = 5;
-
-    this.hudGraphics.fillStyle(0x032317, 0.94);
-    this.hudGraphics.fillRoundedRect(killsBoxX, killsBoxY, killsBoxW, killsBoxH, 4);
-    this.hudGraphics.lineStyle(1.5, 0x10b981, 1);
-    this.hudGraphics.strokeRoundedRect(killsBoxX, killsBoxY, killsBoxW, killsBoxH, 4);
-
-    // Верхняя светящаяся полоса и угловые акценты целей
-    this.hudGraphics.lineStyle(2, 0x34d399, 1);
-    this.hudGraphics.lineBetween(killsBoxX + 8, killsBoxY + 1, killsBoxX + killsBoxW - 8, killsBoxY + 1);
-    this.hudGraphics.lineStyle(1.5, 0x6ee7b7, 0.9);
-    this.hudGraphics.lineBetween(killsBoxX, killsBoxY + 5, killsBoxX, killsBoxY + 12);
-    this.hudGraphics.lineBetween(killsBoxX, killsBoxY + 5, killsBoxX + 7, killsBoxY + 5);
-    this.hudGraphics.lineBetween(killsBoxX + killsBoxW, killsBoxY + killsBoxH - 5, killsBoxX + killsBoxW, killsBoxY + killsBoxH - 12);
-    this.hudGraphics.lineBetween(killsBoxX + killsBoxW, killsBoxY + killsBoxH - 5, killsBoxX + killsBoxW - 7, killsBoxY + killsBoxH - 5);
-
-    // 2. Выделенный контейнер для текущего этапа (какой сейчас этап)
-    const phaseBoxW = 138;
+    // 2. Текущий этап / сектор (справа)
+    const phaseBoxW = isVerySmall ? 84 : (isSmall ? 98 : 138);
     const phaseBoxH = 34;
+    const phaseX = width - padX - phaseBoxW / 2 - 2;
     const phaseBoxX = phaseX - phaseBoxW / 2;
     const phaseBoxY = 5;
 
+    this.phaseLabel.setPosition(phaseX, 12);
+    this.phaseLabel.setFontSize(isSmall ? '9px' : '11px');
+    this.phaseText.setPosition(phaseX, 28);
+    this.phaseText.setFontSize(isSmall ? '12px' : '15px');
+
+    // Отрисовка рамки этапа
     this.hudGraphics.fillStyle(0x0c2438, 0.95);
     this.hudGraphics.fillRoundedRect(phaseBoxX, phaseBoxY, phaseBoxW, phaseBoxH, 4);
     this.hudGraphics.lineStyle(1.5, 0x38bdf8, 1);
     this.hudGraphics.strokeRoundedRect(phaseBoxX, phaseBoxY, phaseBoxW, phaseBoxH, 4);
-
-    // Верхняя светящаяся полоса и угловые акценты текущего этапа
     this.hudGraphics.lineStyle(2, 0x7dd3fc, 1);
-    this.hudGraphics.lineBetween(phaseBoxX + 8, phaseBoxY + 1, phaseBoxX + phaseBoxW - 8, phaseBoxY + 1);
-    this.hudGraphics.lineStyle(1.5, 0x38bdf8, 0.9);
-    this.hudGraphics.lineBetween(phaseBoxX, phaseBoxY + 5, phaseBoxX, phaseBoxY + 12);
-    this.hudGraphics.lineBetween(phaseBoxX, phaseBoxY + 5, phaseBoxX + 7, phaseBoxY + 5);
-    this.hudGraphics.lineBetween(phaseBoxX + phaseBoxW, phaseBoxY + phaseBoxH - 5, phaseBoxX + phaseBoxW, phaseBoxY + phaseBoxH - 12);
-    this.hudGraphics.lineBetween(phaseBoxX + phaseBoxW, phaseBoxY + phaseBoxH - 5, phaseBoxX + phaseBoxW - 7, phaseBoxY + phaseBoxH - 5);
+    this.hudGraphics.lineBetween(phaseBoxX + 6, phaseBoxY + 1, phaseBoxX + phaseBoxW - 6, phaseBoxY + 1);
+
+    // 3. Центральные элементы: Kills, Timer, Scrap
+    const availableCenterLeft = hpRightEdge;
+    const availableCenterRight = phaseBoxX;
+
+    let centerX: number;
+    let killsX: number;
+    let scrapX: number;
+
+    const killsBoxW = isVerySmall ? 78 : (isSmall ? 94 : 124);
+    const killsBoxH = 34;
+
+    if (!isSmall) {
+      centerX = width / 2;
+      killsX = centerX - 140;
+      scrapX = centerX + 140;
+    } else {
+      centerX = (availableCenterLeft + availableCenterRight) / 2;
+      killsX = (availableCenterLeft + centerX) / 2;
+      scrapX = (centerX + availableCenterRight) / 2;
+    }
+
+    // Таймер
+    this.timerLabel.setPosition(centerX, 12);
+    this.timerLabel.setFontSize(isSmall ? '9px' : '10px');
+    this.timerText.setPosition(centerX, 28);
+    this.timerText.setFontSize(isSmall ? '13px' : '17px');
+
+    // Цели
+    this.killsLabel.setPosition(killsX, 12);
+    this.killsLabel.setFontSize(isSmall ? '9px' : '11px');
+    this.killsText.setPosition(killsX, 28);
+    this.killsText.setFontSize(isSmall ? '12px' : '16px');
+
+    const killsBoxX = killsX - killsBoxW / 2;
+    const killsBoxY = 5;
+    this.hudGraphics.fillStyle(0x032317, 0.94);
+    this.hudGraphics.fillRoundedRect(killsBoxX, killsBoxY, killsBoxW, killsBoxH, 4);
+    this.hudGraphics.lineStyle(1.5, 0x10b981, 1);
+    this.hudGraphics.strokeRoundedRect(killsBoxX, killsBoxY, killsBoxW, killsBoxH, 4);
+    this.hudGraphics.lineStyle(2, 0x34d399, 1);
+    this.hudGraphics.lineBetween(killsBoxX + 6, killsBoxY + 1, killsBoxX + killsBoxW - 6, killsBoxY + 1);
+
+    // Металлолом
+    this.scrapLabel.setPosition(scrapX, 12);
+    this.scrapLabel.setFontSize(isSmall ? '9px' : '10px');
+    this.scrapLabel.setText(isSmall ? '⚙ МЕТАЛЛ' : 'МЕТАЛЛОЛОМ // SCRAP');
+    this.scrapText.setPosition(scrapX, 28);
+    this.scrapText.setFontSize(isSmall ? '12px' : '16px');
   }
 
   private positionRadar(width: number, height: number): void {
-    const rx = width - RADAR_SIZE / 2 - 20;
-    // Размещение в верхнем правом углу с комфортным отступом от верхней панели (высота панели 44px)
+    const isCompact = width < 850 || height < 520;
+    this.currentRadarSize = isCompact ? 115 : (width < 1100 ? 140 : RADAR_SIZE);
+    const size = this.currentRadarSize;
+
+    if (this.radarBg) {
+      this.radarBg.setSize(size, size);
+    }
+    if (this.radarLabel) {
+      this.radarLabel.setPosition(-size / 2 + 4, -size / 2 - 12);
+      this.radarLabel.setFontSize(isCompact ? '9px' : '10px');
+    }
+    if (this.coordsText) {
+      this.coordsText.setPosition(-size / 2 + 4, size / 2 + 3);
+      this.coordsText.setFontSize(isCompact ? '9px' : '10px');
+    }
+
+    const rx = width - size / 2 - (isCompact ? 10 : 20);
     const topBarHeight = 44;
-    const labelOffset = 14;
-    const topMargin = 28; // Не лепим вплотную к верхней панели: 28px чистого зазора до заголовка радара
-    const preferredRy = topBarHeight + topMargin + labelOffset + RADAR_SIZE / 2; // = 171px
-    const ry = Math.min(preferredRy, Math.max(140, height - RADAR_SIZE / 2 - 20));
-    this.radarContainer.setPosition(rx, ry);
+    const labelOffset = isCompact ? 12 : 14;
+    const topMargin = isCompact ? 10 : 28;
+    const preferredRy = topBarHeight + topMargin + labelOffset + size / 2;
+    const ry = Math.min(preferredRy, Math.max(90, height - size / 2 - 12));
+    if (this.radarContainer) {
+      this.radarContainer.setPosition(rx, ry);
+    }
   }
 
   public handleResize(width: number, height: number): void {
@@ -399,7 +446,7 @@ export class HudManager {
     // 1. Полоска прочности корабля
     const maxHp = this.playerMaxHp > 0 ? this.playerMaxHp : PLAYER_MAX_HP;
     const hpRatio = Phaser.Math.Clamp(playerHp / maxHp, 0, 1);
-    this.hpBarFill.setSize(Math.max(0, 140 * hpRatio), 12);
+    this.hpBarFill.setSize(Math.max(0, this.currentHpBarWidth * hpRatio), 12);
 
     if (hpRatio > 0.5) {
       this.hpBarFill.setFillStyle(0x10b981);
@@ -515,7 +562,7 @@ export class HudManager {
     scrapItems: ScrapPickup[] = [],
   ): void {
     this.radarGraphics.clear();
-    const half = RADAR_SIZE / 2;
+    const half = this.currentRadarSize / 2;
     const radarRadius = half - 5;
     const scanRadius = RADAR_SCAN_RADIUS;
 

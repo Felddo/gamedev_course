@@ -41,21 +41,26 @@ html,
 body {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   background-color: #020c08;
   color: var(--holo-text-primary);
   font-family: var(--font-ui);
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
 #app {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  touch-action: none;
 }
 
 /* ==========================================================
@@ -128,7 +133,7 @@ canvas {
   height: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 48px 5vw;
+  padding: max(16px, env(safe-area-inset-top, 16px)) max(20px, env(safe-area-inset-right, 20px)) max(16px, env(safe-area-inset-bottom, 16px)) max(20px, env(safe-area-inset-left, 20px));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -140,8 +145,17 @@ canvas {
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
+  max-height: 100%;
   max-width: 500px;
   pointer-events: auto;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.menu-left-panel::-webkit-scrollbar {
+  display: none;
 }
 
 /* ==========================================================
@@ -515,7 +529,9 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: max(10px, env(safe-area-inset-top, 10px)) max(12px, env(safe-area-inset-right, 12px)) max(10px, env(safe-area-inset-bottom, 10px)) max(12px, env(safe-area-inset-left, 12px));
+  overflow-y: auto;
+  touch-action: pan-y;
   transition: opacity 0.25s ease, visibility 0.25s;
 }
 
@@ -529,10 +545,13 @@ canvas {
   position: relative;
   width: 100%;
   max-width: 540px;
+  max-height: min(94vh, 94dvh);
+  display: flex;
+  flex-direction: column;
   background: rgba(4, 34, 25, 0.95);
   border: 1.5px solid var(--holo-border);
   border-radius: 6px;
-  padding: 28px;
+  padding: 24px 28px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 24px rgba(16, 185, 129, 0.35);
   animation: modalEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
@@ -563,6 +582,7 @@ canvas {
 .modal-card-header {
   position: relative;
   z-index: 2;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -626,7 +646,12 @@ canvas {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding-right: 4px;
 }
 
 .modal-row {
@@ -735,6 +760,7 @@ canvas {
 .modal-card-footer {
   position: relative;
   z-index: 2;
+  flex-shrink: 0;
   margin-top: 24px;
   display: flex;
   justify-content: flex-end;
@@ -2132,19 +2158,21 @@ canvas {
 }
 
 /* ==========================================================
-   ROCKET DASH HUD (Нижняя тактическая панель ускорения)
+   ROCKET DASH & OVERDRIVE HUD (Нижняя тактическая панель в правом нижнем углу)
    ========================================================== */
 .dash-hud {
   position: absolute;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 15;
+  bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  right: max(16px, env(safe-area-inset-right, 16px));
+  left: auto;
+  transform: none;
+  z-index: 18;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  max-width: 95vw;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
   pointer-events: auto;
   transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
   user-select: none;
@@ -2153,7 +2181,7 @@ canvas {
 .dash-hud.hidden {
   opacity: 0;
   visibility: hidden;
-  transform: translateX(-50%) translateY(24px);
+  transform: translateY(24px);
   pointer-events: none;
 }
 
@@ -2170,7 +2198,8 @@ canvas {
   backdrop-filter: blur(10px);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  touch-action: manipulation;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s, filter 0.15s;
 }
 
 .dash-hud-card:hover {
@@ -2179,7 +2208,107 @@ canvas {
 }
 
 .dash-hud-card:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
+  filter: brightness(1.2);
+}
+
+/* Скрытие обозначений клавиш (SHIFT / Q) на мобильных и сенсорных устройствах */
+.is-mobile .dash-key-wrap,
+.touch-device .dash-key-wrap,
+.is-mobile .dash-divider,
+.touch-device .dash-divider {
+  display: none !important;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .dash-key-wrap,
+  .dash-divider {
+    display: none !important;
+  }
+}
+
+/* Компактный вид карточек на мобильных и узких экранах */
+.is-mobile .dash-hud-card,
+.touch-device .dash-hud-card {
+  padding: 7px 11px;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.is-mobile .dash-details,
+.touch-device .dash-details {
+  min-width: 85px;
+  gap: 2px;
+}
+
+.is-mobile .dash-sys-tag,
+.touch-device .dash-sys-tag {
+  font-size: 8.5px;
+}
+
+.is-mobile .dash-status-badge,
+.touch-device .dash-status-badge {
+  font-size: 8.5px;
+  padding: 2px 5px;
+}
+
+.is-mobile .dash-progress-track,
+.touch-device .dash-progress-track {
+  height: 5px;
+}
+
+.is-mobile .dash-cooldown-label,
+.touch-device .dash-cooldown-label,
+.is-mobile .dash-timer-val,
+.touch-device .dash-timer-val {
+  font-size: 8.5px;
+}
+
+.is-mobile .dash-engine-wrap,
+.touch-device .dash-engine-wrap,
+.is-mobile .super-tank-icon-wrap,
+.touch-device .super-tank-icon-wrap {
+  width: 28px;
+  height: 28px;
+}
+
+@media (max-width: 800px) {
+  .dash-hud-card {
+    padding: 7px 11px;
+    gap: 8px;
+    min-width: 120px;
+  }
+  .dash-details {
+    min-width: 85px;
+    gap: 2px;
+  }
+  .dash-sys-tag {
+    font-size: 8.5px;
+  }
+  .dash-status-badge {
+    font-size: 8.5px;
+    padding: 2px 5px;
+  }
+  .dash-progress-track {
+    height: 5px;
+  }
+  .dash-cooldown-label,
+  .dash-timer-val {
+    font-size: 8.5px;
+  }
+  .dash-engine-wrap,
+  .super-tank-icon-wrap {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 540px) {
+  .dash-hud {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
 }
 
 .dash-hud-scanlines {
@@ -2447,19 +2576,22 @@ canvas {
 /* Кнопка тактической паузы [ESC] в верхнем левом углу */
 .top-esc-btn {
   position: fixed;
-  top: 7px;
-  left: 14px;
+  top: max(7px, env(safe-area-inset-top, 7px));
+  left: max(10px, env(safe-area-inset-left, 10px));
   z-index: 50;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 6px;
+  min-width: 44px;
+  min-height: 44px;
   background: transparent;
   border: none;
   cursor: pointer;
   outline: none;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: manipulation;
   transition: transform 0.12s ease, opacity 0.2s ease, filter 0.2s ease;
 }
 
@@ -3132,5 +3264,370 @@ canvas {
   padding: 4px 14px;
   border-radius: 3px;
   opacity: 0.9;
+}
+
+/* ==========================================================
+   VIRTUAL TOUCH JOYSTICK (Сенсорный джойстик)
+   ========================================================== */
+.virtual-joystick {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  left: max(20px, env(safe-area-inset-left, 20px));
+  z-index: 18;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+}
+
+.virtual-joystick.hidden {
+  display: none !important;
+}
+
+/* На настольных компьютерах с мышью и клавиатурой джойстик скрыт */
+.is-desktop .virtual-joystick,
+body:not(.touch-device) .virtual-joystick {
+  display: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body:not(.touch-device) .virtual-joystick {
+    display: none !important;
+  }
+}
+
+.joystick-base {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: rgba(2, 28, 20, 0.65);
+  border: 1.5px solid rgba(16, 185, 129, 0.55);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.22), inset 0 0 16px rgba(16, 185, 129, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.joystick-base.active {
+  border-color: rgba(52, 211, 153, 0.85);
+  box-shadow: 0 0 24px rgba(52, 211, 153, 0.4), inset 0 0 20px rgba(16, 185, 129, 0.25);
+  cursor: grabbing;
+}
+
+.joystick-ring {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1px dashed rgba(52, 211, 153, 0.35);
+  pointer-events: none;
+}
+
+.joystick-crosshair {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.joystick-crosshair::before,
+.joystick-crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(52, 211, 153, 0.45);
+}
+
+.joystick-crosshair::before {
+  top: 7px;
+  left: 0;
+  width: 16px;
+  height: 2px;
+}
+
+.joystick-crosshair::after {
+  top: 0;
+  left: 7px;
+  width: 2px;
+  height: 16px;
+}
+
+.joystick-stick {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #34d399 0%, #059669 65%, #064e3b 100%);
+  border: 1.5px solid #6ee7b7;
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.7), 0 3px 8px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  will-change: transform;
+  transform: translate(0px, 0px);
+  transition: transform 0.1s ease-out;
+}
+
+.joystick-base.active .joystick-stick {
+  transition: none;
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.95), 0 4px 10px rgba(0, 0, 0, 0.75);
+}
+
+/* ==========================================================
+   ORIENTATION WARNING OVERLAY (Предупреждение о горизонтальной ориентации)
+   ========================================================== */
+.orientation-warning-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 99999;
+  background: rgba(1, 12, 8, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  touch-action: none;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.orientation-warning-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  display: none !important;
+}
+
+.orientation-warning-card {
+  position: relative;
+  background: rgba(3, 26, 19, 0.96);
+  border: 1.5px solid var(--holo-border);
+  border-radius: 8px;
+  box-shadow: 0 0 36px rgba(16, 185, 129, 0.4), 0 20px 60px rgba(0, 0, 0, 0.85);
+  padding: 34px 26px;
+  max-width: 390px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.orientation-anim-box {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.phone-rotate-anim {
+  position: relative;
+  width: 44px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: phoneTiltAndTurn 2.6s infinite ease-in-out;
+  transform-origin: center center;
+}
+
+@keyframes phoneTiltAndTurn {
+  0%, 15% {
+    transform: rotate(0deg);
+  }
+  50%, 75% {
+    transform: rotate(-90deg);
+  }
+  90%, 100% {
+    transform: rotate(0deg);
+  }
+}
+
+.phone-svg {
+  width: 44px;
+  height: 72px;
+  filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.55));
+}
+
+.phone-arrow-icon {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 0 8px rgba(110, 231, 183, 0.85));
+}
+
+.orientation-title {
+  font-family: var(--font-display, 'Orbitron', monospace);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #ecfdf5;
+  text-shadow: 0 0 14px rgba(52, 211, 153, 0.7);
+  margin: 0 0 12px 0;
+}
+
+.orientation-desc {
+  font-family: var(--font-ui, 'Rajdhani', sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: #a7f3d0;
+  letter-spacing: 0.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ==========================================================
+   АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ И ПЛАНШЕТОВ
+   ========================================================== */
+@media (max-height: 540px), (max-width: 820px) {
+  /* Главное меню */
+  .hud-game-title {
+    font-size: clamp(22px, 3.6vw, 38px);
+  }
+
+  .holo-nav {
+    transform: none;
+    gap: clamp(8px, 1.8vh, 14px);
+    margin: 10px 0;
+  }
+
+  .holo-btn {
+    width: min(290px, 100%);
+    min-height: 44px;
+  }
+
+  .holo-plate {
+    padding: 10px 18px;
+  }
+
+  .holo-title {
+    font-size: 14px;
+  }
+
+  .holo-sub {
+    font-size: 9.5px;
+  }
+
+  /* Модальные окна */
+  .holo-modal-window.modal-horizontal,
+  #modal-mission-complete .holo-modal-window,
+  #modal-campaign-complete .holo-modal-window,
+  #modal-gameover .holo-modal-window,
+  .modal-pause-window {
+    padding: 14px 18px;
+  }
+
+  .modal-card-header {
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+
+  .modal-card-header h2 {
+    font-size: 16px;
+  }
+
+  .modal-card-body {
+    gap: 12px;
+  }
+
+  .modal-card-footer {
+    margin-top: 14px !important;
+  }
+
+  .modal-action-btn {
+    padding: 8px 18px;
+    font-size: 13px;
+    min-height: 42px;
+  }
+
+  /* Меню паузы */
+  .pause-volume-card {
+    padding: 8px 14px;
+    gap: 8px;
+  }
+
+  .pause-volume-label {
+    font-size: 12px;
+  }
+
+  .pause-btn-group {
+    gap: 6px;
+  }
+
+  .pause-menu-btn {
+    min-height: 40px;
+  }
+
+  .pause-btn-plate {
+    padding: 8px 14px;
+  }
+
+  .pause-btn-title {
+    font-size: 13px;
+  }
+
+  .pause-btn-hint {
+    font-size: 9px;
+  }
+
+  .pause-footer {
+    margin-top: 10px;
+  }
+
+  /* Экран поражения и завершения миссии */
+  .mc-content-split {
+    gap: 12px;
+  }
+
+  .mc-horizontal-stats .debrief-card {
+    padding: 10px 8px;
+  }
+
+  .debrief-label {
+    font-size: 10px;
+  }
+
+  .debrief-value {
+    font-size: 18px;
+  }
+
+  .mc-unlock-banner {
+    padding: 8px 14px;
+    margin-bottom: 12px;
+  }
+
+  .mc-scrap-panel {
+    padding: 10px 14px;
+  }
+
+  .mc-scrap-row {
+    font-size: 12px;
+  }
+
+  .cc-debrief-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+}
+
+/* Визуальная реакция на касание для сенсорных экранов */
+.holo-btn:active,
+.modal-action-btn:active,
+.pause-menu-btn:active,
+.modal-toggle-btn:active,
+.dash-hud-card:active {
+  transform: scale(0.97);
+  filter: brightness(1.25);
 }
 
