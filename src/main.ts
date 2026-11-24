@@ -333,10 +333,14 @@ function launchGame(): void {
   hidePhaseAnnouncement();
 
   if (phaserGame) {
-    phaserGame.scale.refresh();
-    const scene = phaserGame.scene.getScene('GameScene') as GameScene;
-    if (scene) {
-      scene.pauseCombatSessionForBuilder();
+    try {
+      phaserGame.scale.refresh();
+      const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+      if (scene) {
+        scene.pauseCombatSessionForBuilder();
+      }
+    } catch (err) {
+      console.warn('GameScene еще инициализируется, фоновая пауза пропущена:', err);
     }
   }
 
@@ -800,10 +804,14 @@ function restartFromGameOver(): void {
   updateJoystickVisibility();
 
   if (phaserGame) {
-    phaserGame.scale.refresh();
-    const scene = phaserGame.scene.getScene('GameScene') as GameScene;
-    if (scene) {
-      scene.pauseCombatSessionForBuilder();
+    try {
+      phaserGame.scale.refresh();
+      const scene = phaserGame.scene.getScene('GameScene') as GameScene;
+      if (scene) {
+        scene.pauseCombatSessionForBuilder();
+      }
+    } catch (err) {
+      console.warn('GameScene еще инициализируется, фоновая пауза пропущена:', err);
     }
   }
 

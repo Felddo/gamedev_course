@@ -1475,15 +1475,37 @@
   animation: disconnectedPulse 0.7s infinite alternate ease-in-out;
 }
 
+.dropped-part-item.disconnected::after {
+  content: '⚠️ ОТОРВАН';
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(220, 38, 38, 0.95);
+  color: #ffffff;
+  font-family: var(--font-tech, monospace);
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.85), 0 0 12px rgba(239, 68, 68, 0.9);
+  letter-spacing: 0.5px;
+  z-index: 50;
+}
+
 @keyframes disconnectedPulse {
   0% {
-    transform: scale(1);
     filter: drop-shadow(0 0 4px #ef4444);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.8), inset 0 0 8px rgba(239, 68, 68, 0.3) !important;
+    outline-color: #ef4444 !important;
   }
 
   100% {
-    transform: scale(1.08);
-    filter: drop-shadow(0 0 14px #ef4444);
+    filter: drop-shadow(0 0 16px #ef4444);
+    box-shadow: 0 0 26px rgba(239, 68, 68, 1), inset 0 0 18px rgba(239, 68, 68, 0.6) !important;
+    outline-color: #fca5a5 !important;
   }
 }
 

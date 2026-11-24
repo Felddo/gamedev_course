@@ -330,17 +330,17 @@ export class GameScene extends Phaser.Scene {
     this.isMenuMode = true;
     this.isGameOver = false;
     this.isMissionWon = false;
-    this.hudManager.setVisible(false);
-    this.playerShip.setVisible(false);
-    this.playerShip.setAutopilot(false);
-    this.playerShip.resetUpgrades();
-    this.spaceStationManager.setTargetedStation(null);
+    this.hudManager?.setVisible(false);
+    this.playerShip?.setVisible(false);
+    this.playerShip?.setAutopilot(false);
+    this.playerShip?.resetUpgrades();
+    this.spaceStationManager?.setTargetedStation(null);
     this.tweens.killTweensOf(this.cameras.main);
     this.cameras.main.setZoom(1.0);
     this.cameras.main.setFollowOffset(0, 0);
-    this.enemyManager.reset();
-    this.weaponSystem.reset();
-    this.weaponSystem.resetUpgrades();
+    this.enemyManager?.reset();
+    this.weaponSystem?.reset();
+    this.weaponSystem?.resetUpgrades();
     this.meteorManager?.reset();
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
@@ -387,41 +387,47 @@ export class GameScene extends Phaser.Scene {
     // Инициализация миссии кампании
     this.currentMission = customMission || campaignManager.getCurrentMission();
 
-    this.spaceStationManager.setTargetedStation(null);
-    this.enemyManager.reset();
-    this.weaponSystem.reset();
-    this.weaponSystem.resetUpgrades();
-    this.scrapManager.reset();
-    this.meteorManager.reset();
+    this.spaceStationManager?.setTargetedStation(null);
+    this.enemyManager?.reset();
+    this.weaponSystem?.reset();
+    this.weaponSystem?.resetUpgrades();
+    this.scrapManager?.reset();
+    this.meteorManager?.reset();
 
-    this.enemyManager.setMission(this.currentMission);
-    this.meteorManager.setMission(this.currentMission);
-    this.hudManager.setMission(this.currentMission);
-
-    this.meteorManager.createInitialMeteors();
-    this.meteorManager.clearMeteorsNear(MAP_WIDTH / 2, MAP_HEIGHT / 2, 750);
-
-    this.playerShip.reset(MAP_WIDTH / 2, MAP_HEIGHT / 2);
-    if (this.activeShipAssembly) {
-      this.playerShip.setCustomAssembly(this.activeShipAssembly);
-      if (this.playerShip.installedStats) {
-        this.weaponSystem.applyAssemblyStats(this.playerShip.installedStats);
-      }
-      this.hudManager.playerMaxHp = this.playerShip.maxHp;
+    if (this.currentMission) {
+      this.enemyManager?.setMission(this.currentMission);
+      this.meteorManager?.setMission(this.currentMission);
+      this.hudManager?.setMission(this.currentMission);
     }
-    this.playerShip.resetUpgrades();
-    this.weaponSystem.resetUpgrades();
-    this.applyCampaignUpgrades();
-    this.playerShip.setVisible(true);
-    this.playerShip.setAutopilot(false);
+
+    this.meteorManager?.createInitialMeteors();
+    this.meteorManager?.clearMeteorsNear(MAP_WIDTH / 2, MAP_HEIGHT / 2, 750);
+
+    if (this.playerShip) {
+      this.playerShip.reset(MAP_WIDTH / 2, MAP_HEIGHT / 2);
+      if (this.activeShipAssembly) {
+        this.playerShip.setCustomAssembly(this.activeShipAssembly);
+        if (this.playerShip.installedStats && this.weaponSystem) {
+          this.weaponSystem.applyAssemblyStats(this.playerShip.installedStats);
+        }
+        if (this.hudManager) {
+          this.hudManager.playerMaxHp = this.playerShip.maxHp;
+        }
+      }
+      this.playerShip.resetUpgrades();
+      this.weaponSystem?.resetUpgrades();
+      this.applyCampaignUpgrades();
+      this.playerShip.setVisible(true);
+      this.playerShip.setAutopilot(false);
+    }
 
     this.tweens.killTweensOf(this.cameras.main);
     this.updateCameraZoom();
     this.cameras.main.setFollowOffset(0, 0);
-    this.hudManager.setVisible(true);
+    this.hudManager?.setVisible(true);
 
-    this.playerShip.emitDashState();
-    this.playerShip.emitSuperState();
+    this.playerShip?.emitDashState();
+    this.playerShip?.emitSuperState();
   }
 
   /**
@@ -429,9 +435,12 @@ export class GameScene extends Phaser.Scene {
    * Игра замирает, корабль игрока и HUD скрываются, сцена на паузе
    */
   public pauseCombatSessionForBuilder(customMission?: CampaignMission): void {
+    if (!this.playerShip || !this.enemyManager) {
+      return;
+    }
     this.startCombatSession(customMission);
-    this.playerShip.setVisible(false);
-    this.hudManager.setVisible(false);
+    this.playerShip?.setVisible(false);
+    this.hudManager?.setVisible(false);
     if (this.scene.isActive() && !this.scene.isPaused()) {
       this.scene.pause();
     }

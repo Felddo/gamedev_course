@@ -88,6 +88,164 @@ export const CATEGORY_LIMITS = new Proxy(CATEGORY_LIMIT_METADATA as any, {
   },
 }) as Record<string, { max: number; title: string; icon: string }>;
 
+/**
+ * Точные размеры спрайтов модулей в пикселях (w, h).
+ * Используются для точного геометрического расчета касания деталей корабля.
+ */
+const MODULE_SPRITE_DIMENSIONS: Record<string, { w: number; h: number }> = {
+  // Кабины (pilot)
+  pilot_black_spaceParts_054: { w: 16, h: 16 },
+  pilot_white_spaceParts_058: { w: 14, h: 29 },
+  pilot_black_spaceParts_059: { w: 12, h: 30 },
+  pilot_white_spaceParts_060: { w: 12, h: 30 },
+  pilot_black_spaceParts_057: { w: 14, h: 29 },
+  pilot_white_spaceParts_064: { w: 14, h: 28 },
+  pilot_black_spaceParts_065: { w: 24, h: 29 },
+  pilot_white_spaceParts_062: { w: 17, h: 26 },
+  pilot_black_spaceParts_069: { w: 17, h: 32 },
+
+  // Корпуса (body)
+  body_black_spaceParts_047: { w: 37, h: 56 },
+  body_white_spaceParts_034: { w: 37, h: 56 },
+  body_black_spaceParts_049: { w: 48, h: 62 },
+  body_white_spaceParts_035: { w: 32, h: 63 },
+  body_black_spaceParts_048: { w: 32, h: 63 },
+  body_white_spaceParts_036: { w: 48, h: 62 },
+  body_black_spaceParts_050: { w: 35, h: 71 },
+  body_black_spaceParts_055: { w: 59, h: 66 },
+  body_white_spaceParts_042: { w: 52, h: 67 },
+
+  // Крылья (wings)
+  wings_blue_spaceParts_010: { w: 38, h: 71 },
+  wings_green_spaceParts_011: { w: 38, h: 71 },
+  wings_blue_spaceParts_014: { w: 50, h: 67 },
+  wings_green_spaceParts_015: { w: 50, h: 67 },
+  wings_blue_spaceParts_016: { w: 39, h: 71 },
+  wings_green_spaceParts_017: { w: 39, h: 71 },
+  wings_green_spaceParts_013: { w: 48, h: 70 },
+  wings_blue_spaceParts_018: { w: 41, h: 71 },
+  wings_green_spaceParts_019: { w: 41, h: 71 },
+  wings_blue_spaceParts_012: { w: 48, h: 70 },
+  wings_red_spaceParts_001: { w: 39, h: 71 },
+  wings_red_spaceParts_002: { w: 41, h: 71 },
+
+  // Двигатели (engines)
+  engines_0: { w: 29, h: 47 },
+  engines_1: { w: 43, h: 62 },
+  engines_2: { w: 40, h: 66 },
+  engines_3: { w: 34, h: 66 },
+
+  // Пушки (guns)
+  guns_0: { w: 17, h: 38 },
+  guns_1: { w: 26, h: 41 },
+  guns_2: { w: 27, h: 41 },
+  guns_3: { w: 9, h: 33 },
+};
+
+/**
+ * Получение фактических отображаемых размеров детали с учетом масштабирования под предел 66x66
+ */
+function getDroppedPartDimensions(part: PartItem): { w: number; h: number } {
+  let raw = MODULE_SPRITE_DIMENSIONS[part.id];
+  if (!raw) {
+    switch (part.category) {
+      case 'pilot': raw = { w: 18, h: 26 }; break;
+      case 'body': raw = { w: 40, h: 60 }; break;
+      case 'wings': raw = { w: 40, h: 70 }; break;
+      case 'engines': raw = { w: 35, h: 60 }; break;
+      case 'guns': raw = { w: 22, h: 40 }; break;
+      default: raw = { w: 40, h: 40 }; break;
+    }
+  }
+  const maxDim = Math.max(raw.w, raw.h);
+  const scale = maxDim > 66 ? 66 / maxDim : 1;
+  return {
+    w: raw.w * scale,
+    h: raw.h * scale,
+  };
+}
+
+interface Point2D {
+  x: number;
+  y: number;
+}
+
+/**
+ * Получение 4 вершин ориентированного прямоугольника детали с учетом поворота и допуска касания
+ */
+function getPartPolygon(p: DroppedPartInstance, margin = 5): Point2D[] {
+  const { w, h } = getDroppedPartDimensions(p.part);
+  const hw = w / 2 + margin;
+  const hh = h / 2 + margin;
+  const rad = ((p.rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  const localCorners: Point2D[] = [
+    { x: -hw, y: -hh },
+    { x: hw, y: -hh },
+    { x: hw, y: hh },
+    { x: -hw, y: hh },
+  ];
+
+  return localCorners.map((c) => ({
+    x: p.x + c.x * cos - c.y * sin,
+    y: p.y + c.x * sin + c.y * cos,
+  }));
+}
+
+/**
+ * Проверка физического пересечения/соприкосновения двух деталей по теореме о разделяющей оси (SAT).
+ * Точно определяет касание модулей при любых углах поворота и запрещает зазор между деталями.
+ */
+function doPartsTouch(a: DroppedPartInstance, b: DroppedPartInstance, margin = 5): boolean {
+  // Быстрая проверка расстояния между центрами (broad-phase)
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  if (dx * dx + dy * dy > 11500) {
+    return false;
+  }
+
+  const polyA = getPartPolygon(a, margin);
+  const polyB = getPartPolygon(b, margin);
+
+  const polys = [polyA, polyB];
+  for (let i = 0; i < 2; i++) {
+    const poly = polys[i];
+    for (let j = 0; j < poly.length; j++) {
+      const k = (j + 1) % poly.length;
+      const edgeX = poly[k].x - poly[j].x;
+      const edgeY = poly[k].y - poly[j].y;
+      // Нормаль к ребру
+      const normalX = -edgeY;
+      const normalY = edgeX;
+
+      let minA = Infinity;
+      let maxA = -Infinity;
+      for (const pt of polyA) {
+        const dot = pt.x * normalX + pt.y * normalY;
+        if (dot < minA) minA = dot;
+        if (dot > maxA) maxA = dot;
+      }
+
+      let minB = Infinity;
+      let maxB = -Infinity;
+      for (const pt of polyB) {
+        const dot = pt.x * normalX + pt.y * normalY;
+        if (dot < minB) minB = dot;
+        if (dot > maxB) maxB = dot;
+      }
+
+      // Если проекции разделены — фигуры не соприкасаются
+      if (maxA < minB || maxB < minA) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 export class ShipBuilderModal {
   private container: HTMLElement;
   private catalog: CategoryData[];
@@ -163,6 +321,10 @@ export class ShipBuilderModal {
       this.loadDefaultShipPreset();
     }
     this.render();
+
+    if (typeof window !== 'undefined') {
+      (window as any).shipBuilderModal = this;
+    }
   }
 
   private createDom(): void {
@@ -787,7 +949,8 @@ export class ShipBuilderModal {
 
   /**
    * Проверка связности/цельности корабля:
-   * Все детали должны пересекаться или соприкасаться между собой, образуя единое целое.
+   * Все установленные детали должны соприкасаться или пересекаться, образуя единое целое.
+   * Если хотя бы одна деталь стоит отдельно от остальных, вылет в бой строго блокируется!
    */
   public validateShipCohesion(): CohesionValidationResult {
     const parts = this.droppedParts;
@@ -799,74 +962,40 @@ export class ShipBuilderModal {
       };
     }
 
-    // 1. Проверяем наличие хотя бы одного базового несущего модуля (корпус или кабина)
-    const hasCore = parts.some(
-      (p) => p.part.category === 'body' || p.part.category === 'pilot'
-    );
-    if (!hasCore && parts.length > 1) {
+    if (parts.length === 1) {
       return {
         isValid: false,
-        errorMessage: 'КОРАБЛЮ НУЖЕН КОРПУС ИЛИ КАБИНА! Установите центральный несущий модуль.',
-        disconnectedUids: [],
+        errorMessage: 'КОРАБЛЬ НЕ СОБРАН! Установлена только одна деталь. Добавьте остальные части.',
+        disconnectedUids: [parts[0].uid],
       };
     }
 
-    if (parts.length === 1) {
-      return { isValid: true };
-    }
-
-    // 2. Функция проверки пересечения или касания двух деталей
-    const doPartsIntersect = (a: DroppedPartInstance, b: DroppedPartInstance): boolean => {
-      const margin = 12; // Допуск в пикселях для мягкого касания
-      const getHalfBounds = (p: DroppedPartInstance) => {
-        const rad = (p.rotation * Math.PI) / 180;
-        const cos = Math.abs(Math.cos(rad));
-        const sin = Math.abs(Math.sin(rad));
-        const baseW = 60;
-        const baseH = 60;
-        return {
-          hw: (baseW * cos + baseH * sin) / 2 + margin,
-          hh: (baseW * sin + baseH * cos) / 2 + margin,
-        };
-      };
-
-      const bA = getHalfBounds(a);
-      const bB = getHalfBounds(b);
-
-      const overlapX = Math.abs(a.x - b.x) <= bA.hw + bB.hw;
-      const overlapY = Math.abs(a.y - b.y) <= bA.hh + bB.hh;
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      const radialTouch = dist <= 74;
-
-      return (overlapX && overlapY) || radialTouch;
-    };
-
-    // 3. Построение графа связности
+    // 1. Построение графа смежности (соприкосновения) всех установленных деталей
     const n = parts.length;
     const adj: number[][] = Array.from({ length: n }, () => []);
 
     for (let i = 0; i < n; i++) {
       for (let j = i + 1; j < n; j++) {
-        if (doPartsIntersect(parts[i], parts[j])) {
+        if (doPartsTouch(parts[i], parts[j], 5)) {
           adj[i].push(j);
           adj[j].push(i);
         }
       }
     }
 
-    // 4. Поиск центрального узла для старта обхода (предпочтительно корпус, затем кабина)
-    let startIndex = parts.findIndex((p) => p.part.category === 'body');
-    if (startIndex === -1) {
-      startIndex = parts.findIndex((p) => p.part.category === 'pilot');
+    // 2. Определение базового несущего модуля корабля (предпочтительно корпус, затем кабина)
+    let coreIndex = parts.findIndex((p) => p.part.category === 'body');
+    if (coreIndex === -1) {
+      coreIndex = parts.findIndex((p) => p.part.category === 'pilot');
     }
-    if (startIndex === -1) {
-      startIndex = 0;
+    if (coreIndex === -1) {
+      coreIndex = 0;
     }
 
-    // 5. BFS обход графа связности
+    // 3. Обход графа в ширину (BFS) от центрального модуля корабля
     const visited = new Set<number>();
-    const queue: number[] = [startIndex];
-    visited.add(startIndex);
+    const queue: number[] = [coreIndex];
+    visited.add(coreIndex);
 
     while (queue.length > 0) {
       const curr = queue.shift()!;
@@ -878,20 +1007,19 @@ export class ShipBuilderModal {
       }
     }
 
-    // 6. Если все детали соединены в единую конструкцию
+    // 4. Если абсолютно все установленные детали соединены с кораблем в единую конструкцию
     if (visited.size === n) {
       return { isValid: true };
     }
 
-    // 7. Если есть изолированные части
-    const disconnectedUids = parts
-      .filter((_, idx) => !visited.has(idx))
-      .map((p) => p.uid);
+    // 5. Если обнаружены оторванные / изолированные детали
+    const disconnectedParts = parts.filter((_, idx) => !visited.has(idx));
+    const disconnectedUids = disconnectedParts.map((p) => p.uid);
+    const disconnectedNames = Array.from(new Set(disconnectedParts.map((p) => p.part.name))).join(', ');
 
     return {
       isValid: false,
-      errorMessage:
-        'КОНСТРУКЦИЯ НЕ ЦЕЛЬНА! Все детали корабля должны соприкасаться между собой (обнаружены оторванные модули).',
+      errorMessage: `НЕЛЬЗЯ В БОЙ: деталь стоит отдельно от корабля (${disconnectedNames})! Все части должны быть соединены вместе.`,
       disconnectedUids,
     };
   }
@@ -902,7 +1030,9 @@ export class ShipBuilderModal {
   public markDisconnectedParts(uids: string[]): void {
     this.clearDisconnectedMarks();
     uids.forEach((uid) => {
-      const el = this.modalEl.querySelector(`#dropped-${uid}`);
+      const el =
+        (this.modalEl ? this.modalEl.querySelector(`#dropped-${CSS.escape(uid)}`) : null) ||
+        document.getElementById(`dropped-${uid}`);
       if (el) {
         el.classList.add('disconnected');
       }
@@ -1049,23 +1179,29 @@ export class ShipBuilderModal {
   }
 
   /**
-   * Запуск боевого вылета с валидацией связности/цельности корабля и обязательной комплектации
+   * Запуск боевого вылета с валидацией связности/цельности корабля и обязательной комплектации.
+   * Если хотя бы одна деталь стоит отдельно от остальных, вылет в бой строго запрещен.
    */
   public tryLaunch(): boolean {
+    // 1. Проверка связности деталей: если хоть одна деталь стоит отдельно от остальных, в бой зайти нельзя!
+    const cohesionCheck = this.validateShipCohesion();
+    if (!cohesionCheck.isValid) {
+      soundFx.playHit();
+      this.showAlert(
+        cohesionCheck.errorMessage ||
+          'НЕЛЬЗЯ В БОЙ: деталь стоит отдельно от корабля! Все части должны быть соединены вместе.'
+      );
+      if (cohesionCheck.disconnectedUids && cohesionCheck.disconnectedUids.length > 0) {
+        this.markDisconnectedParts(cohesionCheck.disconnectedUids);
+      }
+      return false;
+    }
+
+    // 2. Проверка обязательной комплектации (минимум по одной детали из каждой категории)
     const compCheck = this.validateShipComposition();
     if (!compCheck.isValid) {
       soundFx.playHit();
       this.showAlert(compCheck.errorMessage || 'НЕ ХВАТАЕТ ОБЯЗАТЕЛЬНЫХ ДЕТАЛЕЙ ДЛЯ ВЫЛЕТА!');
-      return false;
-    }
-
-    const check = this.validateShipCohesion();
-    if (!check.isValid) {
-      soundFx.playHit();
-      this.showAlert(check.errorMessage || 'КОРАБЛЬ НЕ ЦЕЛЬНЫЙ!');
-      if (check.disconnectedUids && check.disconnectedUids.length > 0) {
-        this.markDisconnectedParts(check.disconnectedUids);
-      }
       return false;
     }
 
