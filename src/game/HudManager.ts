@@ -5,24 +5,29 @@ import { CampaignMission } from './campaign/types';
 import { isMobilePhone } from './deviceUtils';
 
 const RADAR_SIZE = 170;
-const RADAR_MARGIN = 18;
 const RADAR_SCAN_RADIUS = 1500;
 
-// Высокое разрешение для рендеринга текста в текстуры WebGL (убирает размытие/замыливание на экранах любой плотности)
+// Высокое разрешение для рендеринга текста в текстуры WebGL
 const HUD_TEXT_RESOLUTION = Math.max(3, Math.min(4, Math.ceil((window.devicePixelRatio || 1) * 1.5)));
 
 /**
  * Менеджер пользовательского интерфейса (HUD):
- * верхняя голографическая панель, фиолетовая голографическая полоска опыта,
- * индикатор босса миссии и тактический радар сектора
+ * верхняя голографическая панель, индикатор босса миссии и тактический радар сектора.
+ * Отрисовывается в выделенной статичной сцене HudScene (zoom = 1, scroll = 0, без shake),
+ * что гарантирует абсолютную неподвижность и четкость шрифтов и цифр.
  */
 export class HudManager {
-  private scene: Phaser.Scene;
+  private scene: Phaser.Scene | null = null;
   private currentMission: CampaignMission | null = null;
   public playerMaxHp: number = PLAYER_MAX_HP;
 
+  private lastWidth: number;
+  private lastHeight: number;
+  private isVisible = true;
+  private pendingLayoutRaf: number | null = null;
+
   // Элементы верхней панели
-  private hudContainer!: Phaser.GameObjects.Container;
+  private hudContainer: Phaser.GameObjects.Container | null = null;
   private hudGraphics!: Phaser.GameObjects.Graphics;
   private hpLabel!: Phaser.GameObjects.Text;
   private hpBg!: Phaser.GameObjects.Rectangle;
@@ -50,32 +55,67 @@ export class HudManager {
   private coordsText!: Phaser.GameObjects.Text;
 
   // Динамические адаптивные размеры для мобильных экранов
-  private currentHpBarWidth: number = 140;
-  private currentHpBarHeight: number = 12;
-  private currentRadarSize: number = RADAR_SIZE;
+  private currentHpBarWidth = 140;
+  private currentHpBarHeight = 12;
+  private currentRadarSize = RADAR_SIZE;
 
-  constructor(scene: Phaser.Scene, width: number, height: number) {
+  // Кэш значений текста/стилей для предотвращения лишних перерисовок текстур каждый кадр
+  private textCache = new Map<Phaser.GameObjects.Text, string>();
+  private lastHpFillColor = -1;
+  private lastHpFillWidth = -1;
+  private lastKillsColor = '';
+
+  constructor(width: number, height: number) {
+    this.lastWidth = width;
+    this.lastHeight = height;
+  }
+
+  /**
+   * Подключение менеджера к выделенной сцене HudScene и создание всех элементов HUD.
+   */
+  public attachScene(scene: Phaser.Scene): void {
+    if (this.hudContainer) {
+      this.hudContainer.destroy(true);
+      this.hudContainer = null;
+      this.textCache.clear();
+    }
+
     this.scene = scene;
+    const width = scene.scale.width || this.lastWidth;
+    const height = scene.scale.height || this.lastHeight;
+    this.lastWidth = width;
+    this.lastHeight = height;
+
     this.createHud(width, height);
+    this.setVisible(this.isVisible);
+    if (this.currentMission) {
+      this.applyMissionUi(this.currentMission);
+    }
+  }
+
+  private setTextCached(target: Phaser.GameObjects.Text | undefined, value: string): void {
+    if (!target) return;
+    if (this.textCache.get(target) === value) return;
+    this.textCache.set(target, value);
+    target.setText(value);
   }
 
   private createHud(width: number, height: number): void {
-    // Единый экранный контейнер для всех HUD-элементов
+    if (!this.scene) return;
+
     this.hudContainer = this.scene.add.container(0, 0);
-    this.hudContainer.setScrollFactor(0);
     this.hudContainer.setDepth(30);
 
     // 1. Графика зеленой голографической панели
     this.hudGraphics = this.scene.add.graphics();
 
-    this.hpLabel = this.scene.add
-      .text(0, 0, 'HP', {
-        fontFamily: "'Rajdhani', -apple-system, sans-serif",
-        fontSize: '11px',
-        fontStyle: 'bold',
-        color: '#6ee7b7',
-        resolution: HUD_TEXT_RESOLUTION,
-      });
+    this.hpLabel = this.scene.add.text(0, 0, 'HP', {
+      fontFamily: "'Rajdhani', -apple-system, sans-serif",
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#6ee7b7',
+      resolution: HUD_TEXT_RESOLUTION,
+    });
 
     this.hpBg = this.scene.add.rectangle(0, 0, 140, 12, 0x021c14);
     this.hpBg.setStrokeStyle(1, 0x10b981, 0.85);
@@ -86,9 +126,10 @@ export class HudManager {
 
     this.hpOverlayGraphics = this.scene.add.graphics();
 
+    // Моноширинный шрифт (JetBrains Mono) для цифр предотвращает скачки ширины при изменении значений
     this.hpText = this.scene.add
       .text(0, 0, '100%', {
-        fontFamily: "'Orbitron', 'JetBrains Mono', monospace",
+        fontFamily: "'JetBrains Mono', monospace",
         fontSize: '12px',
         fontStyle: 'bold',
         color: '#ecfdf5',
@@ -108,7 +149,7 @@ export class HudManager {
 
     this.timerText = this.scene.add
       .text(0, 0, '00:00', {
-        fontFamily: "'Orbitron', 'JetBrains Mono', monospace",
+        fontFamily: "'JetBrains Mono', monospace",
         fontSize: '17px',
         fontStyle: 'bold',
         color: '#ecfdf5',
@@ -131,7 +172,7 @@ export class HudManager {
 
     this.killsText = this.scene.add
       .text(0, 0, '0 / 20', {
-        fontFamily: "'Orbitron', 'JetBrains Mono', monospace",
+        fontFamily: "'JetBrains Mono', monospace",
         fontSize: '16px',
         fontStyle: 'bold',
         color: '#ecfdf5',
@@ -153,7 +194,7 @@ export class HudManager {
 
     this.scrapText = this.scene.add
       .text(0, 0, '0', {
-        fontFamily: "'Orbitron', 'JetBrains Mono', monospace",
+        fontFamily: "'JetBrains Mono', monospace",
         fontSize: '16px',
         fontStyle: 'bold',
         color: '#fbbf24',
@@ -192,7 +233,7 @@ export class HudManager {
 
     this.bossBarText = this.scene.add
       .text(0, 0, '', {
-        fontFamily: "'Orbitron', 'Rajdhani', monospace",
+        fontFamily: "'JetBrains Mono', 'Orbitron', monospace",
         fontSize: '11px',
         fontStyle: 'bold',
         color: '#fef2f2',
@@ -221,8 +262,8 @@ export class HudManager {
 
     this.coordsText = this.scene.add
       .text(-RADAR_SIZE / 2 + 6, RADAR_SIZE / 2 + 4, 'КООРД: 1800, 1800', {
-        fontFamily: "'Rajdhani', monospace",
-        fontSize: '10px',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '9.5px',
         color: '#6ee7b7',
         resolution: HUD_TEXT_RESOLUTION,
       })
@@ -231,7 +272,6 @@ export class HudManager {
     this.radarGraphics = this.scene.add.graphics();
     this.radarContainer.add([this.radarBg, this.radarGraphics, this.radarLabel, this.coordsText]);
 
-    // Добавляем все элементы интерфейса в единый экранный контейнер
     this.hudContainer.add([
       this.hudGraphics,
       this.hpBg,
@@ -254,28 +294,43 @@ export class HudManager {
 
     this.layoutHud(width);
     this.positionRadar(width, height);
-    this.syncZoomTransform();
   }
 
   /**
-   * Синхронизация масштаба и положения экранного HUD-контейнера относительно зума камеры.
-   * Гарантирует, что верхняя панель всегда строго привязана к верхнему краю экрана (y = 0),
-   * растянута на 100% ширины экрана, а шрифты отображаются в точном физическом разрешении.
+   * Метод сохранен для обратной совместимости вызовов из GameScene.
+   * В отдельной сцене HudScene камера всегда имеет масштаб 1.0 и нулевой скролл.
    */
   public syncZoomTransform(): void {
-    if (!this.hudContainer) return;
-    const cam = this.scene.cameras.main;
-    if (!cam) return;
-    const z = cam.zoom || 1.0;
-    const cx = cam.width * (cam.originX ?? 0.5);
-    const cy = cam.height * (cam.originY ?? 0.5);
-
-    this.hudContainer.setScale(1 / z);
-    this.hudContainer.setPosition(cx - cx / z, cy - cy / z);
+    // Статичная сцена HudScene не нуждается в компенсации зума или скролла.
   }
 
   private getTopBarHeight(): number {
     return isMobilePhone() ? 44 : 54;
+  }
+
+  /**
+   * Измеряет правую границу DOM-кнопки паузы (#btn-top-esc), учитывая safe-area-inset-left
+   * (вырез/Dynamic Island на iPhone и вырезы на Android), чтобы полоса HP никогда не заходила под кнопку.
+   */
+  private getPauseButtonRightEdge(isPhone: boolean, isSmall: boolean): number {
+    const fallback = isPhone ? 46 : (isSmall ? 76 : 86);
+    if (typeof document === 'undefined') return fallback;
+
+    const btn = document.getElementById('btn-top-esc');
+    if (!btn) return fallback;
+
+    const rect = btn.getBoundingClientRect();
+    if (rect.width > 0 && rect.right > 0) {
+      return Math.ceil(rect.right);
+    }
+    return fallback;
+  }
+
+  private getSafeAreaRight(): number {
+    if (typeof document === 'undefined' || !window.getComputedStyle) return 0;
+    const raw = window.getComputedStyle(document.documentElement).getPropertyValue('--safe-area-right');
+    const parsed = parseFloat(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.ceil(parsed) : 0;
   }
 
   /**
@@ -292,14 +347,18 @@ export class HudManager {
     fillColor = 0x032218,
     chamfer = 6,
   ): void {
-    const c = Math.min(chamfer, w * 0.2, h * 0.35);
+    const ix = Math.round(x);
+    const iy = Math.round(y);
+    const iw = Math.round(w);
+    const ih = Math.round(h);
+    const c = Math.round(Math.min(chamfer, iw * 0.2, ih * 0.35));
     const pts = [
-      new Phaser.Math.Vector2(x + c, y),
-      new Phaser.Math.Vector2(x + w, y),
-      new Phaser.Math.Vector2(x + w, y + h - c),
-      new Phaser.Math.Vector2(x + w - c, y + h),
-      new Phaser.Math.Vector2(x, y + h),
-      new Phaser.Math.Vector2(x, y + c),
+      new Phaser.Math.Vector2(ix + c, iy),
+      new Phaser.Math.Vector2(ix + iw, iy),
+      new Phaser.Math.Vector2(ix + iw, iy + ih - c),
+      new Phaser.Math.Vector2(ix + iw - c, iy + ih),
+      new Phaser.Math.Vector2(ix, iy + ih),
+      new Phaser.Math.Vector2(ix, iy + c),
     ];
 
     // Мягкое внешнее голографическое свечение
@@ -312,7 +371,7 @@ export class HudManager {
 
     // Внутренний верхний блик голограммы
     g.fillStyle(borderColor, 0.08);
-    g.fillRect(x + c, y + 1, Math.max(0, w - c - 2), Math.max(2, h * 0.32));
+    g.fillRect(ix + c, iy + 1, Math.max(0, iw - c - 2), Math.max(2, Math.round(ih * 0.32)));
 
     // Контур модуля
     g.lineStyle(1.3, borderColor, 0.85);
@@ -320,20 +379,23 @@ export class HudManager {
 
     // Акцентная верхняя грань
     g.lineStyle(2, highlightColor, 0.92);
-    g.lineBetween(x + c + 4, y + 1, x + w - 4, y + 1);
+    g.lineBetween(ix + c + 4, iy + 1, ix + iw - 4, iy + 1);
 
     // Тактические уголки (corner brackets)
     const br = 5;
     g.lineStyle(1.5, highlightColor, 0.95);
     // Правый верхний угол
-    g.lineBetween(x + w - br, y + 1, x + w - 1, y + 1);
-    g.lineBetween(x + w - 1, y + 1, x + w - 1, y + br);
+    g.lineBetween(ix + iw - br, iy + 1, ix + iw - 1, iy + 1);
+    g.lineBetween(ix + iw - 1, iy + 1, ix + iw - 1, iy + br);
     // Левый нижний угол
-    g.lineBetween(x + 1, y + h - br, x + 1, y + h - 1);
-    g.lineBetween(x + 1, y + h - 1, x + br, y + h - 1);
+    g.lineBetween(ix + 1, iy + ih - br, ix + 1, iy + ih - 1);
+    g.lineBetween(ix + 1, iy + ih - 1, ix + br, iy + ih - 1);
   }
 
   public layoutHud(width: number): void {
+    this.lastWidth = width;
+    if (!this.hudContainer) return;
+
     const isPhone = isMobilePhone();
     const topBarHeight = this.getTopBarHeight();
     const isSmall = width < 850;
@@ -365,13 +427,16 @@ export class HudManager {
     this.hudGraphics.lineBetween(0, topBarHeight, width, topBarHeight);
 
     const padX = isPhone ? 8 : (isSmall ? 10 : 16);
+    const rightSafe = this.getSafeAreaRight();
+    const rightPad = Math.max(padX, rightSafe > 0 ? rightSafe + 4 : padX);
     const podY = isPhone ? 5 : 6;
     const podH = topBarHeight - podY * 2;
 
-    // 2. Модуль прочности корабля (HP), правее кнопки [ESC]
-    const hpStartX = isPhone ? 78 : (isSmall ? 84 : 96);
-    const hpPodX = hpStartX - 7;
-    this.currentHpBarWidth = isPhone ? 64 : (isVerySmall ? 60 : (isSmall ? 78 : 138));
+    // 2. Модуль прочности корабля (HP), строго правее кнопки паузы (с учетом safe-area-inset-left)
+    const escRightEdge = this.getPauseButtonRightEdge(isPhone, isSmall);
+    const hpPodX = Math.max(padX, escRightEdge + (isPhone ? 6 : 8));
+    const hpStartX = hpPodX + 7;
+    this.currentHpBarWidth = isPhone ? 58 : (isVerySmall ? 60 : (isSmall ? 78 : 138));
     this.currentHpBarHeight = isPhone ? 10 : 12;
     const hpPercentGap = isPhone ? 40 : (isSmall ? 36 : 48);
     const hpPodW = (hpStartX - hpPodX) + this.currentHpBarWidth + hpPercentGap;
@@ -379,14 +444,14 @@ export class HudManager {
     this.drawHoloPod(this.hudGraphics, hpPodX, podY, hpPodW, podH, 0x10b981, 0x6ee7b7, 0x032218, isPhone ? 4 : 6);
     this.hpBg.setSize(this.currentHpBarWidth, this.currentHpBarHeight);
 
-    this.hpLabel.setPosition(hpStartX, podY + (isPhone ? 5 : 6));
+    this.hpLabel.setPosition(hpStartX, podY + (isPhone ? 4 : 6));
     this.hpLabel.setFontSize(isPhone ? '9px' : (isSmall ? '9px' : '10px'));
-    this.hpLabel.setText(isPhone || isSmall ? 'HP' : 'ПРОЧНОСТЬ // HP');
+    this.setTextCached(this.hpLabel, isPhone || isSmall ? 'HP' : 'ПРОЧНОСТЬ // HP');
 
-    const barY = podY + podH - (isPhone ? 10 : 12);
+    const barY = Math.round(podY + podH - (isPhone ? 10 : 12));
     this.hpBg.setPosition(hpStartX, barY);
     this.hpBarFill.setPosition(hpStartX, barY);
-    this.hpText.setPosition(hpStartX + this.currentHpBarWidth + 6, barY);
+    this.hpText.setPosition(hpStartX + this.currentHpBarWidth + 5, barY);
     this.hpText.setFontSize(isPhone ? '11px' : (isSmall ? '10px' : '12px'));
 
     // Сегментные засечки и стеклянный блик поверх полосы HP
@@ -394,55 +459,56 @@ export class HudManager {
     this.hpOverlayGraphics.fillStyle(0xffffff, 0.14);
     this.hpOverlayGraphics.fillRect(
       hpStartX + 1,
-      barY - this.currentHpBarHeight / 2 + 1,
+      Math.round(barY - this.currentHpBarHeight / 2 + 1),
       Math.max(0, this.currentHpBarWidth - 2),
       2,
     );
     this.hpOverlayGraphics.lineStyle(1, 0x02120c, 0.65);
     const segments = isPhone ? 5 : 8;
     for (let i = 1; i < segments; i++) {
-      const sx = hpStartX + (this.currentHpBarWidth * i) / segments;
+      const sx = Math.round(hpStartX + (this.currentHpBarWidth * i) / segments);
       this.hpOverlayGraphics.lineBetween(
         sx,
-        barY - this.currentHpBarHeight / 2,
+        Math.round(barY - this.currentHpBarHeight / 2),
         sx,
-        barY + this.currentHpBarHeight / 2,
+        Math.round(barY + this.currentHpBarHeight / 2),
       );
     }
 
     const hpRightEdge = hpPodX + hpPodW;
 
-    // 3. Правый модуль: Текущий этап / Босс
-    const phaseBoxW = isPhone ? 88 : (isVerySmall ? 84 : (isSmall ? 98 : 134));
-    const phaseBoxX = width - padX - phaseBoxW;
-    const phaseX = phaseBoxX + phaseBoxW / 2;
+    // 3. Правый модуль: Текущий этап / Босс (с учетом safe-area-inset-right)
+    const phaseBoxW = isPhone ? 84 : (isVerySmall ? 84 : (isSmall ? 98 : 134));
+    const phaseBoxX = Math.round(width - rightPad - phaseBoxW);
+    const phaseX = Math.round(phaseBoxX + phaseBoxW / 2);
 
-    this.phaseLabel.setText('');
+    this.setTextCached(this.phaseLabel, '');
     this.phaseLabel.setVisible(false);
-    this.phaseText.setPosition(phaseX, podY + podH / 2);
-    this.phaseText.setFontSize(isPhone ? '14px' : (isSmall ? '13px' : '15px'));
+    this.phaseText.setPosition(phaseX, Math.round(podY + podH / 2));
+    this.phaseText.setFontSize(isPhone ? '13px' : (isSmall ? '13px' : '15px'));
     this.phaseText.setColor('#6ee7b7');
 
     this.drawHoloPod(this.hudGraphics, phaseBoxX, podY, phaseBoxW, podH, 0x34d399, 0xa7f3d0, 0x042b1e, isPhone ? 4 : 6);
 
     // 4. Центральные модули: Цели, Время боя, Металлолом
-    const availableCenterLeft = hpRightEdge + (isPhone ? 6 : 10);
-    const availableCenterRight = phaseBoxX - (isPhone ? 6 : 10);
-    const availableSpan = Math.max(180, availableCenterRight - availableCenterLeft);
+    const centerGap = isPhone ? 5 : 10;
+    const availableCenterLeft = hpRightEdge + centerGap;
+    const availableCenterRight = phaseBoxX - centerGap;
+    const availableSpan = Math.max(120, availableCenterRight - availableCenterLeft);
 
-    const useCenteredDesktop = !isSmall && !isPhone && width >= 1080;
+    const useCenteredDesktop = !isSmall && !isPhone && width >= 1080 && availableCenterLeft < width / 2 - 225;
     const killsBoxW = useCenteredDesktop ? 126 : Math.floor(Math.min(110, availableSpan * 0.31));
     const timerBoxW = useCenteredDesktop ? 142 : Math.floor(Math.min(126, availableSpan * 0.34));
     const scrapBoxW = useCenteredDesktop ? 132 : Math.floor(Math.min(116, availableSpan * 0.31));
 
-    const centerX = useCenteredDesktop ? width / 2 : availableCenterLeft + availableSpan * 0.5;
-    const killsX = useCenteredDesktop ? centerX - 152 : availableCenterLeft + availableSpan * 0.165;
-    const scrapX = useCenteredDesktop ? centerX + 152 : availableCenterLeft + availableSpan * 0.835;
+    const centerX = Math.round(useCenteredDesktop ? width / 2 : availableCenterLeft + availableSpan * 0.5);
+    const killsX = Math.round(useCenteredDesktop ? centerX - 152 : availableCenterLeft + availableSpan * 0.165);
+    const scrapX = Math.round(useCenteredDesktop ? centerX + 152 : availableCenterLeft + availableSpan * 0.835);
 
     // Плашка целей
     this.drawHoloPod(
       this.hudGraphics,
-      killsX - killsBoxW / 2,
+      Math.round(killsX - killsBoxW / 2),
       podY,
       killsBoxW,
       podH,
@@ -455,7 +521,7 @@ export class HudManager {
     // Центральная плашка таймера (главный тактический блок)
     this.drawHoloPod(
       this.hudGraphics,
-      centerX - timerBoxW / 2,
+      Math.round(centerX - timerBoxW / 2),
       podY - (isPhone ? 0 : 1),
       timerBoxW,
       podH + (isPhone ? 0 : 2),
@@ -468,7 +534,7 @@ export class HudManager {
     // Плашка металлолома (изумрудная база с золотым верхним акцентом)
     this.drawHoloPod(
       this.hudGraphics,
-      scrapX - scrapBoxW / 2,
+      Math.round(scrapX - scrapBoxW / 2),
       podY,
       scrapBoxW,
       podH,
@@ -478,45 +544,48 @@ export class HudManager {
       isPhone ? 4 : 6,
     );
 
-    const labelY = podY + (isPhone ? 9 : 11);
-    const valueY = podY + podH - (isPhone ? 10 : 12);
+    const labelY = Math.round(podY + (isPhone ? 9 : 11));
+    const valueY = Math.round(podY + podH - (isPhone ? 10 : 12));
 
     // Таймер
     this.timerLabel.setPosition(centerX, labelY);
-    this.timerLabel.setFontSize(isPhone ? '9px' : (isSmall ? '9px' : '10px'));
+    this.timerLabel.setFontSize(isPhone ? '8.5px' : (isSmall ? '9px' : '10px'));
     this.timerLabel.setColor('#6ee7b7');
     this.timerText.setPosition(centerX, valueY);
-    this.timerText.setFontSize(isPhone ? '15px' : (isSmall ? '13px' : '17px'));
+    this.timerText.setFontSize(isPhone ? '14px' : (isSmall ? '13px' : '16px'));
 
     // Цели
     this.killsLabel.setPosition(killsX, labelY);
-    this.killsLabel.setFontSize(isPhone ? '9px' : (isSmall ? '9px' : '10.5px'));
+    this.killsLabel.setFontSize(isPhone ? '8.5px' : (isSmall ? '9px' : '10.5px'));
     this.killsLabel.setColor('#6ee7b7');
     this.killsText.setPosition(killsX, valueY);
-    this.killsText.setFontSize(isPhone ? '14px' : (isSmall ? '12px' : '16px'));
+    this.killsText.setFontSize(isPhone ? '13px' : (isSmall ? '12px' : '15px'));
     this.killsText.setColor('#ecfdf5');
+    this.lastKillsColor = '#ecfdf5';
 
     // Металлолом
     this.scrapLabel.setPosition(scrapX, labelY);
-    this.scrapLabel.setFontSize(isPhone ? '9px' : (isSmall ? '9px' : '10px'));
-    this.scrapLabel.setText(isPhone || isSmall ? '⚙ МЕТАЛЛ' : 'МЕТАЛЛОЛОМ');
+    this.scrapLabel.setFontSize(isPhone ? '8.5px' : (isSmall ? '9px' : '10px'));
+    this.setTextCached(this.scrapLabel, isPhone || isSmall ? '⚙ МЕТАЛЛ' : 'МЕТАЛЛОЛОМ');
     this.scrapText.setPosition(scrapX, valueY);
-    this.scrapText.setFontSize(isPhone ? '14px' : (isSmall ? '12px' : '16px'));
+    this.scrapText.setFontSize(isPhone ? '13px' : (isSmall ? '12px' : '15px'));
 
     // Декоративные соединительные линии между модулями на широком экране
     if (useCenteredDesktop) {
       this.hudGraphics.lineStyle(1, 0x10b981, 0.35);
-      const midY = podY + podH / 2;
-      this.hudGraphics.lineBetween(hpRightEdge + 3, midY, killsX - killsBoxW / 2 - 3, midY);
-      this.hudGraphics.lineBetween(killsX + killsBoxW / 2 + 3, midY, centerX - timerBoxW / 2 - 3, midY);
-      this.hudGraphics.lineBetween(centerX + timerBoxW / 2 + 3, midY, scrapX - scrapBoxW / 2 - 3, midY);
-      this.hudGraphics.lineBetween(scrapX + scrapBoxW / 2 + 3, midY, phaseBoxX - 3, midY);
+      const midY = Math.round(podY + podH / 2);
+      this.hudGraphics.lineBetween(hpRightEdge + 3, midY, Math.round(killsX - killsBoxW / 2 - 3), midY);
+      this.hudGraphics.lineBetween(Math.round(killsX + killsBoxW / 2 + 3), midY, Math.round(centerX - timerBoxW / 2 - 3), midY);
+      this.hudGraphics.lineBetween(Math.round(centerX + timerBoxW / 2 + 3), midY, Math.round(scrapX - scrapBoxW / 2 - 3), midY);
+      this.hudGraphics.lineBetween(Math.round(scrapX + scrapBoxW / 2 + 3), midY, phaseBoxX - 3, midY);
     }
-
-    this.syncZoomTransform();
   }
 
   private positionRadar(width: number, height: number): void {
+    this.lastWidth = width;
+    this.lastHeight = height;
+    if (!this.radarContainer) return;
+
     const isPhone = isMobilePhone();
     const isCompact = width < 850 || height < 520;
     this.currentRadarSize = isPhone ? 115 : (isCompact ? 115 : (width < 1100 ? 140 : RADAR_SIZE));
@@ -526,33 +595,31 @@ export class HudManager {
       this.radarBg.setSize(size, size);
     }
     if (this.radarLabel) {
-      this.radarLabel.setPosition(-size / 2 + 4, -size / 2 - 12);
+      this.radarLabel.setPosition(Math.round(-size / 2 + 4), Math.round(-size / 2 - 12));
       this.radarLabel.setFontSize(isPhone ? '10px' : (isCompact ? '9px' : '10px'));
     }
     if (this.coordsText) {
-      this.coordsText.setPosition(-size / 2 + 4, size / 2 + 3);
-      this.coordsText.setFontSize(isPhone ? '10px' : (isCompact ? '9px' : '10px'));
+      this.coordsText.setPosition(Math.round(-size / 2 + 4), Math.round(size / 2 + 3));
+      this.coordsText.setFontSize(isPhone ? '9px' : (isCompact ? '8.5px' : '9.5px'));
     }
 
-    const rx = width - size / 2 - (isPhone ? 12 : (isCompact ? 10 : 20));
+    const rightSafe = this.getSafeAreaRight();
+    const rxMargin = Math.max(isPhone ? 12 : (isCompact ? 10 : 20), rightSafe > 0 ? rightSafe + 6 : 0);
+    const rx = Math.round(width - size / 2 - rxMargin);
     const topBarHeight = this.getTopBarHeight();
     const labelOffset = isPhone ? 12 : (isCompact ? 12 : 14);
     const topMargin = isPhone ? 10 : (isCompact ? 10 : 28);
     const preferredRy = topBarHeight + topMargin + labelOffset + size / 2;
-    const ry = Math.min(preferredRy, Math.max(90, height - size / 2 - 12));
-    if (this.radarContainer) {
-      this.radarContainer.setPosition(rx, ry);
-    }
-    this.syncZoomTransform();
+    const ry = Math.round(Math.min(preferredRy, Math.max(90, height - size / 2 - 12)));
+    this.radarContainer.setPosition(rx, ry);
   }
 
   public handleResize(width: number, height: number): void {
+    this.lastWidth = width;
+    this.lastHeight = height;
     this.layoutHud(width);
     this.positionRadar(width, height);
-    this.syncZoomTransform();
   }
-
-  private isVisible = true;
 
   public setVisible(visible: boolean): void {
     this.isVisible = visible;
@@ -562,31 +629,56 @@ export class HudManager {
     if (this.bossBarText && !visible) {
       this.bossBarText.setVisible(false);
     }
+    if (visible && this.hudContainer) {
+      // Пересчет отступа после отображения DOM-кнопки паузы (#btn-top-esc)
+      if (this.pendingLayoutRaf !== null) {
+        window.cancelAnimationFrame(this.pendingLayoutRaf);
+      }
+      this.pendingLayoutRaf = window.requestAnimationFrame(() => {
+        this.pendingLayoutRaf = null;
+        if (this.hudContainer && this.scene) {
+          this.layoutHud(this.scene.scale.width || this.lastWidth);
+          this.positionRadar(this.scene.scale.width || this.lastWidth, this.scene.scale.height || this.lastHeight);
+        }
+      });
+    }
+  }
+
+  private applyMissionUi(mission: CampaignMission): void {
+    if (!this.hudContainer) return;
+
+    this.setTextCached(this.phaseLabel, '');
+    this.phaseLabel.setVisible(false);
+    this.setTextCached(this.phaseText, mission.isBoss ? `БОСС ${mission.id}` : `ЭТАП ${mission.id}`);
+    if (mission.isBoss) {
+      this.setTextCached(this.timerLabel, 'ДО ВХОДА БОССА');
+      const spawnKills = mission.bossConfig?.spawnKills ?? (mission.targetKills ?? 20);
+      this.setTextCached(this.killsLabel, 'ДО БОССА');
+      this.setTextCached(this.killsText, `0 / ${spawnKills}`);
+      if (this.lastKillsColor !== '#f0f9ff') {
+        this.killsText.setColor('#f0f9ff');
+        this.lastKillsColor = '#f0f9ff';
+      }
+    } else {
+      this.setTextCached(this.timerLabel, 'ВРЕМЯ БОЯ');
+      this.setTextCached(this.timerText, '00:00');
+      const targetKills =
+        mission.targetKills ??
+        (15 + ((mission.sector - 1) * 5 + (mission.mission - 1)) * 5);
+      this.setTextCached(this.killsLabel, 'ЦЕЛИ');
+      this.setTextCached(this.killsText, `0 / ${targetKills}`);
+      if (this.lastKillsColor !== '#ecfdf5') {
+        this.killsText.setColor('#ecfdf5');
+        this.lastKillsColor = '#ecfdf5';
+      }
+    }
+    if (this.bossBarGraphics) this.bossBarGraphics.clear();
+    if (this.bossBarText) this.bossBarText.setVisible(false);
   }
 
   public setMission(mission: CampaignMission): void {
     this.currentMission = mission;
-    this.phaseLabel.setText('');
-    this.phaseLabel.setVisible(false);
-    this.phaseText.setText(mission.isBoss ? `БОСС ${mission.id}` : `ЭТАП ${mission.id}`);
-    if (mission.isBoss) {
-      this.timerLabel.setText('ДО ВХОДА БОССА');
-      const spawnKills = mission.bossConfig?.spawnKills ?? (mission.targetKills ?? 20);
-      this.killsLabel.setText('ДО БОССА');
-      this.killsText.setText(`0 / ${spawnKills}`);
-      this.killsText.setColor('#f0f9ff');
-    } else {
-      this.timerLabel.setText('ВРЕМЯ БОЯ');
-      this.timerText.setText('00:00');
-      const targetKills =
-        mission.targetKills ??
-        (15 + ((mission.sector - 1) * 5 + (mission.mission - 1)) * 5);
-      this.killsLabel.setText('ЦЕЛИ');
-      this.killsText.setText(`0 / ${targetKills}`);
-      this.killsText.setColor('#ecfdf5');
-    }
-    if (this.bossBarGraphics) this.bossBarGraphics.clear();
-    if (this.bossBarText) this.bossBarText.setVisible(false);
+    this.applyMissionUi(mission);
   }
 
   public update(
@@ -608,49 +700,57 @@ export class HudManager {
     scrapCount = 0,
     scrapItems: ScrapPickup[] = [],
   ): void {
-    if (!this.isVisible) return;
-    this.syncZoomTransform();
+    if (!this.isVisible || !this.hudContainer) return;
 
     // 1. Полоска прочности корабля
     const maxHp = this.playerMaxHp > 0 ? this.playerMaxHp : PLAYER_MAX_HP;
     const hpRatio = Phaser.Math.Clamp(playerHp / maxHp, 0, 1);
-    this.hpBarFill.setSize(Math.max(0, this.currentHpBarWidth * hpRatio), this.currentHpBarHeight);
-
-    if (hpRatio > 0.5) {
-      this.hpBarFill.setFillStyle(0x10b981);
-    } else if (hpRatio > 0.25) {
-      this.hpBarFill.setFillStyle(0xf59e0b);
-    } else {
-      this.hpBarFill.setFillStyle(0xef4444);
+    const fillWidth = Math.max(0, Math.round(this.currentHpBarWidth * hpRatio));
+    if (fillWidth !== this.lastHpFillWidth) {
+      this.lastHpFillWidth = fillWidth;
+      this.hpBarFill.setSize(fillWidth, this.currentHpBarHeight);
     }
-    this.hpText.setText(`${Math.ceil(hpRatio * 100)}%`);
+
+    const hpColor = hpRatio > 0.5 ? 0x10b981 : hpRatio > 0.25 ? 0xf59e0b : 0xef4444;
+    if (hpColor !== this.lastHpFillColor) {
+      this.lastHpFillColor = hpColor;
+      this.hpBarFill.setFillStyle(hpColor);
+    }
+    this.setTextCached(this.hpText, `${Math.ceil(hpRatio * 100)}%`);
 
     // 2. Таймер и индикация целей миссии кампании
     if (this.currentMission) {
       if (this.currentMission.isBoss) {
         if (activeBoss && activeBoss.hp > 0) {
-          this.timerLabel.setText('ФЛАГМАН В СЕКТОРЕ');
-          this.timerText.setText(this.formatTime(survivalTime));
-          this.phaseLabel.setText('');
+          this.setTextCached(this.timerLabel, 'ФЛАГМАН В СЕКТОРЕ');
+          this.setTextCached(this.timerText, this.formatTime(survivalTime));
+          this.setTextCached(this.phaseLabel, '');
           this.phaseLabel.setVisible(false);
-          this.phaseText.setText('БОСС ' + this.currentMission.id);
-          this.killsLabel.setText('СБИТО ВРАГОВ');
-          this.killsText.setText(`${killsCount}`);
-          this.killsText.setColor('#34d399');
+          this.setTextCached(this.phaseText, 'БОСС ' + this.currentMission.id);
+          this.setTextCached(this.killsLabel, 'СБИТО ВРАГОВ');
+          this.setTextCached(this.killsText, `${killsCount}`);
+          if (this.lastKillsColor !== '#34d399') {
+            this.killsText.setColor('#34d399');
+            this.lastKillsColor = '#34d399';
+          }
           this.renderBossBar(activeBoss);
         } else {
           const spawnDelay = this.currentMission.bossConfig?.spawnDelay ?? 60;
           const remainingToBoss = Math.max(0, spawnDelay - survivalTime);
           const spawnKills =
             this.currentMission.bossConfig?.spawnKills ?? (this.currentMission.targetKills ?? 20);
-          this.timerLabel.setText('ДО ВХОДА БОССА');
-          this.timerText.setText(this.formatTime(remainingToBoss));
-          this.phaseLabel.setText('');
+          this.setTextCached(this.timerLabel, 'ДО ВХОДА БОССА');
+          this.setTextCached(this.timerText, this.formatTime(remainingToBoss));
+          this.setTextCached(this.phaseLabel, '');
           this.phaseLabel.setVisible(false);
-          this.phaseText.setText('БОСС ' + this.currentMission.id);
-          this.killsLabel.setText('ДО БОССА');
-          this.killsText.setText(`${killsCount} / ${spawnKills}`);
-          this.killsText.setColor(killsCount >= spawnKills ? '#34d399' : '#ecfdf5');
+          this.setTextCached(this.phaseText, 'БОСС ' + this.currentMission.id);
+          this.setTextCached(this.killsLabel, 'ДО БОССА');
+          this.setTextCached(this.killsText, `${killsCount} / ${spawnKills}`);
+          const nextColor = killsCount >= spawnKills ? '#34d399' : '#ecfdf5';
+          if (this.lastKillsColor !== nextColor) {
+            this.killsText.setColor(nextColor);
+            this.lastKillsColor = nextColor;
+          }
           if (this.bossBarGraphics) this.bossBarGraphics.clear();
           if (this.bossBarText) this.bossBarText.setVisible(false);
         }
@@ -658,47 +758,54 @@ export class HudManager {
         const targetKills =
           this.currentMission.targetKills ??
           (15 + ((this.currentMission.sector - 1) * 5 + (this.currentMission.mission - 1)) * 5);
-        this.timerLabel.setText('ВРЕМЯ БОЯ');
-        this.timerText.setText(this.formatTime(survivalTime));
-        this.phaseLabel.setText('');
+        this.setTextCached(this.timerLabel, 'ВРЕМЯ БОЯ');
+        this.setTextCached(this.timerText, this.formatTime(survivalTime));
+        this.setTextCached(this.phaseLabel, '');
         this.phaseLabel.setVisible(false);
-        this.phaseText.setText('ЭТАП ' + this.currentMission.id);
-        this.killsLabel.setText('ЦЕЛИ');
-        this.killsText.setText(`${killsCount} / ${targetKills}`);
-        this.killsText.setColor(killsCount >= targetKills ? '#34d399' : '#ecfdf5');
+        this.setTextCached(this.phaseText, 'ЭТАП ' + this.currentMission.id);
+        this.setTextCached(this.killsLabel, 'ЦЕЛИ');
+        this.setTextCached(this.killsText, `${killsCount} / ${targetKills}`);
+        const nextColor = killsCount >= targetKills ? '#34d399' : '#ecfdf5';
+        if (this.lastKillsColor !== nextColor) {
+          this.killsText.setColor(nextColor);
+          this.lastKillsColor = nextColor;
+        }
         if (this.bossBarGraphics) this.bossBarGraphics.clear();
         if (this.bossBarText) this.bossBarText.setVisible(false);
       }
     } else {
-      this.timerLabel.setText('ВРЕМЯ БОЯ');
-      this.timerText.setText(this.formatTime(survivalTime));
-      this.phaseLabel.setText('');
+      this.setTextCached(this.timerLabel, 'ВРЕМЯ БОЯ');
+      this.setTextCached(this.timerText, this.formatTime(survivalTime));
+      this.setTextCached(this.phaseLabel, '');
       this.phaseLabel.setVisible(false);
-      this.phaseText.setText('ЭТАП 1-1');
-      this.killsLabel.setText('ЦЕЛИ');
-      this.killsText.setText(`${killsCount}`);
-      this.killsText.setColor('#ecfdf5');
+      this.setTextCached(this.phaseText, 'ЭТАП 1-1');
+      this.setTextCached(this.killsLabel, 'ЦЕЛИ');
+      this.setTextCached(this.killsText, `${killsCount}`);
+      if (this.lastKillsColor !== '#ecfdf5') {
+        this.killsText.setColor('#ecfdf5');
+        this.lastKillsColor = '#ecfdf5';
+      }
       if (this.bossBarGraphics) this.bossBarGraphics.clear();
       if (this.bossBarText) this.bossBarText.setVisible(false);
     }
 
     // 3. Металлолом
-    this.scrapText.setText(`${scrapCount}`);
+    this.setTextCached(this.scrapText, `${scrapCount}`);
 
     // 4. Тактический радар
     this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, scrapItems);
   }
 
   private renderBossBar(boss: EnemyShip): void {
-    if (!this.bossBarGraphics || !this.bossBarText) return;
+    if (!this.bossBarGraphics || !this.bossBarText || !this.scene) return;
     const isPhone = isMobilePhone();
-    const width = this.scene.scale.width;
+    const width = this.scene.scale.width || this.lastWidth;
     const topBarHeight = this.getTopBarHeight();
     const barY = topBarHeight + 6;
     const barHeight = isPhone ? 15 : 16;
     const bossRatio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
-    const barWidth = Math.min(isPhone ? 340 : 460, width - (isPhone ? 20 : 40));
-    const barX = (width - barWidth) / 2;
+    const barWidth = Math.round(Math.min(isPhone ? 340 : 460, width - (isPhone ? 20 : 40)));
+    const barX = Math.round((width - barWidth) / 2);
 
     this.bossBarGraphics.clear();
     // Подложка
@@ -708,7 +815,7 @@ export class HudManager {
     this.bossBarGraphics.strokeRect(barX, barY, barWidth, barHeight);
 
     // Заполнение красным градиентом
-    const fillWidth = (barWidth - 2) * bossRatio;
+    const fillWidth = Math.round((barWidth - 2) * bossRatio);
     if (fillWidth > 0) {
       this.bossBarGraphics.fillStyle(0xdc2626, 0.95);
       this.bossBarGraphics.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2);
@@ -718,9 +825,10 @@ export class HudManager {
 
     this.bossBarText.setVisible(this.isVisible);
     this.bossBarText.setFontSize('11px');
-    this.bossBarText.setPosition(width / 2, barY + barHeight / 2);
+    this.bossBarText.setPosition(Math.round(width / 2), Math.round(barY + barHeight / 2));
     const percent = Math.ceil(bossRatio * 100);
-    this.bossBarText.setText(
+    this.setTextCached(
+      this.bossBarText,
       `⚠ ${boss.bossName || 'БОСС'} // ПРОЧНОСТЬ: ${Math.ceil(boss.hp)} / ${boss.maxHp} (${percent}%)`,
     );
   }
@@ -853,7 +961,8 @@ export class HudManager {
     this.radarGraphics.lineStyle(1.5, 0x34d399, 1);
     this.radarGraphics.lineBetween(0, 0, ax, ay);
 
-    this.coordsText.setText(
+    this.setTextCached(
+      this.coordsText,
       `КООРД: ${Math.round(playerX)}, ${Math.round(playerY)}`,
     );
   }
@@ -867,8 +976,15 @@ export class HudManager {
   }
 
   public destroy(): void {
+    if (this.pendingLayoutRaf !== null) {
+      window.cancelAnimationFrame(this.pendingLayoutRaf);
+      this.pendingLayoutRaf = null;
+    }
     if (this.hudContainer) {
       this.hudContainer.destroy(true);
+      this.hudContainer = null;
     }
+    this.textCache.clear();
+    this.scene = null;
   }
 }

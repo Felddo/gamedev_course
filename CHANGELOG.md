@@ -2,6 +2,20 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Исправление дрожания HUD, наложения кнопки паузы на мобильных и полного экрана на iPhone
+
+**Что сделано:**
+- **Устранение тряски цифр и надписей на верхней панели HUD:**
+  - Создана выделенная статичная сцена [HudScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudScene.ts) (`zoom = 1`, `scroll = 0`, без тряски от `cameras.main.shake(...)`), подключённая в [config.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/config.ts) и управляемая из [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts).
+  - В [HudManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudManager.ts) координаты плашек и элементов округлены до целых пикселей, для счётчиков (`hpText`, `timerText`, `killsText`, `scrapText`) использован моноширинный шрифт `'JetBrains Mono'`, а обновление текстов (`setTextCached`) выполняется только при изменении значения.
+- **Предотвращение наложения кнопки паузы на HP-бар на мобильных:**
+  - В [style.css](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/style.css) для `.is-phone .top-esc-btn` скрыт текст `ESC` (оставлена компактная кнопка паузы `32×28px`) и добавлены переменные `--safe-area-left` / `--safe-area-right`.
+  - В [HudManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudManager.ts) метод `layoutHud()` измеряет правую границу `#btn-top-esc` (`getPauseButtonRightEdge`) и отступ `getSafeAreaRight()`, гарантируя расположение HP-бара строго правее кнопки паузы даже на устройствах с вырезами и Dynamic Island.
+- **Поддержка полноэкранного режима на iPhone и iOS:**
+  - В [index.html](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/index.html) добавлены PWA мета-теги (`apple-mobile-web-app-capable`, `mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`) и окно-подсказка `#modal-ios-fullscreen`.
+  - В [deviceUtils.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/deviceUtils.ts) добавлены `isIPhoneDevice()` и `isIosDevice()`.
+  - В [main.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/main.ts) реализован кроссбраузерный Fullscreen API (с префиксами `webkit`/`moz`/`ms`), определение `standalone`-режима, слушатель `visualViewport` и безопасный fallback для iPhone Safari (сворачивание панели скроллом и показ инструкции добавления на экран «Домой» вместо ошибки `TypeError`).
+
 ## Обновление интерфейса конструктора корабля, круглые кнопки способностей и голографический HUD
 
 **Что сделано:**

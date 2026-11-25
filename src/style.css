@@ -25,6 +25,9 @@
   --font-ui: 'Rajdhani', -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -2816,36 +2819,35 @@ canvas {
   box-shadow: 0 0 8px #6ee7b7;
 }
 
-/* Компактный размер кнопки тактической паузы [ESC] для смартфонов (НЕ ПЛАНШЕТОВ) */
+/* Компактный размер кнопки тактической паузы [||] для смартфонов (НЕ ПЛАНШЕТОВ) */
 .is-phone .top-esc-btn {
   top: max(4px, env(safe-area-inset-top, 4px));
   left: max(6px, env(safe-area-inset-left, 6px));
-  min-width: 38px;
-  min-height: 38px;
+  min-width: 36px;
+  min-height: 36px;
   padding: 2px;
 }
 
 .is-phone .top-esc-keycap {
+  width: 32px;
   height: 28px;
-  padding: 0 8px;
-  gap: 5px;
+  padding: 0;
+  gap: 0;
   border-radius: 4px;
 }
 
 .is-phone .top-esc-text {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  display: none;
 }
 
 .is-phone .top-esc-pause-bars {
-  height: 10px;
-  gap: 2px;
+  height: 12px;
+  gap: 3px;
 }
 
 .is-phone .top-esc-pause-bars .pause-bar {
-  width: 2px;
-  height: 10px;
+  width: 3px;
+  height: 12px;
 }
 
 .super-flame-group {
@@ -3906,6 +3908,52 @@ body:not(.touch-device) .virtual-joystick {
     align-items: flex-start;
     gap: 8px;
   }
+}
+
+/* Инструкция полноэкранного режима для iPhone / iOS Safari */
+.ios-fs-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.ios-fs-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(6, 78, 59, 0.28);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  border-radius: 4px;
+}
+
+.ios-fs-step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  background: rgba(16, 185, 129, 0.22);
+  border: 1px solid #34d399;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #6ee7b7;
+}
+
+.ios-fs-step-text {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #ecfdf5;
+}
+
+.ios-fs-step-text strong {
+  color: #fde047;
 }
 
 

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GameScene } from './GameScene';
+import { HudScene } from './HudScene';
 
 export function createGame(parent: string): Phaser.Game {
   const config: Phaser.Types.Core.GameConfig = {
@@ -13,7 +14,7 @@ export function createGame(parent: string): Phaser.Game {
       width: '100%',
       height: '100%',
     },
-    scene: [GameScene],
+    scene: [GameScene, HudScene],
   };
 
   return new Phaser.Game(config);

@@ -14,6 +14,8 @@ import {
   isTabletDevice,
   isMobileOrTabletDevice,
   isPortraitOrientation,
+  isIPhoneDevice,
+  isIosDevice,
   updateDeviceClasses,
 } from './game/deviceUtils';
 
@@ -105,6 +107,9 @@ const menuFsBtnText = document.getElementById('menu-fs-btn-text') as HTMLElement
 const modalExit = document.getElementById('modal-exit') as HTMLElement;
 const modalExitCancelBtn = document.getElementById('modal-exit-cancel-btn') as HTMLButtonElement;
 const modalExitConfirmBtn = document.getElementById('modal-exit-confirm-btn') as HTMLButtonElement;
+const modalIosFullscreen = document.getElementById('modal-ios-fullscreen') as HTMLElement | null;
+const modalIosFsCloseBtn = document.getElementById('modal-ios-fs-close-btn') as HTMLButtonElement | null;
+const modalIosFsX = document.getElementById('modal-ios-fs-x') as HTMLButtonElement | null;
 
 // Game Over Modal Elements
 const modalGameOver = document.getElementById('modal-gameover') as HTMLElement;
@@ -163,6 +168,7 @@ export function updateJoystickVisibility(): void {
     mainMenu.classList.contains('hidden') &&
     (modalPause ? modalPause.classList.contains('hidden') : true) &&
     (modalSettings ? modalSettings.classList.contains('hidden') : true) &&
+    (modalIosFullscreen ? modalIosFullscreen.classList.contains('hidden') : true) &&
     (modalExit ? modalExit.classList.contains('hidden') : true) &&
     (modalGameOver ? modalGameOver.classList.contains('hidden') : true) &&
     (modalMissionComplete ? modalMissionComplete.classList.contains('hidden') : true) &&
@@ -529,6 +535,14 @@ window.addEventListener('orientationchange', () => {
   }, 150);
 });
 
+window.visualViewport?.addEventListener('resize', () => {
+  updateDeviceClasses();
+  if (phaserGame && isGameStarted) {
+    phaserGame.scale.refresh();
+  }
+  checkOrientation();
+});
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     updateDeviceClasses();
@@ -661,15 +675,103 @@ toggleAudioBtn?.addEventListener('click', () => {
   }
 });
 
+type FullscreenDocument = Document & {
+  webkitFullscreenElement?: Element | null;
+  mozFullScreenElement?: Element | null;
+  msFullscreenElement?: Element | null;
+  webkitFullscreenEnabled?: boolean;
+  mozFullScreenEnabled?: boolean;
+  msFullscreenEnabled?: boolean;
+  webkitExitFullscreen?: () => Promise<void> | void;
+  mozCancelFullScreen?: () => Promise<void> | void;
+  msExitFullscreen?: () => Promise<void> | void;
+};
+
+type FullscreenElement = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+  mozRequestFullScreen?: () => Promise<void> | void;
+  msRequestFullscreen?: () => Promise<void> | void;
+};
+
+type StandaloneNavigator = Navigator & {
+  standalone?: boolean;
+};
+
+function getFullscreenElement(): Element | null {
+  const doc = document as FullscreenDocument;
+  return (
+    doc.fullscreenElement ||
+    doc.webkitFullscreenElement ||
+    doc.mozFullScreenElement ||
+    doc.msFullscreenElement ||
+    null
+  );
+}
+
+function isStandaloneMode(): boolean {
+  const nav = window.navigator as StandaloneNavigator;
+  if (nav.standalone === true) return true;
+  if (window.matchMedia) {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches
+    );
+  }
+  return false;
+}
+
+function isFullscreenApiSupported(): boolean {
+  const doc = document as FullscreenDocument;
+  const el = document.documentElement as FullscreenElement;
+  const hasRequestMethod = Boolean(
+    el.requestFullscreen ||
+      el.webkitRequestFullscreen ||
+      el.mozRequestFullScreen ||
+      el.msRequestFullscreen,
+  );
+  if (!hasRequestMethod) return false;
+
+  // На iPhone Safari полноэкранный API для HTML-элементов заблокирован системой
+  if (isIPhoneDevice()) {
+    return Boolean(doc.fullscreenEnabled || doc.webkitFullscreenEnabled);
+  }
+
+  return doc.fullscreenEnabled !== false && doc.webkitFullscreenEnabled !== false;
+}
+
+function openIosFullscreenModal(): void {
+  soundFx.playUiClick();
+  modalIosFullscreen?.classList.remove('hidden');
+  updateJoystickVisibility();
+}
+
+function closeIosFullscreenModal(): void {
+  soundFx.playUiClick();
+  modalIosFullscreen?.classList.add('hidden');
+  updateJoystickVisibility();
+}
+
+modalIosFsCloseBtn?.addEventListener('click', closeIosFullscreenModal);
+modalIosFsX?.addEventListener('click', closeIosFullscreenModal);
+modalIosFullscreen?.addEventListener('click', (e) => {
+  if (e.target === modalIosFullscreen) closeIosFullscreenModal();
+});
+
 // Переключатель полного экрана (синхронизируется для настроек и главного меню)
 function syncFullscreenUI(): void {
-  const isFs = !!document.fullscreenElement;
+  const isNativeFs = !!getFullscreenElement();
+  const isStandalone = isStandaloneMode();
+  const isFs = isNativeFs || isStandalone;
+  const needsIosGuide = !isFs && !isFullscreenApiSupported() && isIosDevice();
 
   if (toggleFullscreenBtn) {
     const indicator = toggleFullscreenBtn.querySelector('.toggle-text');
     if (isFs) {
       toggleFullscreenBtn.classList.add('active');
-      if (indicator) indicator.textContent = 'ВЫЙТИ';
+      if (indicator) indicator.textContent = isStandalone ? 'АКТИВЕН' : 'ВЫЙТИ';
+    } else if (needsIosGuide) {
+      toggleFullscreenBtn.classList.remove('active');
+      if (indicator) indicator.textContent = 'ИНСТРУКЦИЯ';
     } else {
       toggleFullscreenBtn.classList.remove('active');
       if (indicator) indicator.textContent = 'ЭКРАН';
@@ -679,7 +781,10 @@ function syncFullscreenUI(): void {
   if (btnMenuFullscreen) {
     if (isFs) {
       btnMenuFullscreen.classList.add('active');
-      if (menuFsBtnText) menuFsBtnText.innerHTML = 'ВЫЙТИ';
+      if (menuFsBtnText) menuFsBtnText.innerHTML = isStandalone ? 'ПОЛНЫЙ<br>ЭКРАН' : 'ВЫЙТИ';
+    } else if (needsIosGuide) {
+      btnMenuFullscreen.classList.remove('active');
+      if (menuFsBtnText) menuFsBtnText.innerHTML = 'КАК<br>ВКЛЮЧИТЬ';
     } else {
       btnMenuFullscreen.classList.remove('active');
       if (menuFsBtnText) menuFsBtnText.innerHTML = 'НА ВЕСЬ<br>ЭКРАН';
@@ -691,6 +796,12 @@ function syncFullscreenUI(): void {
       menuFullscreenNotice.classList.add('is-fullscreen');
       if (noticeTag) noticeTag.textContent = 'АКТИВЕН // FULLSCREEN';
       if (noticeDesc) noticeDesc.innerHTML = 'Полноэкранный режим<br>активирован';
+    } else if (needsIosGuide) {
+      menuFullscreenNotice.classList.remove('is-fullscreen');
+      if (noticeTag) noticeTag.textContent = 'IPHONE // FULLSCREEN';
+      if (noticeDesc) {
+        noticeDesc.innerHTML = 'Для полного экрана на iPhone<br>добавьте игру на экран «Домой»';
+      }
     } else {
       menuFullscreenNotice.classList.remove('is-fullscreen');
       if (noticeTag) noticeTag.textContent = 'РЕКОМЕНДАЦИЯ // DISPLAY';
@@ -699,18 +810,92 @@ function syncFullscreenUI(): void {
   }
 }
 
-function handleToggleFullscreen(): void {
-  soundFx.playUiClick();
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => { });
-  } else {
-    document.exitFullscreen().catch(() => { });
+async function requestAnyFullscreen(): Promise<boolean> {
+  const el = document.documentElement as FullscreenElement;
+  const req =
+    el.requestFullscreen ||
+    el.webkitRequestFullscreen ||
+    el.mozRequestFullScreen ||
+    el.msRequestFullscreen;
+
+  if (typeof req !== 'function') return false;
+
+  try {
+    const result = req.call(el);
+    if (result && typeof (result as Promise<void>).then === 'function') {
+      await result;
+    }
+    return !!getFullscreenElement();
+  } catch {
+    return false;
   }
 }
 
-toggleFullscreenBtn?.addEventListener('click', handleToggleFullscreen);
-btnMenuFullscreen?.addEventListener('click', handleToggleFullscreen);
+async function exitAnyFullscreen(): Promise<void> {
+  const doc = document as FullscreenDocument;
+  const exit =
+    doc.exitFullscreen ||
+    doc.webkitExitFullscreen ||
+    doc.mozCancelFullScreen ||
+    doc.msExitFullscreen;
+
+  if (typeof exit !== 'function') return;
+
+  try {
+    const result = exit.call(doc);
+    if (result && typeof (result as Promise<void>).then === 'function') {
+      await result;
+    }
+  } catch {
+    // Игнорируем ошибку выхода из полноэкранного режима
+  }
+}
+
+async function handleToggleFullscreen(): Promise<void> {
+  soundFx.playUiClick();
+
+  if (isStandaloneMode()) {
+    syncFullscreenUI();
+    return;
+  }
+
+  if (getFullscreenElement()) {
+    await exitAnyFullscreen();
+    syncFullscreenUI();
+    return;
+  }
+
+  if (isFullscreenApiSupported()) {
+    const entered = await requestAnyFullscreen();
+    syncFullscreenUI();
+    if (entered) {
+      window.requestAnimationFrame(() => phaserGame?.scale.refresh());
+      return;
+    }
+  }
+
+  // Fallback для iPhone Safari (где Fullscreen API для HTML заблокирован Apple)
+  try {
+    window.scrollTo(0, 1);
+  } catch {
+    // Игнорируем ошибку скролла
+  }
+  window.requestAnimationFrame(() => phaserGame?.scale.refresh());
+  if (isIosDevice()) {
+    openIosFullscreenModal();
+  }
+}
+
+toggleFullscreenBtn?.addEventListener('click', () => {
+  void handleToggleFullscreen();
+});
+btnMenuFullscreen?.addEventListener('click', () => {
+  void handleToggleFullscreen();
+});
 document.addEventListener('fullscreenchange', syncFullscreenUI);
+document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
+document.addEventListener('mozfullscreenchange', syncFullscreenUI);
+document.addEventListener('MSFullscreenChange', syncFullscreenUI);
 
 // Начальная синхронизация состояния
 syncFullscreenUI();
@@ -1309,6 +1494,12 @@ window.addEventListener('keydown', (e) => {
   }
 
   if (e.key === 'Escape') {
+    // 0. Окно инструкции полноэкранного режима для iOS
+    if (modalIosFullscreen && !modalIosFullscreen.classList.contains('hidden')) {
+      closeIosFullscreenModal();
+      return;
+    }
+
     // 1. Окно настроек
     if (!modalSettings.classList.contains('hidden')) {
       closeSettings();

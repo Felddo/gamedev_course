@@ -6,6 +6,10 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#02140e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Iron Resolve" />
   <title>Iron Resolve: Survivor Protocol</title>
 
   <!-- Четкие типографические шрифты для тактического HUD и голограмм -->
@@ -485,6 +489,47 @@
         <footer class="modal-card-footer">
           <button id="modal-settings-close-btn" class="modal-action-btn" type="button">
             ЗАКРЫТЬ [ESC]
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Голографическое модальное окно: Полный экран на iPhone / iOS Safari -->
+    <div id="modal-ios-fullscreen" class="holo-modal-backdrop hidden" role="dialog" aria-modal="true"
+      aria-label="Полноэкранный режим на iPhone">
+      <div class="holo-modal-window modal-sm">
+        <div class="modal-card-scanlines"></div>
+        <header class="modal-card-header">
+          <div class="modal-card-title-wrap">
+            <span class="modal-badge">iOS</span>
+            <h2>ПОЛНЫЙ ЭКРАН НА IPHONE</h2>
+          </div>
+          <button id="modal-ios-fs-x" class="modal-btn-close-icon" type="button" aria-label="Закрыть">✕</button>
+        </header>
+
+        <div class="modal-card-body">
+          <p class="modal-desc-text">
+            Safari на iPhone запрещает сайтам автоматически переходить в полноэкранный режим. Включить его можно за 2 шага:
+          </p>
+          <div class="ios-fs-steps">
+            <div class="ios-fs-step">
+              <span class="ios-fs-step-num">1</span>
+              <span class="ios-fs-step-text">
+                <strong>Настоящий полный экран:</strong> нажмите <strong>«Поделиться» (↑)</strong> в Safari и выберите <strong>«На экран „Домой“»</strong> — игра откроется с иконки полностью на весь экран.
+              </span>
+            </div>
+            <div class="ios-fs-step">
+              <span class="ios-fs-step-num">2</span>
+              <span class="ios-fs-step-text">
+                <strong>Быстро в браузере:</strong> нажмите значок меню (<strong>Аа</strong> / <strong>⋯</strong>) в адресной строке Safari и выберите <strong>«Скрыть панель инструментов»</strong>.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="modal-card-footer">
+          <button id="modal-ios-fs-close-btn" class="modal-action-btn" type="button">
+            ПОНЯТНО
           </button>
         </footer>
       </div>

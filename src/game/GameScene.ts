@@ -46,6 +46,7 @@ import { EnemyManager } from './EnemyManager';
 import { ParticleManager } from './ParticleManager';
 import { AtmosphereManager } from './AtmosphereManager';
 import { HudManager } from './HudManager';
+import { HudScene } from './HudScene';
 import { MeteorManager } from './MeteorManager';
 import { SpaceStationManager } from './SpaceStationManager';
 import { ScrapManager } from './ScrapManager';
@@ -262,8 +263,16 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#02040a');
     this.cameras.main.startFollow(this.playerShip.shipSprite, true, 0.08, 0.08);
 
-    // 7. Построение боевого HUD интерфейса и тактического радара
-    this.hudManager = new HudManager(this, width, height);
+    // 7. Построение боевого HUD интерфейса и тактического радара в выделенной статичной сцене HudScene
+    this.hudManager = new HudManager(width, height);
+    if (!this.scene.isActive('HudScene')) {
+      this.scene.launch('HudScene');
+    }
+    this.scene.bringToTop('HudScene');
+    const hudScene = this.scene.get('HudScene') as HudScene | undefined;
+    if (hudScene && hudScene.isCreated) {
+      this.hudManager.attachScene(hudScene);
+    }
 
     // 8. Инициализация менеджера метеоритов (включая плотные пояса астероидов по 4 краям)
     this.meteorManager = new MeteorManager(this);
@@ -305,6 +314,9 @@ export class GameScene extends Phaser.Scene {
       this.particleManager.destroy();
       this.atmosphereManager.destroy();
       this.hudManager.destroy();
+      if (this.scene.isActive('HudScene')) {
+        this.scene.stop('HudScene');
+      }
       this.meteorManager.destroy();
       this.spaceStationManager.destroy();
       this.scrapManager.destroy();

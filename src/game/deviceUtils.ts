@@ -113,6 +113,23 @@ export function isPortraitOrientation(): boolean {
 }
 
 /**
+ * Определение iPhone / iPod (устройства iOS, где Apple WebKit блокирует Element.requestFullscreen).
+ */
+export function isIPhoneDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPod/i.test(navigator.userAgent || '');
+}
+
+/**
+ * Определение любого устройства Apple iOS / iPadOS.
+ */
+export function isIosDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return Boolean(/iPhone|iPad|iPod/i.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(ua)));
+}
+
+/**
  * Синхронизация CSS-классов устройства на элементе document.body.
  */
 export function updateDeviceClasses(): void {
