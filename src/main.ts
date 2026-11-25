@@ -1,9 +1,11 @@
 import './style.css';
+import './game/shop/shop.css';
 import { createGame } from './game/config';
 import { soundFx } from './game/audio';
 import { GameScene } from './game/GameScene';
 import { ShipBuilderModal, CustomShipAssembly } from './game/shipBuilder/ShipBuilderModal';
 import { shipModificationModal } from './game/modifications/ShipModificationModal';
+import { shopModal } from './game/shop/ShopModal';
 import { campaignManager } from './game/campaign/CampaignManager';
 import { CampaignMission, ScrapVictoryBreakdown } from './game/campaign/types';
 import { VirtualJoystick } from './game/VirtualJoystick';
@@ -174,7 +176,8 @@ export function updateJoystickVisibility(): void {
     (modalMissionComplete ? modalMissionComplete.classList.contains('hidden') : true) &&
     (modalCampaignComplete ? modalCampaignComplete.classList.contains('hidden') : true) &&
     !shipBuilderModal.isOpen() &&
-    !shipModificationModal.isOpen();
+    !shipModificationModal.isOpen() &&
+    !shopModal.isOpen();
 
   const shouldShow = isMobileOrTabletDevice() && inCombat && !isPortraitOrientation();
   virtualJoystick.setVisible(shouldShow);
@@ -206,7 +209,7 @@ export function checkOrientation(): void {
     if (orientationWarning) orientationWarning.classList.add('hidden');
     if (wasPausedByOrientation) {
       wasPausedByOrientation = false;
-      if (isGameStarted && !isGamePaused && (!modalPause || modalPause.classList.contains('hidden'))) {
+      if (isGameStarted && !isGamePaused && !shopModal.isOpen() && (!modalPause || modalPause.classList.contains('hidden'))) {
         if (phaserGame) {
           const scene = phaserGame.scene.getScene('GameScene') as GameScene;
           if (scene && scene.scene.isPaused()) {
@@ -477,6 +480,7 @@ shipBuilderModal.onReturnToMenu = () => {
  * Возврат в главное меню с отображением menu_bg.jpg и кнопок управления
  */
 function returnToMainMenu(): void {
+  shopModal.close();
   shipModificationModal.close();
   shipBuilderModal.close();
   hideGameOver();
@@ -1303,6 +1307,35 @@ window.addEventListener('tank-destroyed', ((e: CustomEvent) => {
   showGameOver(detail.time || '00:00', detail.kills || 0, detail.score || 0, detail.reason);
 }) as EventListener);
 
+window.addEventListener('open-flying-shop', ((e: CustomEvent) => {
+  if (!isGameStarted || !mainMenu.classList.contains('hidden')) return;
+  const scene = phaserGame?.scene.getScene('GameScene') as GameScene | undefined;
+  if (!scene) return;
+  const detail = e.detail || {};
+
+  isGamePaused = true;
+  updateJoystickVisibility();
+  shopModal.open({
+    offers: detail.offers || [],
+    purchasedIds: detail.purchasedIds || new Set<string>(),
+    getScrap: () => scene.getAvailableShopScrap(),
+    onBuy: (offer) => scene.purchaseShopMissile(offer),
+    onClose: () => {
+      isGamePaused = false;
+      updateJoystickVisibility();
+      if (phaserGame && !wasPausedByOrientation) {
+        const activeScene = phaserGame.scene.getScene('GameScene') as GameScene;
+        if (activeScene) {
+          activeScene.input.keyboard?.resetKeys();
+          if (activeScene.scene.isPaused()) {
+            activeScene.scene.resume();
+          }
+        }
+      }
+    },
+  });
+}) as EventListener);
+
 function addTouchClick(el: HTMLElement | null, handler: (e: Event) => void): void {
   if (!el) return;
   let lastTrigger = 0;
@@ -1430,6 +1463,15 @@ window.addEventListener('tank-super-state', ((e: CustomEvent<{
 window.addEventListener('keydown', (e) => {
   // Если открыт экран выбора модификаций корабля
   if (shipModificationModal && shipModificationModal.isOpen()) {
+    return;
+  }
+
+  // Если открыто окно летающего магазина
+  if (shopModal && shopModal.isOpen()) {
+    if (e.key === 'Escape') {
+      soundFx.playUiClick();
+      shopModal.close();
+    }
     return;
   }
 

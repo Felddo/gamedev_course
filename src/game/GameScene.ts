@@ -46,6 +46,8 @@ import { HudManager } from './HudManager';
 import { HudScene } from './HudScene';
 import { MeteorManager } from './MeteorManager';
 import { SpaceStationManager, STATION_SPRITE_ASSETS } from './SpaceStationManager';
+import { FlyingShopManager, FLYING_SHOP_SPRITE_ASSET } from './FlyingShopManager';
+import { ALL_MISSILE_TEXTURE_ASSETS, ShopMissileOffer } from './shop/missilesCatalog';
 import { ScrapManager } from './ScrapManager';
 import { NeonBarrierManager } from './NeonBarrierManager';
 import { getEnemyScrapDrop } from './campaign/scrapConfig';
@@ -73,6 +75,7 @@ export class GameScene extends Phaser.Scene {
   public hudManager!: HudManager;
   private meteorManager!: MeteorManager;
   private spaceStationManager!: SpaceStationManager;
+  private flyingShopManager!: FlyingShopManager;
   private scrapManager!: ScrapManager;
   private neonBarrierManager!: NeonBarrierManager;
 
@@ -131,6 +134,14 @@ export class GameScene extends Phaser.Scene {
     this.load.image('space_effect_017', spaceEffect017Url);
     this.load.image('space_effect_018', spaceEffect018Url);
     STATION_SPRITE_ASSETS.forEach((asset) => {
+      if (!this.textures.exists(asset.key)) {
+        this.load.image(asset.key, asset.url);
+      }
+    });
+    if (!this.textures.exists(FLYING_SHOP_SPRITE_ASSET.key)) {
+      this.load.image(FLYING_SHOP_SPRITE_ASSET.key, FLYING_SHOP_SPRITE_ASSET.url);
+    }
+    ALL_MISSILE_TEXTURE_ASSETS.forEach((asset) => {
       if (!this.textures.exists(asset.key)) {
         this.load.image(asset.key, asset.url);
       }
@@ -280,9 +291,10 @@ export class GameScene extends Phaser.Scene {
     this.meteorManager = new MeteorManager(this);
     this.meteorManager.createInitialMeteors(6);
 
-    // 8.1. Инициализация странствующих космических баз
+    // 8.1. Инициализация странствующих космических баз и летающего магазина
     this.spaceStationManager = new SpaceStationManager(this);
     this.spaceStationManager.createInitialStations(2);
+    this.flyingShopManager = new FlyingShopManager(this);
 
     // 8.2. Инициализация менеджера валюты «Металлолом»
     this.scrapManager = new ScrapManager(this);
@@ -324,6 +336,7 @@ export class GameScene extends Phaser.Scene {
       }
       this.meteorManager.destroy();
       this.spaceStationManager.destroy();
+      this.flyingShopManager.destroy();
       this.scrapManager.destroy();
       this.neonBarrierManager.destroy();
     });
@@ -337,6 +350,7 @@ export class GameScene extends Phaser.Scene {
     this.playerShip.setAutopilot(false);
     this.hudManager.setVisible(false);
     this.meteorManager?.reset();
+    this.flyingShopManager?.reset();
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
     this.wasBossKilled = false;
@@ -360,6 +374,7 @@ export class GameScene extends Phaser.Scene {
     this.weaponSystem?.reset();
     this.weaponSystem?.resetUpgrades();
     this.meteorManager?.reset();
+    this.flyingShopManager?.reset();
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
     this.wasBossKilled = false;
@@ -410,6 +425,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager?.reset();
     this.weaponSystem?.reset();
     this.weaponSystem?.resetUpgrades();
+    this.weaponSystem?.setEquippedMissile(campaignManager.getEquippedMissileId());
     this.scrapManager?.reset();
     this.meteorManager?.reset();
 
@@ -418,6 +434,8 @@ export class GameScene extends Phaser.Scene {
       this.meteorManager?.setMission(this.currentMission);
       this.hudManager?.setMission(this.currentMission);
     }
+
+    this.flyingShopManager?.setupForMission(this.currentMission);
 
     this.meteorManager?.createInitialMeteors();
     this.meteorManager?.clearMeteorsNear(MAP_WIDTH / 2, MAP_HEIGHT / 2, 750);
@@ -763,6 +781,13 @@ export class GameScene extends Phaser.Scene {
         this.handleEnemyKilled(scoreGained, ex, ey, enemyType, isBoss);
       },
     );
+    this.enemyManager.checkEnergyTrailDamage(
+      this.weaponSystem,
+      this.particleManager,
+      (scoreGained, ex, ey, enemyType, isBoss) => {
+        this.handleEnemyKilled(scoreGained, ex, ey, enemyType, isBoss);
+      },
+    );
 
     // 7.1. Урон врагам и базам от плазменного следа двигателей
     for (let f = this.fireHazards.length - 1; f >= 0; f--) {
@@ -817,7 +842,17 @@ export class GameScene extends Phaser.Scene {
       },
     );
 
-    // 8.1. Обновление фрагментов металлолома: разлет, притягивание и сбор
+    // 8.1. Обновление летающего магазина и проверка нахождения игрока в желтой сфере (2 сек)
+    this.flyingShopManager.update(
+      seconds,
+      this.playerShip.x,
+      this.playerShip.y,
+      () => {
+        this.openFlyingShop();
+      },
+    );
+
+    // 8.2. Обновление фрагментов металлолома: разлет, притягивание и сбор
     this.scrapManager.update(
       seconds,
       this.playerShip.x,
@@ -850,6 +885,53 @@ export class GameScene extends Phaser.Scene {
       this.enemyManager.getActiveBoss(),
       this.inMissionScrapCollected,
       this.scrapManager.getItems(),
+      this.flyingShopManager.getShop(),
+    );
+  }
+
+  public getAvailableShopScrap(): number {
+    return campaignManager.getScrapBalance() + this.inMissionScrapCollected;
+  }
+
+  public purchaseShopMissile(offer: ShopMissileOffer): boolean {
+    if (this.flyingShopManager.getPurchasedIds().has(offer.id)) {
+      return false;
+    }
+    const available = this.getAvailableShopScrap();
+    if (available < offer.price) {
+      return false;
+    }
+
+    let remainingCost = offer.price;
+    if (this.inMissionScrapCollected > 0) {
+      const deductInMission = Math.min(this.inMissionScrapCollected, remainingCost);
+      this.inMissionScrapCollected -= deductInMission;
+      remainingCost -= deductInMission;
+    }
+    if (remainingCost > 0) {
+      campaignManager.spendScrap(remainingCost);
+    }
+
+    this.flyingShopManager.markPurchased(offer.id);
+    campaignManager.setEquippedMissileId(offer.id);
+    this.weaponSystem.setEquippedMissile(offer.id);
+    return true;
+  }
+
+  private openFlyingShop(): void {
+    if (this.isGameOver || this.isMissionWon || this.isMenuMode) return;
+    this.input.keyboard?.resetKeys();
+    this.playerShip.resetJoystick();
+    if (this.scene.isActive() && !this.scene.isPaused()) {
+      this.scene.pause();
+    }
+    window.dispatchEvent(
+      new CustomEvent('open-flying-shop', {
+        detail: {
+          offers: this.flyingShopManager.getOffers(),
+          purchasedIds: this.flyingShopManager.getPurchasedIds(),
+        },
+      }),
     );
   }
 

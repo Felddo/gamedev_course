@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { PLAYER_MAX_HP, MAP_WIDTH, MAP_HEIGHT } from './constants';
-import { EnemyShip, Meteor, SpaceStation, ScrapPickup } from './types';
+import { EnemyShip, Meteor, SpaceStation, ScrapPickup, FlyingShop } from './types';
 import { CampaignMission } from './campaign/types';
 import { isMobilePhone, getGameDpr } from './deviceUtils';
 
@@ -712,6 +712,7 @@ export class HudManager {
     activeBoss: EnemyShip | null = null,
     scrapCount = 0,
     scrapItems: ScrapPickup[] = [],
+    flyingShop: FlyingShop | null = null,
   ): void {
     if (!this.isVisible || !this.hudContainer) return;
 
@@ -806,7 +807,7 @@ export class HudManager {
     this.setTextCached(this.scrapText, `${scrapCount}`);
 
     // 4. Тактический радар
-    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, scrapItems);
+    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, scrapItems, flyingShop);
   }
 
   private renderBossBar(boss: EnemyShip): void {
@@ -856,6 +857,7 @@ export class HudManager {
     stations: SpaceStation[] = [],
     targetedStation: SpaceStation | null = null,
     scrapItems: ScrapPickup[] = [],
+    flyingShop: FlyingShop | null = null,
   ): void {
     this.radarGraphics.clear();
     const half = this.currentRadarSize / 2;
@@ -964,6 +966,19 @@ export class HudManager {
       }
     }
 
+    // Летающий магазин на радаре (желтый значок лома)
+    if (flyingShop && flyingShop.sprite?.active) {
+      const dx = flyingShop.x - playerX;
+      const dy = flyingShop.y - playerY;
+      const dist = Math.hypot(dx, dy);
+      const clampedScale = dist > scanRadius && dist > 0.001
+        ? (radarRadius - 5) / dist
+        : radarRadius / scanRadius;
+      const mx = dx * clampedScale;
+      const my = dy * clampedScale;
+      this.drawRadarScrapShopIcon(mx, my);
+    }
+
     // Корабль игрока в центре радара (изумрудный маркер с вектором курса)
     this.radarGraphics.fillStyle(0x10b981, 1);
     this.radarGraphics.fillCircle(0, 0, 3.5);
@@ -978,6 +993,43 @@ export class HudManager {
       this.coordsText,
       `КООРД: ${Math.round(playerX)}, ${Math.round(playerY)}`,
     );
+  }
+
+  private drawRadarScrapShopIcon(x: number, y: number): void {
+    const g = this.radarGraphics;
+    // Мягкий желтый ореол вокруг значка магазина
+    g.fillStyle(0xfacc15, 0.25);
+    g.fillCircle(x, y, 8.5);
+
+    // Шестиугольная пластина лома (повторяет форму scrap_metal_icon в желтом цвете)
+    const outerR = 5.4;
+    g.fillStyle(0xfacc15, 1.0);
+    g.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const angle = (i * 60 * Math.PI) / 180;
+      const px = x + outerR * Math.cos(angle);
+      const py = y + outerR * Math.sin(angle);
+      if (i === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.closePath();
+    g.fillPath();
+
+    g.lineStyle(1.3, 0xfef08a, 1.0);
+    g.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const angle = (i * 60 * Math.PI) / 180;
+      const px = x + outerR * Math.cos(angle);
+      const py = y + outerR * Math.sin(angle);
+      if (i === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.closePath();
+    g.strokePath();
+
+    // Внутренний яркий желтый центр значка лома
+    g.fillStyle(0xfef9c3, 1.0);
+    g.fillCircle(x, y, 2.1);
   }
 
   public formatTime(totalSeconds: number): string {

@@ -21,6 +21,16 @@ import { WeaponSystem } from './WeaponSystem';
 import { ParticleManager } from './ParticleManager';
 import { CampaignMission, MissionBossConfig } from './campaign/types';
 
+interface GravityWell {
+  x: number;
+  y: number;
+  radius: number;
+  life: number;
+  maxLife: number;
+  pullForce: number;
+  color: number;
+}
+
 /**
  * Менеджер вражеских космических кораблей:
  * волны спавна, перехват корабля игрока, стрельба плазменными зарядами,
@@ -30,6 +40,8 @@ export class EnemyManager {
   private scene: Phaser.Scene;
   private enemies: EnemyShip[] = [];
   private enemyBullets: EnemyBullet[] = [];
+  private gravityWells: GravityWell[] = [];
+  private gravityGraphics: Phaser.GameObjects.Graphics | null = null;
   private spawnTimer = 0;
   private currentSpawnInterval = 0.1;
   private currentPhase = 1;
@@ -45,6 +57,8 @@ export class EnemyManager {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+    this.gravityGraphics = this.scene.add.graphics();
+    this.gravityGraphics.setDepth(5.4);
   }
 
   public setMission(mission: CampaignMission): void {
@@ -68,6 +82,8 @@ export class EnemyManager {
       bullet.sprite.destroy();
     }
     this.enemyBullets = [];
+    this.gravityWells = [];
+    this.gravityGraphics?.clear();
 
     // 2. Оставшиеся рядовые враги прекращают атаку и деактивируются
     for (const enemy of this.enemies) {
@@ -84,6 +100,8 @@ export class EnemyManager {
       }
     }
     this.enemies = [];
+    this.gravityWells = [];
+    this.gravityGraphics?.clear();
     this.activeBoss = null;
   }
 
@@ -140,6 +158,8 @@ export class EnemyManager {
       bullet.sprite.destroy();
     }
     this.enemyBullets = [];
+    this.gravityWells = [];
+    this.gravityGraphics?.clear();
 
     this.spawnTimer = 0;
     this.currentSpawnInterval = 0.1;
@@ -418,6 +438,27 @@ export class EnemyManager {
     playerY: number,
     particleManager?: ParticleManager,
   ): void {
+    // 0. Обновление гравитационных полей притяжения (ракета 007)
+    if (this.gravityGraphics) {
+      this.gravityGraphics.clear();
+      for (let gIdx = this.gravityWells.length - 1; gIdx >= 0; gIdx--) {
+        const well = this.gravityWells[gIdx];
+        well.life -= seconds;
+        if (well.life <= 0) {
+          this.gravityWells.splice(gIdx, 1);
+          continue;
+        }
+        const ratio = well.life / well.maxLife;
+        const pulse = 0.85 + Math.sin((well.maxLife - well.life) * 14) * 0.15;
+        this.gravityGraphics.fillStyle(well.color, 0.12 * ratio);
+        this.gravityGraphics.fillCircle(well.x, well.y, well.radius * pulse);
+        this.gravityGraphics.lineStyle(1.8, well.color, 0.55 * ratio);
+        this.gravityGraphics.strokeCircle(well.x, well.y, well.radius * pulse);
+        this.gravityGraphics.lineStyle(1.4, 0xffffff, 0.4 * ratio);
+        this.gravityGraphics.strokeCircle(well.x, well.y, well.radius * 0.45 * ratio);
+      }
+    }
+
     // 1. Обновление кинематики и траекторий врагов
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
@@ -448,9 +489,46 @@ export class EnemyManager {
         playerY,
       );
 
+      // Замедление от ракеты-замедлителя (002)
+      let effectiveSpeed = enemy.speed;
+      if (enemy.slowTimer && enemy.slowTimer > 0) {
+        enemy.slowTimer -= seconds;
+        if (enemy.slowTimer > 0) {
+          effectiveSpeed *= enemy.slowMultiplier ?? 0.55;
+        } else {
+          enemy.slowTimer = 0;
+          if (enemy.isHitFlash <= 0) {
+            enemy.sprite.clearTint();
+          }
+        }
+      }
+
       // Курс на сближение с кораблем игрока
-      enemy.sprite.x += Math.cos(angle) * enemy.speed * seconds;
-      enemy.sprite.y += Math.sin(angle) * enemy.speed * seconds;
+      enemy.sprite.x += Math.cos(angle) * effectiveSpeed * seconds;
+      enemy.sprite.y += Math.sin(angle) * effectiveSpeed * seconds;
+
+      // Притяжение от гравитационных зон (007)
+      for (const well of this.gravityWells) {
+        const gdx = well.x - enemy.sprite.x;
+        const gdy = well.y - enemy.sprite.y;
+        const gDist = Math.hypot(gdx, gdy);
+        if (gDist <= well.radius && gDist > 8) {
+          const pull = well.pullForce * (enemy.isBoss ? 0.35 : 1.0) * seconds;
+          enemy.sprite.x += (gdx / gDist) * pull;
+          enemy.sprite.y += (gdy / gDist) * pull;
+        }
+      }
+
+      // Импульс отбрасывания от ударной волны (006)
+      if (enemy.knockbackVx || enemy.knockbackVy) {
+        const kvx = enemy.knockbackVx ?? 0;
+        const kvy = enemy.knockbackVy ?? 0;
+        enemy.sprite.x += kvx * seconds;
+        enemy.sprite.y += kvy * seconds;
+        const decay = Math.pow(0.0015, seconds);
+        enemy.knockbackVx = Math.abs(kvx * decay) < 5 ? 0 : kvx * decay;
+        enemy.knockbackVy = Math.abs(kvy * decay) < 5 ? 0 : kvy * decay;
+      }
 
       // Ограничение врагов пределами боевого сектора (внутри пояса туманностей)
       enemy.sprite.x = Phaser.Math.Clamp(enemy.sprite.x, 130, MAP_WIDTH - 130);
@@ -517,7 +595,11 @@ export class EnemyManager {
       if (enemy.isHitFlash > 0) {
         enemy.isHitFlash -= seconds;
         if (enemy.isHitFlash <= 0) {
-          enemy.sprite.clearTint();
+          if (enemy.slowTimer && enemy.slowTimer > 0) {
+            enemy.sprite.setTint(0x67e8f9);
+          } else {
+            enemy.sprite.clearTint();
+          }
         }
       }
     }
@@ -676,8 +758,10 @@ export class EnemyManager {
         }
 
         if (isHit) {
+          const hitX = laser.sprite.x;
+          const hitY = laser.sprite.y;
           soundFx.playHit();
-          particleManager.spawnHitSparks(laser.sprite.x, laser.sprite.y);
+          particleManager.spawnHitSparks(hitX, hitY);
 
           if (!laser.hitEnemies) {
             laser.hitEnemies = new Set();
@@ -696,51 +780,295 @@ export class EnemyManager {
 
           // Взрывные снаряды: осколочно-фугасный урон по площади
           if (laser.isExplosive) {
-            particleManager.spawnExplosion(laser.sprite.x, laser.sprite.y);
-            const splashRadius = 110;
-            const hitInSplash = new Set<EnemyShip>();
+            this.applyAreaDamage(
+              hitX,
+              hitY,
+              110,
+              baseDamage * 0.7,
+              enemy,
+              weaponSystem,
+              particleManager,
+              onEnemyKilled,
+            );
+          }
 
-            for (let s = this.enemies.length - 1; s >= 0; s--) {
-              if (s === e) continue;
-              const splashTarget = this.enemies[s];
-              if (!splashTarget || hitInSplash.has(splashTarget)) continue;
+          // Уникальные механики 10 типов ракет из магазина
+          const missileCode = laser.missileTypeCode;
+          const missileRarity = laser.missileRarity ?? 'common';
+          let bouncedToTarget = false;
 
-              const splashDist = Phaser.Math.Distance.Between(
-                laser.sprite.x,
-                laser.sprite.y,
-                splashTarget.sprite.x,
-                splashTarget.sprite.y,
+          if (missileCode === '002') {
+            // 002: Ракета-замедлитель (обновляется, не складывается)
+            enemy.slowTimer = 2.0;
+            enemy.slowMultiplier = 0.55;
+          } else if (missileCode === '003' && !laser.isSubProjectile) {
+            // 003: Веерная ракета — разлёт веером из 4 небольших снарядов
+            const flightAngle = Math.atan2(laser.vy, laser.vx);
+            const fanOffsets = [-0.55, -0.18, 0.18, 0.55];
+            const subDamage = baseDamage * 0.45;
+            for (const offset of fanOffsets) {
+              weaponSystem.spawnSubProjectile(
+                hitX,
+                hitY,
+                flightAngle + offset,
+                subDamage,
+                missileRarity,
+                '010',
+                0.55,
+                0.28,
+                enemy,
               );
-              if (splashDist <= splashRadius) {
-                hitInSplash.add(splashTarget);
-                splashTarget.sprite.setTint(0xffffff);
-                splashTarget.isHitFlash = 0.08;
-                const splashIsBoss = splashTarget.type === 'boss' || !!splashTarget.isBoss || this.activeBoss === splashTarget;
-                const splashBaseDamage = baseDamage * 0.7;
-                const splashDamage = (splashIsBoss && weaponSystem.hasAnnihilationProtocol)
-                  ? splashBaseDamage * 1.3
-                  : splashBaseDamage;
-                splashTarget.hp -= splashDamage;
-                if (splashTarget.hp <= 0) {
-                  this.destroyEnemy(s, particleManager, onEnemyKilled);
-                  if (s < e) {
-                    e--;
-                  }
-                }
+            }
+          } else if (missileCode === '004' && (laser.bouncesLeft ?? 0) > 0) {
+            // 004: Ракета-рикошет — 1 отскок к ближайшей другой цели
+            const nextTarget = this.findNearestRicochetTarget(hitX, hitY, 380, laser.hitEnemies);
+            if (nextTarget) {
+              laser.bouncesLeft = (laser.bouncesLeft ?? 1) - 1;
+              const speed = Math.hypot(laser.vx, laser.vy) || 650;
+              const bounceAngle = Phaser.Math.Angle.Between(
+                hitX,
+                hitY,
+                nextTarget.sprite.x,
+                nextTarget.sprite.y,
+              );
+              laser.vx = Math.cos(bounceAngle) * speed;
+              laser.vy = Math.sin(bounceAngle) * speed;
+              laser.sprite.setRotation(bounceAngle + Math.PI / 2);
+              laser.lifetime = Math.max(laser.lifetime, 0.5);
+              bouncedToTarget = true;
+            }
+          } else if (missileCode === '005' && !laser.isSubProjectile) {
+            // 005: Ракета-взрыватель — дополнительный небольшой взрыв вокруг точки попадания
+            this.spawnMissileExplosionRing(hitX, hitY, 85, 0xf97316);
+            this.applyAreaDamage(
+              hitX,
+              hitY,
+              85,
+              baseDamage * 0.6,
+              enemy,
+              weaponSystem,
+              particleManager,
+              onEnemyKilled,
+            );
+          } else if (missileCode === '006' && !laser.isSubProjectile) {
+            // 006: Импульсная ракета — ударная волна, слегка отталкивающая ближайших врагов
+            this.spawnMissileExplosionRing(hitX, hitY, 125, 0x38bdf8);
+            for (const target of this.enemies) {
+              if (!target.sprite?.active || target.hp <= 0) continue;
+              const dx = target.sprite.x - hitX;
+              const dy = target.sprite.y - hitY;
+              const pushDist = Math.hypot(dx, dy);
+              if (pushDist <= 125) {
+                const pushAngle = pushDist > 0.001
+                  ? Math.atan2(dy, dx)
+                  : Math.atan2(laser.vy, laser.vx);
+                const impulse = target.isBoss ? 70 : 210;
+                target.knockbackVx = (target.knockbackVx ?? 0) + Math.cos(pushAngle) * impulse;
+                target.knockbackVy = (target.knockbackVy ?? 0) + Math.sin(pushAngle) * impulse;
               }
             }
+          } else if (missileCode === '007' && !laser.isSubProjectile) {
+            // 007: Гравитационная ракета — небольшая область притяжения
+            const wellColor =
+              missileRarity === 'legendary'
+                ? 0xf87171
+                : missileRarity === 'rare'
+                  ? 0x34d399
+                  : 0x60a5fa;
+            this.gravityWells.push({
+              x: hitX,
+              y: hitY,
+              radius: 145,
+              life: 1.4,
+              maxLife: 1.4,
+              pullForce: 140,
+              color: wellColor,
+            });
+          } else if (missileCode === '008' && !laser.isSubProjectile) {
+            // 008: Ракета треугольник — 3 снаряда под углом 120° (форма логотипа Mercedes-Benz)
+            const backAngle = Math.atan2(laser.vy, laser.vx) + Math.PI;
+            const step120 = (Math.PI * 2) / 3;
+            const subDamage = baseDamage * 0.55;
+            for (let k = 0; k < 3; k++) {
+              weaponSystem.spawnSubProjectile(
+                hitX,
+                hitY,
+                backAngle + k * step120,
+                subDamage,
+                missileRarity,
+                '010',
+                0.62,
+                0.32,
+                enemy,
+              );
+            }
+          } else if (missileCode === '009' && !laser.isSubProjectile) {
+            // 009: Ракета-перехватчик — уничтожает один вражеский снаряд поблизости
+            this.interceptNearestEnemyBullet(hitX, hitY, 280, particleManager);
           }
 
-          if (enemy.hp <= 0) {
-            this.destroyEnemy(e, particleManager, onEnemyKilled);
+          const enemyIdx = this.enemies.indexOf(enemy);
+          if (enemyIdx !== -1 && enemy.hp <= 0) {
+            this.destroyEnemy(enemyIdx, particleManager, onEnemyKilled);
           }
 
-          if (laser.pierceCount && laser.pierceCount > 1) {
-            laser.pierceCount -= 1;
-          } else {
-            weaponSystem.removeLaser(l);
+          if (!bouncedToTarget) {
+            if (laser.pierceCount && laser.pierceCount > 1) {
+              laser.pierceCount -= 1;
+            } else {
+              weaponSystem.removeLaser(l);
+            }
           }
           break;
+        }
+      }
+    }
+  }
+
+  private applyAreaDamage(
+    x: number,
+    y: number,
+    radius: number,
+    splashBaseDamage: number,
+    excludeEnemy: EnemyShip,
+    weaponSystem: WeaponSystem,
+    particleManager: ParticleManager,
+    onEnemyKilled: (score: number, x: number, y: number, enemyType?: EnemyShip['type'], isBoss?: boolean) => void,
+  ): void {
+    particleManager.spawnExplosion(x, y);
+    const hitInSplash = new Set<EnemyShip>();
+
+    for (let s = this.enemies.length - 1; s >= 0; s--) {
+      const splashTarget = this.enemies[s];
+      if (!splashTarget || splashTarget === excludeEnemy || hitInSplash.has(splashTarget)) continue;
+
+      const splashDist = Phaser.Math.Distance.Between(
+        x,
+        y,
+        splashTarget.sprite.x,
+        splashTarget.sprite.y,
+      );
+      if (splashDist <= radius) {
+        hitInSplash.add(splashTarget);
+        splashTarget.sprite.setTint(0xffffff);
+        splashTarget.isHitFlash = 0.08;
+        const splashIsBoss =
+          splashTarget.type === 'boss' ||
+          !!splashTarget.isBoss ||
+          this.activeBoss === splashTarget;
+        const splashDamage =
+          splashIsBoss && weaponSystem.hasAnnihilationProtocol
+            ? splashBaseDamage * 1.3
+            : splashBaseDamage;
+        splashTarget.hp -= splashDamage;
+        if (splashTarget.hp <= 0) {
+          this.destroyEnemy(s, particleManager, onEnemyKilled);
+        }
+      }
+    }
+  }
+
+  private findNearestRicochetTarget(
+    x: number,
+    y: number,
+    maxRange: number,
+    excluded: Set<EnemyShip>,
+  ): EnemyShip | null {
+    let nearest: EnemyShip | null = null;
+    let bestDist = maxRange;
+    for (const candidate of this.enemies) {
+      if (!candidate.sprite?.active || candidate.hp <= 0 || excluded.has(candidate)) {
+        continue;
+      }
+      const d = Phaser.Math.Distance.Between(x, y, candidate.sprite.x, candidate.sprite.y);
+      if (d < bestDist) {
+        bestDist = d;
+        nearest = candidate;
+      }
+    }
+    return nearest;
+  }
+
+  private spawnMissileExplosionRing(x: number, y: number, radius: number, color: number): void {
+    const ring = this.scene.add.circle(x, y, Math.max(12, radius * 0.25), color, 0.22);
+    ring.setStrokeStyle(2.5, color, 0.9);
+    ring.setDepth(13);
+    this.scene.tweens.add({
+      targets: ring,
+      scale: radius / Math.max(12, radius * 0.25),
+      alpha: 0,
+      duration: 210,
+      onComplete: () => ring.destroy(),
+    });
+  }
+
+  private interceptNearestEnemyBullet(
+    x: number,
+    y: number,
+    maxRange: number,
+    particleManager: ParticleManager,
+  ): void {
+    let bestIdx = -1;
+    let bestDist = maxRange;
+
+    for (let i = 0; i < this.enemyBullets.length; i++) {
+      const b = this.enemyBullets[i];
+      if (!b.sprite?.active) continue;
+      const d = Phaser.Math.Distance.Between(x, y, b.sprite.x, b.sprite.y);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+      }
+    }
+
+    if (bestIdx === -1) return;
+    const bullet = this.enemyBullets[bestIdx];
+    const bx = bullet.sprite.x;
+    const by = bullet.sprite.y;
+    bullet.sprite.destroy();
+    this.enemyBullets.splice(bestIdx, 1);
+
+    particleManager.spawnHitSparks(bx, by);
+    const zap = this.scene.add.graphics();
+    zap.setDepth(14);
+    zap.lineStyle(2, 0x38bdf8, 0.95);
+    zap.lineBetween(x, y, bx, by);
+    this.scene.tweens.add({
+      targets: zap,
+      alpha: 0,
+      duration: 140,
+      onComplete: () => zap.destroy(),
+    });
+  }
+
+  /**
+   * Нанесение урона энергетическим следом (ракета 001)
+   */
+  public checkEnergyTrailDamage(
+    weaponSystem: WeaponSystem,
+    particleManager: ParticleManager,
+    onEnemyKilled: (score: number, x: number, y: number, enemyType?: EnemyShip['type'], isBoss?: boolean) => void,
+  ): void {
+    const trails = weaponSystem.getEnergyTrails();
+    if (trails.length === 0 || this.enemies.length === 0) return;
+
+    for (let e = this.enemies.length - 1; e >= 0; e--) {
+      const enemy = this.enemies[e];
+      if (!enemy.sprite?.active || enemy.hp <= 0) continue;
+
+      for (const seg of trails) {
+        if ((seg.hitTickMap.get(enemy) ?? 0) > 0) continue;
+        const dist = Phaser.Math.Distance.Between(seg.x, seg.y, enemy.sprite.x, enemy.sprite.y);
+        if (dist <= seg.radius + enemy.radius) {
+          seg.hitTickMap.set(enemy, 0.16);
+          enemy.hp -= seg.damage;
+          enemy.sprite.setTint(0xffffff);
+          enemy.isHitFlash = 0.05;
+          particleManager.spawnHitSparks(enemy.sprite.x, enemy.sprite.y);
+          if (enemy.hp <= 0) {
+            this.destroyEnemy(e, particleManager, onEnemyKilled);
+            break;
+          }
         }
       }
     }
@@ -888,5 +1216,9 @@ export class EnemyManager {
 
   public destroy(): void {
     this.reset();
+    if (this.gravityGraphics) {
+      this.gravityGraphics.destroy();
+      this.gravityGraphics = null;
+    }
   }
 }

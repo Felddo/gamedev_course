@@ -1,5 +1,19 @@
 import Phaser from 'phaser';
 
+export type MissileTypeCodeRef =
+  | '001'
+  | '002'
+  | '003'
+  | '004'
+  | '005'
+  | '006'
+  | '007'
+  | '008'
+  | '009'
+  | '010';
+
+export type MissileRarityRef = 'common' | 'rare' | 'legendary';
+
 /**
  * Снаряд корабельного орудия (бластер / фотонная ракета)
  */
@@ -13,6 +27,11 @@ export interface LaserProjectile {
   pierceCount?: number;
   hitEnemies?: Set<EnemyShip>;
   hitStations?: Set<SpaceStation>;
+  missileTypeCode?: MissileTypeCodeRef;
+  missileRarity?: MissileRarityRef;
+  bouncesLeft?: number;
+  trailSpawnTimer?: number;
+  isSubProjectile?: boolean;
 }
 
 /**
@@ -72,6 +91,10 @@ export interface EnemyShip {
   shootPattern?: 'single' | 'spread' | 'compact' | 'flagship';
   bulletSpeed?: number;
   bulletDamage?: number;
+  slowTimer?: number;
+  slowMultiplier?: number;
+  knockbackVx?: number;
+  knockbackVy?: number;
 }
 
 /**
@@ -179,4 +202,24 @@ export interface ScrapPickup {
   rotationSpeed: number;
   baseScale: number;
   pulseTimer: number;
+}
+
+/**
+ * Летающий космический магазин с желтой сферой входа
+ */
+export interface FlyingShop {
+  sprite: Phaser.GameObjects.Sprite;
+  sphereGraphics: Phaser.GameObjects.Graphics;
+  x: number;
+  y: number;
+  speed: number;
+  moveAngle: number;
+  rotationSpeed: number;
+  animPhase: number;
+  pulsePhase: number;
+  boundingRadius: number;
+  sphereRadius: number;
+  dwellTimer: number;
+  reenterCooldown: number;
+  mustExitBeforeReenter: boolean;
 }

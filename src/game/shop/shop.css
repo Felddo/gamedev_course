@@ -1,0 +1,531 @@
+#modal-flying-shop {
+  z-index: 115;
+}
+
+.shop-modal-window {
+  max-width: 920px;
+  width: 100%;
+  border-color: rgba(250, 204, 21, 0.72);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.85), 0 0 28px rgba(250, 204, 21, 0.25);
+}
+
+.shop-modal-header {
+  border-bottom-color: rgba(250, 204, 21, 0.32);
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.shop-badge {
+  background: rgba(250, 204, 21, 0.18);
+  color: #fde047;
+  border-color: #facc15;
+}
+
+.shop-scrap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  background: rgba(66, 44, 6, 0.75);
+  border: 1.5px solid rgba(250, 204, 21, 0.7);
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.22);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+
+.shop-scrap-icon {
+  color: #facc15;
+  font-size: 14px;
+}
+
+.shop-scrap-label {
+  font-family: var(--font-ui, 'Rajdhani', sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fde68a;
+}
+
+.shop-scrap-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fef08a;
+}
+
+.shop-modal-body {
+  gap: 8px;
+  padding-right: 0;
+}
+
+.shop-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.shop-missile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 14px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(6, 30, 24, 0.94) 0%, rgba(2, 16, 12, 0.98) 100%);
+  border: 2px solid var(--rarity-border, #94a3b8);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55), 0 0 18px var(--rarity-glow, rgba(148, 163, 184, 0.3));
+  gap: 9px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.shop-missile-card:hover {
+  transform: translateY(-2px);
+}
+
+.shop-missile-card.purchased {
+  opacity: 0.78;
+}
+
+.shop-card-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.shop-card-title {
+  margin: 0;
+  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.22;
+  color: #f8fafc;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shop-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.shop-rarity-tag {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 3px 7px;
+  border-radius: 3px;
+  color: var(--rarity-text, #cbd5e1);
+  background: var(--rarity-badge-bg, rgba(148, 163, 184, 0.16));
+  border: 1px solid var(--rarity-border, #94a3b8);
+}
+
+/* Выделенный заметный блок урона */
+.shop-dmg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  color: #fed7aa;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.34), rgba(234, 88, 12, 0.22));
+  border: 1.5px solid #fb923c;
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.4), inset 0 0 6px rgba(251, 146, 60, 0.2);
+  text-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
+}
+
+.shop-dmg-icon {
+  color: #fbbf24;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.shop-dmg-val {
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.shop-card-model-box {
+  width: 78px;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: radial-gradient(circle, var(--rarity-badge-bg, rgba(148, 163, 184, 0.14)) 0%, rgba(2, 12, 8, 0.75) 75%);
+  border: 1px solid var(--rarity-border, #94a3b8);
+  flex-shrink: 0;
+}
+
+.shop-missile-img {
+  max-width: 52px;
+  max-height: 60px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px var(--rarity-glow, rgba(148, 163, 184, 0.45)));
+}
+
+.shop-card-desc {
+  margin: 0;
+  font-family: var(--font-ui, 'Rajdhani', sans-serif);
+  font-size: 13.5px;
+  line-height: 1.3;
+  color: #cbd5e1;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shop-buy-btn {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  border: 1.5px solid var(--rarity-border, #94a3b8);
+  background: rgba(66, 44, 6, 0.55);
+  color: #fef08a;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+.shop-buy-btn:hover:not(:disabled) {
+  background: rgba(250, 204, 21, 0.22);
+  box-shadow: 0 0 14px var(--rarity-glow, rgba(250, 204, 21, 0.35));
+}
+
+.shop-buy-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.shop-buy-btn.insufficient {
+  background: rgba(30, 41, 59, 0.65);
+  color: #94a3b8;
+}
+
+.shop-buy-btn:disabled {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #34d399;
+  color: #6ee7b7;
+  cursor: default;
+}
+
+.shop-status-notice {
+  display: none;
+  text-align: center;
+  font-family: var(--font-ui, 'Rajdhani', sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: #6ee7b7;
+}
+
+.shop-status-notice.visible {
+  display: block;
+}
+
+.shop-status-notice.is-error {
+  color: #fca5a5;
+}
+
+#modal-flying-shop .shop-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px !important;
+  padding-top: 10px;
+  border-top: 1px solid rgba(250, 204, 21, 0.2);
+}
+
+#modal-flying-shop .shop-exit-btn {
+  border-color: rgba(250, 204, 21, 0.75);
+  color: #fef08a;
+  background: rgba(66, 44, 6, 0.55);
+  padding: 6px 16px;
+  min-height: 30px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  touch-action: manipulation;
+}
+
+#modal-flying-shop .shop-exit-btn:hover {
+  background: rgba(250, 204, 21, 0.22);
+  border-color: #fde047;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.35);
+}
+
+/* Адаптация под планшеты и небольшие экраны */
+@media (max-width: 860px) {
+  .shop-modal-window {
+    padding: 14px;
+    max-width: 96vw;
+  }
+  .shop-cards-grid {
+    gap: 10px;
+  }
+  .shop-missile-card {
+    padding: 10px 8px;
+    gap: 7px;
+  }
+  .shop-card-title {
+    font-size: 12px;
+    min-height: 30px;
+  }
+  .shop-dmg-tag {
+    font-size: 11px;
+    padding: 2px 7px;
+  }
+  .shop-dmg-val {
+    font-size: 12px;
+  }
+  .shop-card-model-box {
+    width: 62px;
+    height: 62px;
+  }
+  .shop-missile-img {
+    max-width: 40px;
+    max-height: 48px;
+  }
+  .shop-card-desc {
+    font-size: 12px;
+  }
+}
+
+/* Портретный режим телефона — всё помещается без прокрутки */
+@media (max-width: 680px) and (min-height: 521px) {
+  #modal-flying-shop {
+    align-items: center;
+    padding: 6px;
+  }
+  .shop-modal-window {
+    padding: 10px;
+    max-height: 98dvh;
+    overflow: hidden;
+  }
+  .shop-modal-header {
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    gap: 6px;
+  }
+  .shop-modal-header h2 {
+    font-size: 13px;
+    letter-spacing: 0.8px;
+  }
+  .shop-scrap-pill {
+    padding: 3px 8px;
+    gap: 4px;
+  }
+  .shop-scrap-label {
+    font-size: 10px;
+  }
+  .shop-scrap-val {
+    font-size: 12px;
+  }
+  .shop-modal-body {
+    overflow: hidden;
+    gap: 5px;
+  }
+  .shop-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .shop-missile-card {
+    display: grid;
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    text-align: left;
+    padding: 7px 8px;
+    gap: 3px 8px;
+  }
+  .shop-card-header {
+    grid-column: 2 / 4;
+    grid-row: 1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  .shop-card-title {
+    min-height: auto;
+    font-size: 11.5px;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .shop-card-meta {
+    flex-wrap: nowrap;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .shop-rarity-tag {
+    font-size: 8.5px;
+    padding: 2px 5px;
+  }
+  .shop-dmg-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+  .shop-dmg-val {
+    font-size: 11px;
+  }
+  .shop-card-model-box {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    width: 48px;
+    height: 48px;
+  }
+  .shop-missile-img {
+    max-width: 32px;
+    max-height: 38px;
+  }
+  .shop-card-desc {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 11px;
+    line-height: 1.2;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .shop-buy-btn {
+    grid-column: 3;
+    grid-row: 2;
+    width: auto;
+    min-width: 72px;
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  .shop-status-notice {
+    font-size: 11px;
+  }
+  #modal-flying-shop .shop-modal-footer {
+    margin-top: 6px !important;
+    padding-top: 6px;
+  }
+  #modal-flying-shop .shop-exit-btn {
+    padding: 4px 12px;
+    min-height: 26px;
+    font-size: 11px;
+  }
+}
+
+/* Горизонтальный режим телефона — компактно, без прокрутки */
+@media (max-height: 520px) {
+  #modal-flying-shop {
+    padding: max(4px, env(safe-area-inset-top, 4px)) max(8px, env(safe-area-inset-right, 8px)) max(4px, env(safe-area-inset-bottom, 4px)) max(8px, env(safe-area-inset-left, 8px));
+  }
+  .shop-modal-window {
+    padding: 8px 12px;
+    max-height: min(96vh, 96dvh);
+    overflow: hidden;
+  }
+  .shop-modal-header {
+    padding-bottom: 5px;
+    margin-bottom: 6px;
+    gap: 6px;
+  }
+  .shop-modal-header h2 {
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+  .shop-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+  .shop-scrap-pill {
+    padding: 3px 8px;
+    gap: 4px;
+  }
+  .shop-scrap-label {
+    font-size: 10px;
+  }
+  .shop-scrap-val {
+    font-size: 12px;
+  }
+  .shop-modal-body {
+    overflow: hidden;
+    gap: 4px;
+  }
+  .shop-cards-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .shop-missile-card {
+    padding: 6px 6px;
+    gap: 4px;
+  }
+  .shop-card-header {
+    gap: 3px;
+  }
+  .shop-card-title {
+    font-size: 10.5px;
+    min-height: 24px;
+    line-height: 1.15;
+  }
+  .shop-card-meta {
+    gap: 4px;
+  }
+  .shop-rarity-tag {
+    font-size: 8px;
+    padding: 1.5px 4px;
+  }
+  .shop-dmg-tag {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+  .shop-dmg-icon {
+    font-size: 9.5px;
+  }
+  .shop-dmg-val {
+    font-size: 10.5px;
+  }
+  .shop-card-model-box {
+    width: 38px;
+    height: 38px;
+    border-radius: 7px;
+  }
+  .shop-missile-img {
+    max-width: 26px;
+    max-height: 32px;
+  }
+  .shop-card-desc {
+    font-size: 10px;
+    line-height: 1.15;
+  }
+  .shop-buy-btn {
+    min-height: 28px;
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+  .shop-status-notice {
+    font-size: 10.5px;
+  }
+  #modal-flying-shop .shop-modal-footer {
+    margin-top: 5px !important;
+    padding-top: 5px;
+  }
+  #modal-flying-shop .shop-exit-btn {
+    min-height: 24px;
+    padding: 3px 11px;
+    font-size: 10.5px;
+    letter-spacing: 0.8px;
+  }
+}

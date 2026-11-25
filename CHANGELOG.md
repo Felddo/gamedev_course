@@ -2,6 +2,18 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Летающий магазин и 10 типов ракет с редкостью и боевыми механиками
+
+**Что сделано:**
+- **Летающий магазин и отображение на радаре:**
+  - В [FlyingShopManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/FlyingShopManager.ts), [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts) и [types.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/types.ts) добавлен летающий магазин среднего размера со спрайтом [spaceStation_020.png](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/assets/Sprites/Shop/spaceStation_020.png) и жёлтой сферой вокруг: на миссии `1-2` появляется всегда, на остальных — случайно; при удержании игрока внутри сферы 2 секунды круг заполняется жёлтым и открывает окно магазина.
+  - В [HudManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudManager.ts) на миникарте добавлен жёлтый шестиугольный значок лома (`drawRadarScrapShopIcon`) для отображения магазина.
+- **Окно магазина и система покупок:**
+  - Созданы [missilesCatalog.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shop/missilesCatalog.ts), [ShopModal.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shop/ShopModal.ts) и [shop.css](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shop/shop.css), подключённые в [main.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/main.ts), [CampaignManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/campaign/CampaignManager.ts) и [campaign/types.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/campaign/types.ts).
+  - В магазине выпадают 3 случайные ракеты (редкость: синий — обычная, зелёный — редкая, красный — легендарная; чем выше редкость, тем ниже шанс и выше цена; на уровне `1-2` цены снижены), с обводкой по редкости (серая / жёлтая / красная), выделенным показателем урона, модельками, описанием и балансом металлолома сверху справа; вёрстка адаптирована под ПК и мобильные без прокрутки с компактной кнопкой `ВЫЙТИ`.
+- **10 типов ракет (`001`–`010`) в бою:**
+  - В [WeaponSystem.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/WeaponSystem.ts) и [EnemyManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/EnemyManager.ts) реализованы все 10 механик: энергетический след (`001`), обновляемое замедление (`002`), веерный разлёт (`003`), 1 рикошет к ближайшей цели (`004`), доп. взрыв (`005`), отталкивающая ударная волна (`006`), гравитационное притяжение (`007`), разлёт 3 снарядами под `120°` (`008`), перехват вражеского снаряда (`009`) и обычная ракета (`010`).
+
 ## Сортировка спрайтов ракет, обновление модификаций корабля и летающих станций
 
 **Что сделано:**

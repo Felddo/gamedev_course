@@ -59,6 +59,7 @@ export class CampaignManager {
       rewardedModuleMissions: [],
       appliedUpgradeIds: [],
       rewardedTacticalMissions: [],
+      equippedMissileId: undefined,
       runId: undefined,
       totalShipBuilderTime: 0,
       trackedFirstModification: false,
@@ -92,6 +93,10 @@ export class CampaignManager {
       const appliedUpgradeIds = Array.isArray(parsed.appliedUpgradeIds) ? parsed.appliedUpgradeIds : [];
       const rewardedTacticalMissions = Array.isArray(parsed.rewardedTacticalMissions) ? parsed.rewardedTacticalMissions : [];
       const savedShipAssembly = Array.isArray(parsed.savedShipAssembly) ? parsed.savedShipAssembly : undefined;
+      const equippedMissileId =
+        typeof parsed.equippedMissileId === 'string' && parsed.equippedMissileId.length > 0
+          ? parsed.equippedMissileId
+          : undefined;
       const runId = typeof parsed.runId === 'string' && parsed.runId.length > 0 ? parsed.runId : undefined;
       const totalShipBuilderTime =
         typeof parsed.totalShipBuilderTime === 'number' && parsed.totalShipBuilderTime >= 0
@@ -112,6 +117,7 @@ export class CampaignManager {
         appliedUpgradeIds,
         rewardedTacticalMissions,
         savedShipAssembly,
+        equippedMissileId,
         runId,
         totalShipBuilderTime,
         trackedFirstModification: Boolean(parsed.trackedFirstModification),
@@ -342,6 +348,23 @@ export class CampaignManager {
     return this.saveData.scrapBalance;
   }
 
+  public spendScrap(amount: number): boolean {
+    const cost = Math.max(0, Math.floor(amount));
+    if (this.saveData.scrapBalance < cost) return false;
+    this.saveData.scrapBalance -= cost;
+    this.saveToStorage();
+    return true;
+  }
+
+  public getEquippedMissileId(): string | undefined {
+    return this.saveData.equippedMissileId;
+  }
+
+  public setEquippedMissileId(missileId: string | undefined): void {
+    this.saveData.equippedMissileId = missileId;
+    this.saveToStorage();
+  }
+
   /**
    * Получить максимальный лимит деталей для верфи по категории на основе прогресса кампании:
    * - pilot: 1
@@ -542,6 +565,7 @@ export class CampaignManager {
       appliedUpgradeIds: [],
       rewardedTacticalMissions: [],
       savedShipAssembly: undefined,
+      equippedMissileId: undefined,
       runId: this.generateRunId(),
       totalShipBuilderTime: 0,
       trackedFirstModification: false,
