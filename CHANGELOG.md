@@ -2,6 +2,18 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Мобильный конструктор корабля (кнопка «Удалить», скрытие крестика) и чёткий HiDPI-рендеринг HUD и корабля
+
+**Что сделано:**
+- **Конструктор корабля на телефонах:**
+  - В [shipBuilder.css](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/shipBuilder.css) скрыта кнопка-крестик быстрого удаления `.part-remove-btn` на выделенных деталях внутри отсека сборки для телефонов (`@media` для смартфонов и `body.is-phone`).
+  - Кнопка `.sel-tool-btn.btn-danger` («Удалить») в блоке `05` оформлена красной в активном и неактивном состояниях.
+- **Чёткость верхней панели HUD и корабля в бою на телефонах (HiDPI):**
+  - В [deviceUtils.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/deviceUtils.ts) добавлена функция `getGameDpr()` (до `3x` по `window.devicePixelRatio`).
+  - В [config.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/config.ts) холст Phaser переведён на нативное HiDPI-разрешение (`Phaser.Scale.NONE`, буфер `css * dpr`, CSS-масштаб `zoom: 1 / dpr`, автосинхронизация при ресайзе), включены `antialias`, `antialiasGL`, `mipmapFilter: 'LINEAR_MIPMAP_LINEAR'` и отключён `roundPixels`.
+  - В [HudScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudScene.ts) и [HudManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudManager.ts) камера HUD синхронизирована с `getGameDpr()` (`origin = 0,0`), вёрстка привязана к логическим размерам экрана, а `HUD_TEXT_RESOLUTION` повышен до `3–6`.
+  - В [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts) зум камеры и зоны касания приведены к `getGameDpr()`, а в `startFollow` отключено округление пикселей.
+
 ## Исправление дрожания HUD, наложения кнопки паузы на мобильных и полного экрана на iPhone
 
 **Что сделано:**

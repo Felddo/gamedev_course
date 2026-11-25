@@ -56,7 +56,7 @@ import { buildPartsCatalog } from './shipBuilder/partsCatalog';
 import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
 import { CampaignMission } from './campaign/types';
 import { campaignManager } from './campaign/CampaignManager';
-import { isMobilePhone } from './deviceUtils';
+import { isMobilePhone, getGameDpr } from './deviceUtils';
 import { track } from '../analytics';
 
 /**
@@ -212,12 +212,13 @@ export class GameScene extends Phaser.Scene {
       // ЛКМ / тап: выбор базы для фокусированной стрельбы или отмена выбора
       if (pointer.button === 0 || pointer.button === -1 || pointer.leftButtonDown()) {
         if (!this.isMenuMode && !this.isGameOver && !this.scene.isPaused()) {
+          const dpr = getGameDpr();
           // Защита от выбора станций при касании области виртуального джойстика (левый нижний угол)
-          if (pointer.x < 190 && pointer.y > this.scale.height - 190) {
+          if (pointer.x < 190 * dpr && pointer.y > this.scale.height - 190 * dpr) {
             return;
           }
           // Защита от выбора станций при касании области кнопок способностей (правый нижний угол)
-          if (pointer.x > this.scale.width - 320 && pointer.y > this.scale.height - 140) {
+          if (pointer.x > this.scale.width - 320 * dpr && pointer.y > this.scale.height - 140 * dpr) {
             return;
           }
           const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
@@ -261,16 +262,18 @@ export class GameScene extends Phaser.Scene {
     // 6. Настройка камеры для слежения за кораблем в пределах ограниченной карты
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.cameras.main.setBackgroundColor('#02040a');
-    this.cameras.main.startFollow(this.playerShip.shipSprite, true, 0.08, 0.08);
+    this.cameras.main.startFollow(this.playerShip.shipSprite, false, 0.08, 0.08);
 
     // 7. Построение боевого HUD интерфейса и тактического радара в выделенной статичной сцене HudScene
-    this.hudManager = new HudManager(width, height);
+    const initialDpr = getGameDpr();
+    this.hudManager = new HudManager(width / initialDpr, height / initialDpr);
     if (!this.scene.isActive('HudScene')) {
       this.scene.launch('HudScene');
     }
     this.scene.bringToTop('HudScene');
     const hudScene = this.scene.get('HudScene') as HudScene | undefined;
     if (hudScene && hudScene.isCreated) {
+      hudScene.syncCameraZoom();
       this.hudManager.attachScene(hudScene);
     }
 
@@ -294,7 +297,10 @@ export class GameScene extends Phaser.Scene {
 
     // 10. Адаптивность при изменении размера окна
     const resizeListener = (gameSize: Phaser.Structs.Size) => {
-      this.hudManager.handleResize(gameSize.width, gameSize.height);
+      const dpr = getGameDpr();
+      const activeHudScene = this.scene.get('HudScene') as HudScene | undefined;
+      activeHudScene?.syncCameraZoom();
+      this.hudManager.handleResize(gameSize.width / dpr, gameSize.height / dpr);
       this.updateCameraZoom();
     };
     this.scale.on('resize', resizeListener, this);
@@ -335,7 +341,7 @@ export class GameScene extends Phaser.Scene {
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
     this.wasBossKilled = false;
-    this.cameras.main.setZoom(1.0);
+    this.cameras.main.setZoom(getGameDpr());
     this.cameras.main.setFollowOffset(0, 0);
   }
 
@@ -349,7 +355,7 @@ export class GameScene extends Phaser.Scene {
     this.playerShip?.resetUpgrades();
     this.spaceStationManager?.setTargetedStation(null);
     this.tweens.killTweensOf(this.cameras.main);
-    this.cameras.main.setZoom(1.0);
+    this.cameras.main.setZoom(getGameDpr());
     this.cameras.main.setFollowOffset(0, 0);
     this.enemyManager?.reset();
     this.weaponSystem?.reset();
@@ -364,17 +370,18 @@ export class GameScene extends Phaser.Scene {
    * Вычисление целевого масштаба камеры (Zoom).
    * Если игрок играет со смартфона/телефона (НЕ ПЛАНШЕТА), увеличиваем обзор,
    * отдаляя камеру (зум 0.62-0.70) для обеспечения комфортного поля видимости ~570-600px по вертикали.
-   * На планшетах и ПК масштаб остается 1.0.
+   * На планшетах и ПК масштаб остается 1.0 (умноженным на HiDPI-коэффициент устройства).
    */
   public getTargetCameraZoom(): number {
+    const dpr = getGameDpr();
     if (this.isMenuMode) {
-      return 1.0;
+      return dpr;
     }
     if (isMobilePhone()) {
-      const { height } = this.scale;
-      return Phaser.Math.Clamp(height / 570, 0.62, 0.70);
+      const logicalHeight = this.scale.height / dpr;
+      return Phaser.Math.Clamp(logicalHeight / 570, 0.62, 0.70) * dpr;
     }
-    return 1.0;
+    return dpr;
   }
 
   public updateCameraZoom(): void {

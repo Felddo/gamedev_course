@@ -159,3 +159,12 @@ export function updateDeviceClasses(): void {
     document.body.classList.add('is-desktop');
   }
 }
+
+/**
+ * Коэффициент масштабирования пикселей устройства (Device Pixel Ratio) для HiDPI-рендеринга Phaser.
+ * Ограничен значением 3, чтобы сохранять максимальную четкость на смартфонах без избыточной нагрузки на GPU.
+ */
+export function getGameDpr(): number {
+  if (typeof window === 'undefined') return 1;
+  return Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
+}

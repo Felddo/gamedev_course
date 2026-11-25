@@ -2,13 +2,13 @@ import Phaser from 'phaser';
 import { PLAYER_MAX_HP, MAP_WIDTH, MAP_HEIGHT } from './constants';
 import { EnemyShip, Meteor, SpaceStation, ScrapPickup } from './types';
 import { CampaignMission } from './campaign/types';
-import { isMobilePhone } from './deviceUtils';
+import { isMobilePhone, getGameDpr } from './deviceUtils';
 
 const RADAR_SIZE = 170;
 const RADAR_SCAN_RADIUS = 1500;
 
 // Высокое разрешение для рендеринга текста в текстуры WebGL
-const HUD_TEXT_RESOLUTION = Math.max(3, Math.min(4, Math.ceil((window.devicePixelRatio || 1) * 1.5)));
+const HUD_TEXT_RESOLUTION = Math.max(3, Math.min(6, Math.ceil((window.devicePixelRatio || 1) * 2)));
 
 /**
  * Менеджер пользовательского интерфейса (HUD):
@@ -70,6 +70,18 @@ export class HudManager {
     this.lastHeight = height;
   }
 
+  private getLogicalWidth(): number {
+    if (!this.scene) return this.lastWidth;
+    const dpr = getGameDpr();
+    return (this.scene.scale.width || this.lastWidth * dpr) / dpr;
+  }
+
+  private getLogicalHeight(): number {
+    if (!this.scene) return this.lastHeight;
+    const dpr = getGameDpr();
+    return (this.scene.scale.height || this.lastHeight * dpr) / dpr;
+  }
+
   /**
    * Подключение менеджера к выделенной сцене HudScene и создание всех элементов HUD.
    */
@@ -81,8 +93,8 @@ export class HudManager {
     }
 
     this.scene = scene;
-    const width = scene.scale.width || this.lastWidth;
-    const height = scene.scale.height || this.lastHeight;
+    const width = this.getLogicalWidth();
+    const height = this.getLogicalHeight();
     this.lastWidth = width;
     this.lastHeight = height;
 
@@ -404,27 +416,28 @@ export class HudManager {
     this.hudGraphics.clear();
 
     // 1. Общая подложка верхней голографической панели + сканлайны
+    const barSpanWidth = Math.ceil(width);
     this.hudGraphics.fillStyle(0x02120c, 0.92);
-    this.hudGraphics.fillRect(0, 0, width, topBarHeight);
+    this.hudGraphics.fillRect(0, 0, barSpanWidth, topBarHeight);
 
     // Верхняя мягкая изумрудная полоса свечения
     this.hudGraphics.fillStyle(0x064e3b, 0.22);
-    this.hudGraphics.fillRect(0, 0, width, Math.floor(topBarHeight * 0.45));
+    this.hudGraphics.fillRect(0, 0, barSpanWidth, Math.floor(topBarHeight * 0.45));
 
     // Тонкие горизонтальные голографические scanlines
     this.hudGraphics.lineStyle(1, 0x10b981, 0.055);
     for (let sy = 4; sy < topBarHeight - 2; sy += 4) {
-      this.hudGraphics.lineBetween(0, sy, width, sy);
+      this.hudGraphics.lineBetween(0, sy, barSpanWidth, sy);
     }
 
     // Верхняя тонкая линия и нижний неоновый кант с мягким свечением
     this.hudGraphics.lineStyle(1, 0x34d399, 0.32);
-    this.hudGraphics.lineBetween(0, 1, width, 1);
+    this.hudGraphics.lineBetween(0, 1, barSpanWidth, 1);
 
     this.hudGraphics.lineStyle(4, 0x10b981, 0.16);
-    this.hudGraphics.lineBetween(0, topBarHeight, width, topBarHeight);
+    this.hudGraphics.lineBetween(0, topBarHeight, barSpanWidth, topBarHeight);
     this.hudGraphics.lineStyle(1.6, 0x34d399, 0.92);
-    this.hudGraphics.lineBetween(0, topBarHeight, width, topBarHeight);
+    this.hudGraphics.lineBetween(0, topBarHeight, barSpanWidth, topBarHeight);
 
     const padX = isPhone ? 8 : (isSmall ? 10 : 16);
     const rightSafe = this.getSafeAreaRight();
@@ -637,8 +650,8 @@ export class HudManager {
       this.pendingLayoutRaf = window.requestAnimationFrame(() => {
         this.pendingLayoutRaf = null;
         if (this.hudContainer && this.scene) {
-          this.layoutHud(this.scene.scale.width || this.lastWidth);
-          this.positionRadar(this.scene.scale.width || this.lastWidth, this.scene.scale.height || this.lastHeight);
+          this.layoutHud(this.getLogicalWidth());
+          this.positionRadar(this.getLogicalWidth(), this.getLogicalHeight());
         }
       });
     }
@@ -799,7 +812,7 @@ export class HudManager {
   private renderBossBar(boss: EnemyShip): void {
     if (!this.bossBarGraphics || !this.bossBarText || !this.scene) return;
     const isPhone = isMobilePhone();
-    const width = this.scene.scale.width || this.lastWidth;
+    const width = this.getLogicalWidth();
     const topBarHeight = this.getTopBarHeight();
     const barY = topBarHeight + 6;
     const barHeight = isPhone ? 15 : 16;
