@@ -689,7 +689,7 @@ export class ShipBuilderModal {
               return;
             }
             this.nudgeSelectedPart(dx, dy);
-          }, 70);
+          }, 120);
         }, 280);
       });
 
@@ -698,10 +698,10 @@ export class ShipBuilderModal {
       btn.addEventListener('pointercancel', stopRepeat);
     };
 
-    bindNudge(this.btnNudgeLeft, -5, 0);
-    bindNudge(this.btnNudgeDown, 0, 5);
-    bindNudge(this.btnNudgeUp, 0, -5);
-    bindNudge(this.btnNudgeRight, 5, 0);
+    bindNudge(this.btnNudgeLeft, -1, 0);
+    bindNudge(this.btnNudgeDown, 0, 1);
+    bindNudge(this.btnNudgeUp, 0, -1);
+    bindNudge(this.btnNudgeRight, 1, 0);
 
     // Клик по свободной области ангара для сброса выделения
     this.centerBayEl.addEventListener('pointerdown', (e: PointerEvent) => {
@@ -1939,7 +1939,79 @@ export class ShipBuilderModal {
   }
 
   /**
-   * Сдвиг выбранной детали на заданное смещение (dx, dy)
+   * Определение фактического размера ячейки фоновой сетки и рабочей области отсека
+   */
+  private getGridMetrics(): { cellW: number; cellH: number; maxW: number; maxH: number } {
+    const surface = this.modalEl.querySelector('#hangar-drop-surface') as HTMLElement | null;
+    const gridEl = this.centerBayEl?.querySelector('.hangar-grid-lines') as HTMLElement | null;
+
+    const maxW =
+      surface && surface.clientWidth > 0
+        ? surface.clientWidth
+        : this.centerBayEl && this.centerBayEl.clientWidth > 0
+          ? this.centerBayEl.clientWidth
+          : isMobilePhone()
+            ? 195.6
+            : 346.4;
+    const maxH =
+      surface && surface.clientHeight > 0
+        ? surface.clientHeight
+        : this.centerBayEl && this.centerBayEl.clientHeight > 0
+          ? this.centerBayEl.clientHeight
+          : isMobilePhone()
+            ? 195.6
+            : 346.4;
+
+    let cellW = isMobilePhone() ? maxW / 9 : 22;
+    let cellH = isMobilePhone() ? maxH / 9 : 22;
+
+    if (gridEl && typeof window !== 'undefined' && window.getComputedStyle) {
+      const bgSize = window.getComputedStyle(gridEl).backgroundSize;
+      if (bgSize) {
+        const parts = bgSize.split(/\s+/);
+        const parsedW = parseFloat(parts[0]);
+        const parsedH = parseFloat(parts[1] ?? parts[0]);
+        if (Number.isFinite(parsedW) && parsedW > 4) cellW = parsedW;
+        if (Number.isFinite(parsedH) && parsedH > 4) cellH = parsedH;
+      }
+    }
+
+    return { cellW, cellH, maxW, maxH };
+  }
+
+  /**
+   * Вычисление следующей координаты по сетке с шагом в полклетки (центр квадрата или граница)
+   */
+  private stepAlongHalfGrid(
+    current: number,
+    direction: number,
+    cellSize: number,
+    minPos: number,
+    maxPos: number,
+  ): number {
+    if (direction === 0) return current;
+
+    const halfStep = cellSize / 2;
+    const idx = current / halfStep;
+    const nearestIdx = Math.round(idx);
+    const dirSign = Math.sign(direction);
+
+    const nextIdx =
+      Math.abs(idx - nearestIdx) < 0.08
+        ? nearestIdx + dirSign
+        : dirSign > 0
+          ? Math.ceil(idx)
+          : Math.floor(idx);
+
+    const minIdx = Math.ceil(minPos / halfStep);
+    const maxIdx = Math.floor(maxPos / halfStep);
+    const clampedIdx = Math.max(minIdx, Math.min(maxIdx, nextIdx));
+
+    return Number((clampedIdx * halfStep).toFixed(2));
+  }
+
+  /**
+   * Сдвиг выбранной детали по сетке на полквадратика в направлении (dx, dy)
    */
   public nudgeSelectedPart(dx: number, dy: number): void {
     if (!this.selectedPartUid) return;
@@ -1948,12 +2020,14 @@ export class ShipBuilderModal {
     if (!part) return;
 
     this.clearDisconnectedMarks();
-    const bayRect = this.centerBayEl ? this.centerBayEl.getBoundingClientRect() : null;
-    const maxW = bayRect && bayRect.width > 0 ? bayRect.width : 400;
-    const maxH = bayRect && bayRect.height > 0 ? bayRect.height : 400;
+    const { cellW, cellH, maxW, maxH } = this.getGridMetrics();
 
-    part.x = Math.max(15, Math.min(maxW - 15, part.x + dx));
-    part.y = Math.max(15, Math.min(maxH - 15, part.y + dy));
+    if (dx !== 0) {
+      part.x = this.stepAlongHalfGrid(part.x, dx, cellW, 15, maxW - 15);
+    }
+    if (dy !== 0) {
+      part.y = this.stepAlongHalfGrid(part.y, dy, cellH, 15, maxH - 15);
+    }
 
     this.updateDroppedPartElement(part);
     this.persistAssembly();
