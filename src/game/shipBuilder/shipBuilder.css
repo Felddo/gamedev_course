@@ -728,6 +728,10 @@
   border-top: 1px dashed rgba(255, 255, 255, 0.15);
 }
 
+.part-price-block.no-price {
+  justify-content: center;
+}
+
 .part-price-val {
   font-family: var(--font-display, 'Orbitron', monospace);
   font-size: 8px;
@@ -1107,6 +1111,17 @@
   font-size: 11px;
   color: var(--holo-text-muted);
   transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.limit-chip:hover:not(.selected) {
+  border-color: rgba(52, 211, 153, 0.8);
+  filter: brightness(1.12);
+}
+
+.limit-chip:active {
+  transform: scale(0.98);
 }
 
 .limit-chip-left {

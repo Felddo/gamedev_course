@@ -389,17 +389,17 @@ export class ShipBuilderModal {
             <!-- 1. СТОЛБЕЦ: МОДУЛИ (Корпус, Кабина, Крылья, Двигатели, Пушки) -->
             <div class="flow-col col-categories" id="col-categories">
               <div class="col-head">
-                <span class="col-head-tag">01 // МОДУЛИ</span>
+                <span class="col-head-tag">МОДУЛИ</span>
               </div>
               <div class="col-scroll">
                 <nav class="categories-list" id="shipyard-categories-list"></nav>
               </div>
             </div>
 
-            <!-- 3. СТОЛБЕЦ: ФОТОГРАФИИ ДЕТАЛЕЙ (выбранного раздела или группы) -->
+            <!-- СТОЛБЕЦ: ФОТОГРАФИИ ДЕТАЛЕЙ (выбранного раздела или группы) -->
             <div class="flow-col col-parts" id="col-parts">
               <div class="col-head">
-                <span class="col-head-tag" id="parts-head-tag">03 // ДЕТАЛИ</span>
+                <span class="col-head-tag" id="parts-head-tag">ДЕТАЛИ</span>
               </div>
               <div class="col-scroll parts-scroll">
                 <div class="parts-grid" id="shipyard-parts-grid"></div>
@@ -420,13 +420,17 @@ export class ShipBuilderModal {
                 <span class="prompt-text">Создай свой корабль, перемещая части в это поле</span>
               </div>
 
-              <!-- СРЕДНИЙ РЯД: СЛЕВА БЛОК 05 И КНОПКА БАЗОВЫЙ СБОР, В ЦЕНТРЕ ОКНО С КОСМОЛЕТОМ И СТРЕЛКИ, СПРАВА БЛОК 04 И КНОПКА ОЧИСТКИ -->
+              <!-- СРЕДНИЙ РЯД: СЛЕВА КНОПКА БАЗОВЫЙ СБОР И БЛОК УПРАВЛЕНИЯ, В ЦЕНТРЕ ОКНО С КОСМОЛЕТОМ И СТРЕЛКИ, СПРАВА КНОПКА ОЧИСТКИ И БЛОК ЧАСТИ -->
               <div class="hangar-bay-wrapper">
-                <!-- ЛЕВАЯ КОЛОНКА: БЛОК 05 И ПОД НИМ ПРЯМОУГОЛЬНАЯ КНОПКА БАЗОВОГО СБОРА -->
+                <!-- ЛЕВАЯ КОЛОНКА: ПРЯМОУГОЛЬНАЯ КНОПКА БАЗОВОГО СБОРА И ПОД НЕЙ БЛОК УПРАВЛЕНИЯ -->
                 <div class="hangar-side-col hangar-side-col-left">
+                  <!-- ПРЯМОУГОЛЬНАЯ КНОПКА БАЗОВЫЙ СБОР НАД БЛОКОМ УПРАВЛЕНИЯ -->
+                  <button id="shipyard-btn-preset" class="hangar-tool-btn hangar-side-btn btn-preset" type="button" title="Загрузить готовую сбалансированную сборку корабля">
+                    ⚡ БАЗОВЫЙ<br>СБОР
+                  </button>
                   <div class="hangar-panel-col selected-module-toolbar" id="selected-module-toolbar">
                     <div class="panel-col-head">
-                      <span class="panel-col-head-tag">05 // УПРАВЛЕНИЕ</span>
+                      <span class="panel-col-head-tag">УПРАВЛЕНИЕ</span>
                     </div>
                     <div class="panel-col-body">
                       <div class="sel-tools">
@@ -445,19 +449,15 @@ export class ShipBuilderModal {
                         <button id="btn-rotate-90" class="sel-tool-btn" type="button" title="Повернуть модуль на 90 градусов" disabled>
                           <span class="tool-icon">↷</span> +90°
                         </button>
-                        <button id="btn-flip-x" class="sel-tool-btn" type="button" title="Отразить модуль по горизонтали" disabled>
-                          <span class="tool-icon">⇄</span> Отразить
-                        </button>
                         <button id="btn-delete-selected" class="sel-tool-btn btn-danger" type="button" title="Удалить выбранный модуль" disabled>
                           <span class="tool-icon">✕</span> Удалить
+                        </button>
+                        <button id="btn-flip-x" class="sel-tool-btn" type="button" title="Отразить модуль по горизонтали" disabled>
+                          <span class="tool-icon">⇄</span> Отразить
                         </button>
                       </div>
                     </div>
                   </div>
-                  <!-- ПРЯМОУГОЛЬНАЯ КНОПКА БАЗОВЫЙ СБОР ПОД БЛОКОМ 05 -->
-                  <button id="shipyard-btn-preset" class="hangar-tool-btn hangar-side-btn btn-preset" type="button" title="Загрузить готовую сбалансированную сборку корабля">
-                    ⚡ БАЗОВЫЙ<br>СБОР
-                  </button>
                 </div>
 
                 <!-- ЦЕНТРАЛЬНАЯ КОЛОНКА: ОКНО С КОСМОЛЕТОМ И ПОД НИМ КНОПКИ СО СТРЕЛКАМИ -->
@@ -506,11 +506,15 @@ export class ShipBuilderModal {
                   </div>
                 </div>
 
-                <!-- ПРАВАЯ КОЛОНКА: БЛОК 04 И ПОД НИМ ПРЯМОУГОЛЬНАЯ КНОПКА ОЧИСТКИ ВСЕГО -->
+                <!-- ПРАВАЯ КОЛОНКА: ПРЯМОУГОЛЬНАЯ КНОПКА ОЧИСТКИ ВСЕГО И ПОД НЕЙ БЛОК ЧАСТИ -->
                 <div class="hangar-side-col hangar-side-col-right">
+                  <!-- ПРЯМОУГОЛЬНАЯ КНОПКА ОЧИСТИТЬ ВСЕ НАД БЛОКОМ ЧАСТИ -->
+                  <button id="shipyard-btn-clear" class="hangar-tool-btn hangar-side-btn btn-clear" type="button" title="Очистить все детали из отсека сборки">
+                    ✕ ОЧИСТИТЬ<br>ВСЕ
+                  </button>
                   <div class="hangar-panel-col hangar-limits-panel" id="hangar-limits-panel">
                     <div class="panel-col-head">
-                      <span class="panel-col-head-tag">04 // ЧАСТИ</span>
+                      <span class="panel-col-head-tag">ЧАСТИ</span>
                     </div>
                     <div class="panel-col-body">
                       <div class="hangar-limits-grid" id="hangar-limits-grid" title="Требуемое количество частей">
@@ -518,10 +522,6 @@ export class ShipBuilderModal {
                       </div>
                     </div>
                   </div>
-                  <!-- ПРЯМОУГОЛЬНАЯ КНОПКА ОЧИСТИТЬ ВСЕ ПОД БЛОКОМ 04 -->
-                  <button id="shipyard-btn-clear" class="hangar-tool-btn hangar-side-btn btn-clear" type="button" title="Очистить все детали из отсека сборки">
-                    ✕ ОЧИСТИТЬ<br>ВСЕ
-                  </button>
                 </div>
               </div>
 
@@ -1373,6 +1373,18 @@ export class ShipBuilderModal {
         </div>
       `;
 
+      badge.addEventListener('click', () => {
+        const matchingParts = this.droppedParts.filter((p) => p.part.category === catId);
+        if (matchingParts.length === 0) return;
+
+        const currentIdx = matchingParts.findIndex((p) => p.uid === this.selectedPartUid);
+        const nextIdx = currentIdx === -1 ? 0 : (currentIdx + 1) % matchingParts.length;
+        const targetPart = matchingParts[nextIdx];
+
+        soundFx.playUiClick();
+        this.selectPart(targetPart.uid);
+      });
+
       this.limitsGridEl.appendChild(badge);
     });
 
@@ -1450,9 +1462,9 @@ export class ShipBuilderModal {
 
     const items = activeCat.directItems;
 
-    // Столбец 3: Сетка деталей
+    // Столбец деталей
     this.partsColEl.style.display = 'flex';
-    this.partsTagEl.textContent = `03 // ${activeCat.title.toUpperCase()} (${items.length})`;
+    this.partsTagEl.textContent = `${activeCat.title.toUpperCase()} (${items.length})`;
     this.renderPartsGrid(items);
 
     const flowEl = this.modalEl.querySelector('#shipyard-columns-flow');
@@ -1470,6 +1482,7 @@ export class ShipBuilderModal {
     const isAvailable = mod ? campaignManager.isModuleAvailableForPurchase(mod.id) : true;
     const displayName = mod ? mod.name : part.name;
     const rarity = getModuleRarity(mod);
+    const isCommon = rarity.type === 'common';
     const statsLines = getModuleStatsLines(mod, part.category);
     const price = mod?.price ?? 50;
     const scrapBalance = campaignManager.getScrapBalance();
@@ -1506,8 +1519,8 @@ export class ShipBuilderModal {
           <div class="part-meta">
             <span class="part-name-tag" title="${displayName}">${displayName}</span>
             ${statsHtml}
-            <div class="part-price-block part-price-owned">
-              <span class="part-price-val"><span class="price-icon">⚙</span> ${price}</span>
+            <div class="part-price-block part-price-owned ${isCommon ? 'no-price' : ''}">
+              ${isCommon ? '' : `<span class="part-price-val"><span class="price-icon">⚙</span> ${price}</span>`}
               <span class="part-status-badge owned">✓ В АРСЕНАЛЕ</span>
             </div>
           </div>
