@@ -31,6 +31,10 @@ export class CampaignManager {
     this.saveData = this.loadFromStorage();
   }
 
+  private generateRunId(): string {
+    return `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+
   public static getInstance(): CampaignManager {
     if (!CampaignManager.instance) {
       CampaignManager.instance = new CampaignManager();
@@ -55,6 +59,12 @@ export class CampaignManager {
       rewardedModuleMissions: [],
       appliedUpgradeIds: [],
       rewardedTacticalMissions: [],
+      runId: undefined,
+      totalShipBuilderTime: 0,
+      trackedFirstModification: false,
+      trackedMission21: false,
+      trackedCampaignCompleted: false,
+      pendingReplayStart: false,
       updatedAt: Date.now(),
     };
 
@@ -82,6 +92,11 @@ export class CampaignManager {
       const appliedUpgradeIds = Array.isArray(parsed.appliedUpgradeIds) ? parsed.appliedUpgradeIds : [];
       const rewardedTacticalMissions = Array.isArray(parsed.rewardedTacticalMissions) ? parsed.rewardedTacticalMissions : [];
       const savedShipAssembly = Array.isArray(parsed.savedShipAssembly) ? parsed.savedShipAssembly : undefined;
+      const runId = typeof parsed.runId === 'string' && parsed.runId.length > 0 ? parsed.runId : undefined;
+      const totalShipBuilderTime =
+        typeof parsed.totalShipBuilderTime === 'number' && parsed.totalShipBuilderTime >= 0
+          ? parsed.totalShipBuilderTime
+          : 0;
 
       return {
         currentSector: sector,
@@ -97,6 +112,12 @@ export class CampaignManager {
         appliedUpgradeIds,
         rewardedTacticalMissions,
         savedShipAssembly,
+        runId,
+        totalShipBuilderTime,
+        trackedFirstModification: Boolean(parsed.trackedFirstModification),
+        trackedMission21: Boolean(parsed.trackedMission21),
+        trackedCampaignCompleted: Boolean(parsed.trackedCampaignCompleted),
+        pendingReplayStart: Boolean(parsed.pendingReplayStart),
         updatedAt: parsed.updatedAt || Date.now(),
       };
     } catch (e) {
@@ -504,6 +525,9 @@ export class CampaignManager {
    * Полный сброс кампании (для старта заново)
    */
   public resetCampaign(): void {
+    const wasCompleted =
+      this.saveData.state === 'completed' || Boolean(this.saveData.pendingReplayStart);
+
     this.saveData = {
       currentSector: 1,
       currentMission: 1,
@@ -518,9 +542,64 @@ export class CampaignManager {
       appliedUpgradeIds: [],
       rewardedTacticalMissions: [],
       savedShipAssembly: undefined,
+      runId: this.generateRunId(),
+      totalShipBuilderTime: 0,
+      trackedFirstModification: false,
+      trackedMission21: false,
+      trackedCampaignCompleted: false,
+      pendingReplayStart: wasCompleted,
       updatedAt: Date.now(),
     };
     this.saveToStorage();
+  }
+
+  public getRunId(): string {
+    if (!this.saveData.runId) {
+      this.saveData.runId = this.generateRunId();
+      this.saveToStorage();
+    }
+    return this.saveData.runId;
+  }
+
+  public getTotalShipBuilderTime(): number {
+    return this.saveData.totalShipBuilderTime ?? 0;
+  }
+
+  public addShipBuilderTime(elapsedSeconds: number): number {
+    if (elapsedSeconds > 0 && Number.isFinite(elapsedSeconds)) {
+      this.saveData.totalShipBuilderTime = (this.saveData.totalShipBuilderTime ?? 0) + elapsedSeconds;
+      this.saveToStorage();
+    }
+    return this.saveData.totalShipBuilderTime ?? 0;
+  }
+
+  public markFirstModificationReached(): boolean {
+    if (this.saveData.trackedFirstModification) return false;
+    this.saveData.trackedFirstModification = true;
+    this.saveToStorage();
+    return true;
+  }
+
+  public markMission21Reached(): boolean {
+    if (this.saveData.trackedMission21) return false;
+    this.saveData.trackedMission21 = true;
+    this.saveToStorage();
+    return true;
+  }
+
+  public markCampaignCompleted(): boolean {
+    if (this.saveData.trackedCampaignCompleted) return false;
+    this.saveData.trackedCampaignCompleted = true;
+    this.saveToStorage();
+    return true;
+  }
+
+  public consumePendingReplayStart(): string | null {
+    if (!this.saveData.pendingReplayStart) return null;
+    this.saveData.pendingReplayStart = false;
+    const newRunId = this.getRunId();
+    this.saveToStorage();
+    return newRunId;
   }
 
   /**

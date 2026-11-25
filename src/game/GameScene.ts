@@ -56,6 +56,7 @@ import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
 import { CampaignMission } from './campaign/types';
 import { campaignManager } from './campaign/CampaignManager';
 import { isMobilePhone } from './deviceUtils';
+import { track } from '../analytics';
 
 /**
  * Основная боевая сцена космического выживания:
@@ -851,6 +852,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(300, 0.012);
 
     const isBossMission = !!this.currentMission?.isBoss;
+    const runId = campaignManager.getRunId();
 
     // 3. Фиксация победы в CampaignManager с начислением наград металлолома
     const outcome = campaignManager.recordVictory(
@@ -864,6 +866,33 @@ export class GameScene extends Phaser.Scene {
       },
     );
     const timeFormatted = this.hudManager.formatTime(this.survivalTime);
+
+    track('game_over', {
+      run_id: runId,
+      score: this.score,
+      phase: this.currentPhase,
+      duration_sec: Math.round(this.survivalTime),
+      outcome: 'victory',
+    });
+
+    const completedMissionId = `${outcome.completedSector}-${outcome.completedMission}`;
+    if (completedMissionId === '1-3' && campaignManager.markFirstModificationReached()) {
+      track('first_modification_reached', {
+        run_id: runId,
+        mission_id: '1-3',
+      });
+    }
+
+    if (outcome.isCampaignComplete && campaignManager.markCampaignCompleted()) {
+      track('campaign_completed', {
+        run_id: runId,
+        mission_id: '3-5',
+      });
+      track('ship_builder_total_time', {
+        run_id: runId,
+        total_seconds: Math.round(campaignManager.getTotalShipBuilderTime()),
+      });
+    }
 
     // 4. Оповещение UI об успешном выполнении миссии
     window.dispatchEvent(
@@ -911,6 +940,14 @@ export class GameScene extends Phaser.Scene {
   private triggerGameOver(reason?: string): void {
     if (this.isGameOver) return;
     this.isGameOver = true;
+
+    track('game_over', {
+      run_id: campaignManager.getRunId(),
+      score: this.score,
+      phase: this.currentPhase,
+      duration_sec: Math.round(this.survivalTime),
+      outcome: 'defeat',
+    });
 
     // Останавливаем спавн и уничтожаем накопившиеся метеориты, чтобы не спавниться в них при рестарте
     this.meteorManager.stopSpawning();

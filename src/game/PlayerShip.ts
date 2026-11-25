@@ -19,6 +19,8 @@ import { AtmosphereManager } from './AtmosphereManager';
 import { ParticleManager } from './ParticleManager';
 import { CustomShipAssembly } from './shipBuilder/ShipBuilderModal';
 import { calculateAssemblyStats, CalculatedShipStats } from './shipBuilder/modulesCatalog';
+import { track } from '../analytics';
+import { campaignManager } from './campaign/CampaignManager';
 
 /**
  * Боевой космический корабль игрока:
@@ -538,6 +540,13 @@ export class PlayerShip {
     }
 
     this.emitDashState();
+
+    const gameScene = this.scene as { isMenuMode?: boolean; isMissionWon?: boolean };
+    if (this.isShipVisible && !this.isAutopilot && !gameScene.isMenuMode && !gameScene.isMissionWon) {
+      track('ability_shift_used', {
+        run_id: campaignManager.getRunId(),
+      });
+    }
   }
 
   public tryTriggerSuperMode(particleManager?: ParticleManager): void {
@@ -560,6 +569,13 @@ export class PlayerShip {
     }
 
     this.emitSuperState();
+
+    const gameScene = this.scene as { isMenuMode?: boolean; isMissionWon?: boolean };
+    if (this.isShipVisible && !this.isAutopilot && !gameScene.isMenuMode && !gameScene.isMissionWon) {
+      track('ability_q_used', {
+        run_id: campaignManager.getRunId(),
+      });
+    }
   }
 
   public exitSuperMode(): void {

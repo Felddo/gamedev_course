@@ -2,6 +2,18 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Подключение Яндекс Метрики и аналитики игровых событий
+
+**Что сделано:**
+- **Подключение счётчика Яндекс Метрики (`114661784`):**
+  - В [index.html](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/index.html) размещён код счётчика в начале `<body>` с однократной инициализацией.
+- **Единый модуль аналитики `track()`:**
+  - Создан [analytics.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/analytics.ts) с функцией `track()`, логированием `[Analytics]` в `DEV`-режиме, версией `game_version: "0.5.0"` и безопасной обработкой недоступности `ym`.
+- **Игровые события и защита от дублирования:**
+  - В [types.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/campaign/types.ts) и [CampaignManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/campaign/CampaignManager.ts) добавлены `runId`, сохранение суммарного времени сборки и флаги однократной отправки событий.
+  - В [ShipBuilderModal.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/ShipBuilderModal.ts) реализован накопительный учёт времени в конструкторе (`shipBuilderStartTime`, `totalShipBuilderTime`).
+  - В [PlayerShip.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/PlayerShip.ts), [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts) и [main.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/main.ts) подключены события `first_modification_reached`, `ship_builder_total_time`, `ability_shift_used`, `ability_q_used`, `mission_2_1_reached`, `campaign_completed`, `campaign_replay_started` и `game_over`.
+
 ## Запрет входа в бой при наличии оторванных деталей корабля (точная геометрическая проверка SAT)
 
 **Что сделано:**

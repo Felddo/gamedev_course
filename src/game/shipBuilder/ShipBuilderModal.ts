@@ -301,6 +301,10 @@ export class ShipBuilderModal {
   // Alert Timer
   private alertTimer: number | null = null;
 
+  // Analytics: замер времени в конструкторе корабля
+  private shipBuilderStartTime: number | null = null;
+  private totalShipBuilderTime = 0;
+
   // Callbacks
   public onLaunch: ((assembly: CustomShipAssembly) => void) | null = null;
   public onReturnToMenu: (() => void) | null = null;
@@ -308,6 +312,7 @@ export class ShipBuilderModal {
   constructor() {
     this.container = document.body;
     this.catalog = buildPartsCatalog();
+    this.totalShipBuilderTime = campaignManager.getTotalShipBuilderTime();
 
     const firstCat = this.catalog[0];
     this.activeCategoryId = firstCat?.id || 'pilot';
@@ -324,6 +329,9 @@ export class ShipBuilderModal {
 
     if (typeof window !== 'undefined') {
       (window as any).shipBuilderModal = this;
+      window.addEventListener('beforeunload', () => {
+        this.finishShipBuilderSession();
+      });
     }
   }
 
@@ -1207,6 +1215,7 @@ export class ShipBuilderModal {
 
     this.clearDisconnectedMarks();
     soundFx.playUiClick();
+    this.finishShipBuilderSession();
     const assembly = this.getShipAssembly();
     this.close();
     if (this.onLaunch) {
@@ -1219,12 +1228,23 @@ export class ShipBuilderModal {
    * Открытие модального окна
    */
   public open(): void {
+    if (this.shipBuilderStartTime === null) {
+      this.shipBuilderStartTime = Date.now();
+    }
+    this.totalShipBuilderTime = campaignManager.getTotalShipBuilderTime();
     this.modalEl.classList.remove('hidden');
     const flowEl = this.modalEl.querySelector('#shipyard-columns-flow');
     if (flowEl) flowEl.scrollLeft = 0;
     this.updateScrapDisplay();
     this.ensurePartsInBay();
     this.render();
+  }
+
+  private finishShipBuilderSession(): void {
+    if (this.shipBuilderStartTime === null) return;
+    const elapsedSeconds = Math.max(0, (Date.now() - this.shipBuilderStartTime) / 1000);
+    this.shipBuilderStartTime = null;
+    this.totalShipBuilderTime = campaignManager.addShipBuilderTime(elapsedSeconds);
   }
 
   /**
@@ -1285,6 +1305,7 @@ export class ShipBuilderModal {
    * Закрытие модального окна
    */
   public close(): void {
+    this.finishShipBuilderSession();
     this.modalEl.classList.add('hidden');
     this.cleanupTouchGhost();
     this.isMovingDroppedPart = false;

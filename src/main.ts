@@ -7,6 +7,7 @@ import { shipModificationModal } from './game/modifications/ShipModificationModa
 import { campaignManager } from './game/campaign/CampaignManager';
 import { CampaignMission, ScrapVictoryBreakdown } from './game/campaign/types';
 import { VirtualJoystick } from './game/VirtualJoystick';
+import { track } from './analytics';
 import menuBgUrl from './assets/menu_bg.jpg';
 import {
   isMobilePhone,
@@ -370,6 +371,22 @@ function launchGame(): void {
   });
 }
 
+function trackCombatStartAnalytics(mission: CampaignMission): void {
+  const replayRunId = campaignManager.consumePendingReplayStart();
+  if (replayRunId) {
+    track('campaign_replay_started', {
+      run_id: replayRunId,
+    });
+  }
+
+  if (mission.id === '2-1' && campaignManager.markMission21Reached()) {
+    track('mission_2_1_reached', {
+      run_id: campaignManager.getRunId(),
+      mission_id: '2-1',
+    });
+  }
+}
+
 /**
  * Прямой запуск следующей миссии без открытия конструктора корабля
  * (используется после получения модификаций на контрольных уровнях)
@@ -397,6 +414,8 @@ function launchDirectCombat(nextMission: CampaignMission): void {
       scene.startCombatSession(nextMission);
     }
   }
+
+  trackCombatStartAnalytics(nextMission);
 
   showPhaseAnnouncement(
     1,
@@ -431,6 +450,7 @@ function startCombatFromBuilder(assembly?: CustomShipAssembly): void {
   }
 
   const activeMission = campaignManager.getCurrentMission();
+  trackCombatStartAnalytics(activeMission);
   // Отображение голограммы миссии
   showPhaseAnnouncement(
     1,
