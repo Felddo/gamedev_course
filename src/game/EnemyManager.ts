@@ -694,7 +694,7 @@ export class EnemyManager {
             : baseDamage;
           enemy.hp -= damage;
 
-          // Взрывные снаряды: осколочно-фугасный урон по площади (Плазменные боеприпасы)
+          // Взрывные снаряды: осколочно-фугасный урон по площади
           if (laser.isExplosive) {
             particleManager.spawnExplosion(laser.sprite.x, laser.sprite.y);
             const splashRadius = 110;
@@ -724,51 +724,6 @@ export class EnemyManager {
                 if (splashTarget.hp <= 0) {
                   this.destroyEnemy(s, particleManager, onEnemyKilled);
                   if (s < e) {
-                    e--;
-                  }
-                }
-              }
-            }
-          }
-
-          // Электромагнитный разряд: 35% шанс вызвать электрическую дугу по ближайшему другому врагу
-          if (weaponSystem.hasEmpDischarge && Math.random() < 0.35) {
-            let nearestOther: EnemyShip | null = null;
-            let minOtherDist = 320;
-            for (let o = 0; o < this.enemies.length; o++) {
-              const other = this.enemies[o];
-              if (other === enemy || other.hp <= 0 || !other.sprite?.active) continue;
-              const d = Phaser.Math.Distance.Between(
-                laser.sprite.x,
-                laser.sprite.y,
-                other.sprite.x,
-                other.sprite.y,
-              );
-              if (d < minOtherDist) {
-                minOtherDist = d;
-                nearestOther = other;
-              }
-            }
-            if (nearestOther) {
-              particleManager.spawnElectricArc(
-                laser.sprite.x,
-                laser.sprite.y,
-                nearestOther.sprite.x,
-                nearestOther.sprite.y,
-              );
-              soundFx.playHit();
-              nearestOther.sprite.setTint(0x38bdf8);
-              nearestOther.isHitFlash = 0.08;
-              const arcIsBoss = nearestOther.type === 'boss' || !!nearestOther.isBoss || this.activeBoss === nearestOther;
-              const arcDamage = (arcIsBoss && weaponSystem.hasAnnihilationProtocol)
-                ? baseDamage * 1.3
-                : baseDamage;
-              nearestOther.hp -= arcDamage;
-              if (nearestOther.hp <= 0) {
-                const otherIdx = this.enemies.indexOf(nearestOther);
-                if (otherIdx !== -1) {
-                  this.destroyEnemy(otherIdx, particleManager, onEnemyKilled);
-                  if (otherIdx < e) {
                     e--;
                   }
                 }

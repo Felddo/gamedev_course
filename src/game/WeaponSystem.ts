@@ -41,8 +41,6 @@ export class WeaponSystem {
   // Модификации корабля
   public modFireRateMultiplier = 1.0;
   public modDamageMultiplier = 1.0;
-  public hasPlasmaMunitions = false;
-  public hasEmpDischarge = false;
   public hasAnnihilationProtocol = false;
 
   public getBulletDamage(baseDamage: number): number {
@@ -92,10 +90,6 @@ export class WeaponSystem {
     } else if (upgradeId === 'reinforced_barrels') {
       this.modDamageMultiplier *= 1.2;
       this.modFireRateMultiplier *= 0.9;
-    } else if (upgradeId === 'plasma_munitions') {
-      this.hasPlasmaMunitions = true;
-    } else if (upgradeId === 'emp_discharge') {
-      this.hasEmpDischarge = true;
     } else if (upgradeId === 'annihilation_protocol') {
       this.hasAnnihilationProtocol = true;
     }
@@ -110,8 +104,6 @@ export class WeaponSystem {
     this.cooldownMultiplier = 1.0;
     this.modFireRateMultiplier = 1.0;
     this.modDamageMultiplier = 1.0;
-    this.hasPlasmaMunitions = false;
-    this.hasEmpDischarge = false;
     this.hasAnnihilationProtocol = false;
   }
 
@@ -252,7 +244,7 @@ export class WeaponSystem {
       vy,
       lifetime: (BLASTER_RANGE * 1.15) / speed,
       damage: this.getBulletDamage(BLASTER_DAMAGE),
-      isExplosive: this.hasExplosiveShells || this.hasPlasmaMunitions,
+      isExplosive: this.hasExplosiveShells,
       pierceCount: this.hasPiercing ? 2 : 1,
       hitEnemies: new Set(),
     });
@@ -296,7 +288,7 @@ export class WeaponSystem {
       vy,
       lifetime: BLASTER_RANGE / SUPER_BLASTER_SPEED,
       damage: this.getBulletDamage(SUPER_BLASTER_DAMAGE),
-      isExplosive: this.hasExplosiveShells || this.hasPlasmaMunitions,
+      isExplosive: this.hasExplosiveShells,
       pierceCount: this.hasPiercing ? 2 : 1,
       hitEnemies: new Set(),
     });

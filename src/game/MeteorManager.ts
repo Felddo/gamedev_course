@@ -280,17 +280,19 @@ export class MeteorManager {
   }
 
   /**
-   * Смертоносное столкновение с кораблем игрока:
-   * "при столкновении корабля с метеоритом корабль должен сразу погибать"
-   * Защита: во время щита неуязвимости при спавне или форсаже гибель блокируется.
+   * Столкновение с метеоритом:
+   * по умолчанию корабль погибает сразу (100% урона),
+   * а с модификацией «Противометеоритная броня» получает 50% урона от максимального HP.
+   * Защита: во время щита неуязвимости при спавне или форсаже урон блокируется.
    */
   public checkPlayerCollision(
     player: PlayerShip,
     onFatalCrash: () => void,
+    particleManager?: ParticleManager,
   ): boolean {
     if (player.isGameOver) return false;
 
-    // Щит неуязвимости при спавне или форсаже спасает от мгновенной гибели
+    // Щит неуязвимости при спавне или форсаже спасает от столкновения
     if (player.invulnTimer > 0 || player.isDashing) {
       return false;
     }
@@ -298,12 +300,32 @@ export class MeteorManager {
     // Радиус хитбокса корабля игрока (с учетом уменьшенного масштаба)
     const playerRadius = 20;
 
-    for (let i = 0; i < this.meteors.length; i++) {
+    for (let i = this.meteors.length - 1; i >= 0; i--) {
       const m = this.meteors[i];
       const dist = Phaser.Math.Distance.Between(player.x, player.y, m.sprite.x, m.sprite.y);
 
       // Проверка перекрытия круговых коллайдеров
       if (dist < playerRadius + m.radius) {
+        if (player.meteorDamageMultiplier < 1) {
+          const meteorDamage = Math.max(1, Math.ceil(player.maxHp * player.meteorDamageMultiplier));
+          player.hp = Math.max(0, player.hp - meteorDamage);
+
+          if (player.hp <= 0) {
+            onFatalCrash();
+            return true;
+          }
+
+          player.invulnTimer = Math.max(player.invulnTimer, 1.0);
+          soundFx.playHit();
+          this.scene.cameras.main.shake(240, 0.014);
+          if (particleManager) {
+            this.emitMeteorExplosion(m.sprite.x, m.sprite.y, m.scale, particleManager);
+          }
+          m.sprite.destroy();
+          this.meteors.splice(i, 1);
+          return true;
+        }
+
         // МГНОВЕННАЯ СМЕРТЬ: сбрасываем HP до 0 и вызываем триггер фатального взрыва
         player.hp = 0;
         onFatalCrash();

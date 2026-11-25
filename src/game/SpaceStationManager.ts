@@ -9,18 +9,33 @@ import { soundFx } from './audio';
 import { BLASTER_DAMAGE, MAP_WIDTH, MAP_HEIGHT } from './constants';
 import { ScrapManager } from './ScrapManager';
 
-const STATION_TEXTURE_KEYS = [
-  'space_station_020',
-  'space_station_021',
-  'space_station_024',
-];
+const stationImages = import.meta.glob<string>(
+  '../assets/Sprites/Station/*.{png,jpg,jpeg,webp,svg}',
+  { eager: true, import: 'default' },
+);
+
+export const STATION_SPRITE_ASSETS = Object.entries(stationImages)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([filePath, url]) => {
+    const fileName = filePath.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'station';
+    return {
+      key: `space_station_${fileName}`,
+      url,
+    };
+  });
+
+// Максимальный размер старой самой крупной станции (spaceStation_024 при scale 1.55) составлял 620px.
+// Половина от прежнего максимума = 310px.
+const STATION_MAX_RENDERED_SIZE = 310;
+const STATION_MIN_RENDERED_SIZE = 146;
 
 /**
  * Менеджер странствующих космических баз:
- * - Появление на карте баз 3-х видов (020, 021, 024)
+ * - Автоматически загружает все спрайты из папки Sprites/Station и выбирает случайный при появлении
+ * - Случайный размер (максимальный в 2 раза меньше прежнего максимума 620px)
  * - Медленный дрейф и величественное вращение в открытом космосе (не стреляют)
  * - Красная полоска здоровья (HP bar) сверху
- * - При уничтожении: колоссальный взрыв с нанесением урона окружающим объектам и начислением опыта
+ * - При уничтожении: колоссальный взрыв с нанесением урона окружающим объектам и выпадением лома
  */
 export class SpaceStationManager {
   private scene: Phaser.Scene;
@@ -131,7 +146,9 @@ export class SpaceStationManager {
       const dist = Phaser.Math.FloatBetween(400, 850);
       const x = Phaser.Math.Clamp(cx + Math.cos(angle) * dist, 350, MAP_WIDTH - 350);
       const y = Phaser.Math.Clamp(cy + Math.sin(angle) * dist, 350, MAP_HEIGHT - 350);
-      const typeIndex = (i % 3) as 0 | 1 | 2;
+      const typeIndex = STATION_SPRITE_ASSETS.length > 0
+        ? Phaser.Math.Between(0, STATION_SPRITE_ASSETS.length - 1)
+        : 0;
       this.spawnStationAt(x, y, typeIndex, angle + Math.PI / 2);
     }
   }
@@ -359,67 +376,52 @@ export class SpaceStationManager {
     const targetCenterY = vy + vh / 2 + Phaser.Math.Between(-300, 300);
     const moveAngle = Phaser.Math.Angle.Between(startX, startY, targetCenterX, targetCenterY);
 
-    const typeRoll = Phaser.Math.Between(0, 2) as 0 | 1 | 2;
+    const typeRoll = STATION_SPRITE_ASSETS.length > 0
+      ? Phaser.Math.Between(0, STATION_SPRITE_ASSETS.length - 1)
+      : 0;
     this.spawnStationAt(startX, startY, typeRoll, moveAngle);
   }
 
   /**
-   * Инициализация объекта космической базы выбранного типа
+   * Инициализация объекта космической базы со случайным спрайтом из папки Station и случайным размером
    */
   public spawnStationAt(
     x: number,
     y: number,
-    typeIndex: 0 | 1 | 2,
+    typeIndex: number,
     moveAngle: number,
   ): void {
-    const textureKey = STATION_TEXTURE_KEYS[typeIndex];
+    const assetCount = STATION_SPRITE_ASSETS.length;
+    if (assetCount === 0) return;
 
-    let maxHp = 40;
-    let scale = 1.15;
-    let halfWidth = 72;
-    let halfHeight = 200;
-    let boundingRadius = 215;
-    let barWidth = 180;
-    let barHeight = 12;
-    let speed = Phaser.Math.FloatBetween(24, 34);
-    let xpReward = 0; // Опыт со станции не начисляется
-    let scrapReward = 50; // При взрыве станции выпадает лом
-    let explosionRadius = 240;
-    let explosionDamage = 45;
+    const safeIdx = ((typeIndex % assetCount) + assetCount) % assetCount;
+    const textureKey = STATION_SPRITE_ASSETS[safeIdx].key;
 
-    if (typeIndex === 1) {
-      // 021: Орбитальный индустриальный комплекс
-      maxHp = 70;
-      scale = 1.35;
-      halfWidth = 116;
-      halfHeight = 195;
-      boundingRadius = 230;
-      barWidth = 220;
-      barHeight = 14;
-      speed = Phaser.Math.FloatBetween(18, 28);
-      xpReward = 0;
-      scrapReward = 90;
-      explosionRadius = 300;
-      explosionDamage = 60;
-    } else if (typeIndex === 2) {
-      // 024: Тяжелая звездная цитадель
-      maxHp = 110;
-      scale = 1.55;
-      halfWidth = 214;
-      halfHeight = 310;
-      boundingRadius = 380;
-      barWidth = 280;
-      barHeight = 16;
-      speed = Phaser.Math.FloatBetween(14, 22);
-      xpReward = 0;
-      scrapReward = 160;
-      explosionRadius = 360;
-      explosionDamage = 80;
-    }
+    const sprite = this.scene.add.sprite(x, y, textureKey);
+    const texW = sprite.width > 0 ? sprite.width : 172;
+    const texH = sprite.height > 0 ? sprite.height : 52;
+    const maxTexDim = Math.max(texW, texH);
+
+    const minScale = STATION_MIN_RENDERED_SIZE / maxTexDim;
+    const maxScale = STATION_MAX_RENDERED_SIZE / maxTexDim;
+    const scale = Phaser.Math.FloatBetween(minScale, maxScale);
+    const sizeFactor = maxScale > minScale ? (scale - minScale) / (maxScale - minScale) : 0.5;
+
+    const halfWidth = (texW * scale) / 2;
+    const halfHeight = (texH * scale) / 2;
+    const boundingRadius = Math.hypot(halfWidth, halfHeight);
+
+    const maxHp = Math.round(Phaser.Math.Linear(40, 90, sizeFactor));
+    const barWidth = Math.round(Phaser.Math.Linear(120, 200, sizeFactor));
+    const barHeight = Math.round(Phaser.Math.Linear(10, 14, sizeFactor));
+    const speed = Phaser.Math.FloatBetween(18, 32);
+    const xpReward = 0; // Опыт со станции не начисляется
+    const scrapReward = Math.round(Phaser.Math.Linear(50, 130, sizeFactor));
+    const explosionRadius = Math.round(Phaser.Math.Linear(180, 280, sizeFactor));
+    const explosionDamage = Math.round(Phaser.Math.Linear(45, 75, sizeFactor));
 
     const radius = boundingRadius;
 
-    const sprite = this.scene.add.sprite(x, y, textureKey);
     sprite.setOrigin(0.5, 0.5);
     sprite.setScale(scale);
     sprite.setDepth(6.5);
@@ -505,8 +507,8 @@ export class SpaceStationManager {
       return false;
     }
 
-    // Попадание в основной круговой габарит станции
-    const innerBound = station.boundingRadius * 0.85 + padding;
+    // Попадание во вписанную окружность станции
+    const innerBound = Math.min(station.halfWidth, station.halfHeight) + padding;
     if (distSq <= innerBound * innerBound) {
       return true;
     }

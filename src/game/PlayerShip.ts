@@ -85,6 +85,7 @@ export class PlayerShip {
   public attackRadiusMultiplier = 1.0;
   public modDamageReduction = 0;
   public modMoveSpeedMultiplier = 1.0;
+  public meteorDamageMultiplier = 1.0;
 
   public getAttackRadius(): number {
     return PLAYER_ATTACK_RADIUS * this.attackRadiusMultiplier;
@@ -1163,6 +1164,8 @@ export class PlayerShip {
       this.modDamageReduction = 0.35;
     } else if (upgradeId === 'afterburner_thrusters') {
       this.modMoveSpeedMultiplier = 1.35;
+    } else if (upgradeId === 'meteor_shielding') {
+      this.meteorDamageMultiplier = 0.5;
     }
   }
 
@@ -1208,6 +1211,7 @@ export class PlayerShip {
     this.attackRadiusMultiplier = 1.0;
     this.modDamageReduction = 0;
     this.modMoveSpeedMultiplier = 1.0;
+    this.meteorDamageMultiplier = 1.0;
     this.drawAttackRangeCircle();
     this.emitDashState();
   }

@@ -1,6 +1,6 @@
 /**
  * Система модификаций корабля (Ship Modifications System).
- * Централизованный каталог 10 модификаций по мотивам Soul Knight.
+ * Централизованный каталог 9 модификаций по мотивам Soul Knight.
  */
 
 export type ModificationCategory = 'utility' | 'weapon' | 'resources' | 'defense' | 'mobility';
@@ -141,65 +141,31 @@ export const SHIP_MODIFICATIONS: ShipModification[] = [
     `,
   },
 
-  // 5. Плазменные боеприпасы
+  // 5. Противометеоритная броня
   {
-    id: 'plasma_munitions',
-    name: 'Плазменные боеприпасы',
-    category: 'weapon',
-    categoryLabel: 'ОРУЖИЕ',
-    bonusValue: 'ВЗРЫВ ПРИ ПОПАДАНИИ',
-    shortDesc: 'Снаряды создают взрыв при попадании, нанося урон врагам поблизости',
-    accentColor: '#f43f5e',
-    secondaryColor: '#e11d48',
-    badgeBg: 'rgba(244, 63, 94, 0.16)',
+    id: 'meteor_shielding',
+    name: 'Противометеоритная броня',
+    category: 'defense',
+    categoryLabel: 'ЗАЩИТА',
+    bonusValue: '-50% УРОН ОТ МЕТЕОРИТОВ',
+    shortDesc: 'Уменьшает урон при столкновении с метеоритом на 50% (вместо мгновенной гибели)',
+    accentColor: '#f59e0b',
+    secondaryColor: '#d97706',
+    badgeBg: 'rgba(245, 158, 11, 0.16)',
     iconSvg: `
       <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Центральное плазменное ядро -->
-        <circle cx="32" cy="32" r="9" fill="#f43f5e"/>
-        <circle cx="32" cy="32" r="5" fill="#fecdd3"/>
-        <!-- Радиальная ударная волна -->
-        <circle cx="32" cy="32" r="22" stroke="#f43f5e" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8"/>
-        <!-- Осколочные плазменные лучи детонации -->
-        <path d="M32 8 L32 18" stroke="#fb7185" stroke-width="3" stroke-linecap="round"/>
-        <path d="M32 46 L32 56" stroke="#fb7185" stroke-width="3" stroke-linecap="round"/>
-        <path d="M8 32 L18 32" stroke="#fb7185" stroke-width="3" stroke-linecap="round"/>
-        <path d="M46 32 L56 32" stroke="#fb7185" stroke-width="3" stroke-linecap="round"/>
-        <path d="M15 15 L22 22" stroke="#fda4af" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M42 42 L49 49" stroke="#fda4af" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M49 15 L42 22" stroke="#fda4af" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M15 49 L22 42" stroke="#fda4af" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>
-    `,
-  },
-
-  // 6. Электромагнитный разряд
-  {
-    id: 'emp_discharge',
-    name: 'Электромагнитный разряд',
-    category: 'weapon',
-    categoryLabel: 'ОРУЖИЕ',
-    bonusValue: '35% ШАНС ЭЛЕКТРОДУГИ',
-    shortDesc: 'Каждый выстрел имеет 35% шанс поразить электрической дугой соседнего врага',
-    accentColor: '#38bdf8',
-    secondaryColor: '#0284c7',
-    badgeBg: 'rgba(56, 189, 248, 0.16)',
-    iconSvg: `
-      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Цель 1 (источник) -->
-        <circle cx="16" cy="32" r="7" fill="#0c4a6e" stroke="#38bdf8" stroke-width="2"/>
-        <circle cx="16" cy="32" r="3" fill="#7dd3fc"/>
-        <!-- Цель 2 (приемник дуги) -->
-        <circle cx="48" cy="22" r="7" fill="#0c4a6e" stroke="#38bdf8" stroke-width="2"/>
-        <circle cx="48" cy="22" r="3" fill="#7dd3fc"/>
-        <!-- Ветвящаяся электрическая дуга между целями -->
-        <path d="M22 30 L28 24 L32 34 L38 22 L42 26" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M22 30 L28 24 L32 34 L38 22 L42 26" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-        <!-- Искры и вспомогательные ветви -->
-        <path d="M30 28 L34 38 L38 35" stroke="#bae6fd" stroke-width="1.8" stroke-linecap="round"/>
-        <circle cx="28" cy="24" r="1.5" fill="#ffffff"/>
-        <circle cx="38" cy="22" r="1.5" fill="#ffffff"/>
-        <!-- Ионизированный ореол -->
-        <circle cx="32" cy="28" r="22" stroke="#0ea5e9" stroke-width="1" stroke-dasharray="3 3" opacity="0.4"/>
+        <!-- Защитный силовой купол -->
+        <path d="M12 42 C12 24 22 14 34 14 C46 14 54 24 54 42" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+        <path d="M18 44 C18 30 25 21 34 21 C43 21 48 30 48 44" stroke="#fde047" stroke-width="1.8" stroke-dasharray="4 3"/>
+        <!-- Летящий метеорит -->
+        <polygon points="18,12 26,10 30,17 24,23 16,20" fill="#92400e" stroke="#fb923c" stroke-width="2" stroke-linejoin="round"/>
+        <line x1="8" y1="6" x2="15" y2="12" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+        <line x1="14" y1="4" x2="19" y2="9" stroke="#fde047" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- Искры отражения на щите -->
+        <line x1="28" y1="22" x2="34" y2="18" stroke="#fef08a" stroke-width="2" stroke-linecap="round"/>
+        <line x1="25" y1="26" x2="31" y2="27" stroke="#fef08a" stroke-width="2" stroke-linecap="round"/>
+        <!-- Корпус корабля под защитой -->
+        <polygon points="34,30 42,46 34,42 26,46" fill="#042219" stroke="#34d399" stroke-width="2" stroke-linejoin="round"/>
       </svg>
     `,
   },

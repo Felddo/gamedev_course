@@ -2,6 +2,18 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Сортировка спрайтов ракет, обновление модификаций корабля и летающих станций
+
+**Что сделано:**
+- **Сортировка спрайтов ракет в [Missiles](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/assets/Sprites/Missiles):**
+  - Все 30 спрайтов ракет распределены по папкам `red`, `green` и `blue`, одинаковые модели получили одинаковые номера `spaceMissiles_001`–`spaceMissiles_010`.
+  - В [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts) обновлён путь импорта ракеты игрока (`green/spaceMissiles_010.png`).
+- **Обновление модификаций корабля:**
+  - Из [modificationsData.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/modifications/modificationsData.ts), [WeaponSystem.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/WeaponSystem.ts) и [EnemyManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/EnemyManager.ts) удалены модификации `emp_discharge` (электрическая дуга) и `plasma_munitions` (взрыв при попадании).
+  - Добавлена модификация `meteor_shielding` («Противометеоритная броня», `-50% УРОН ОТ МЕТЕОРИТОВ`), интегрированная в [PlayerShip.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/PlayerShip.ts), [MeteorManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/MeteorManager.ts) и [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts).
+- **Обновление летающих станций:**
+  - В [SpaceStationManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/SpaceStationManager.ts), [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts) и [types.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/types.ts) подключена автозагрузка спрайтов из [Station](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/assets/Sprites/Station) через `import.meta.glob` со случайным выбором модели и размера (максимальный размер уменьшен в 2 раза — до `310px`).
+
 ## Обновление компоновки конструктора корабля, выбор деталей из блока «ЧАСТИ» и скрытие цен у обычных модулей
 
 **Что сделано:**

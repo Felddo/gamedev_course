@@ -142,7 +142,7 @@ export interface SpaceStation {
   hpBarFill: Phaser.GameObjects.Rectangle;
   hologramRing?: Phaser.GameObjects.Graphics;
   hologramPhase?: number;
-  typeIndex: 0 | 1 | 2; // 0: station_020, 1: station_021, 2: station_024
+  typeIndex: number; // 0: station_018, 1: station_019, 2: station_022, 3: station_023
   vx: number;
   vy: number;
   speed: number;

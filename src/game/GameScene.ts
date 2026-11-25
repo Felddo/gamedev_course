@@ -16,10 +16,7 @@ import meteor001Url from '../assets/Sprites/Meteors/spaceMeteors_001.png';
 import meteor002Url from '../assets/Sprites/Meteors/spaceMeteors_002.png';
 import meteor003Url from '../assets/Sprites/Meteors/spaceMeteors_003.png';
 import meteor004Url from '../assets/Sprites/Meteors/spaceMeteors_004.png';
-import station020Url from '../assets/Sprites/Station/spaceStation_020.png';
-import station021Url from '../assets/Sprites/Station/spaceStation_021.png';
-import station024Url from '../assets/Sprites/Station/spaceStation_024.png';
-import playerMissileUrl from '../assets/Sprites/Missiles/spaceMissiles_039.png';
+import playerMissileUrl from '../assets/Sprites/Missiles/green/spaceMissiles_010.png';
 import evilShip001Url from '../assets/Sprites/EvilShips/spaceShips_001.png';
 import evilShip002Url from '../assets/Sprites/EvilShips/spaceShips_002.png';
 import evilShip003Url from '../assets/Sprites/EvilShips/spaceShips_003.png';
@@ -48,7 +45,7 @@ import { AtmosphereManager } from './AtmosphereManager';
 import { HudManager } from './HudManager';
 import { HudScene } from './HudScene';
 import { MeteorManager } from './MeteorManager';
-import { SpaceStationManager } from './SpaceStationManager';
+import { SpaceStationManager, STATION_SPRITE_ASSETS } from './SpaceStationManager';
 import { ScrapManager } from './ScrapManager';
 import { NeonBarrierManager } from './NeonBarrierManager';
 import { getEnemyScrapDrop } from './campaign/scrapConfig';
@@ -133,9 +130,11 @@ export class GameScene extends Phaser.Scene {
     this.load.image('space_effect_013', spaceEffect013Url);
     this.load.image('space_effect_017', spaceEffect017Url);
     this.load.image('space_effect_018', spaceEffect018Url);
-    this.load.image('space_station_020', station020Url);
-    this.load.image('space_station_021', station021Url);
-    this.load.image('space_station_024', station024Url);
+    STATION_SPRITE_ASSETS.forEach((asset) => {
+      if (!this.textures.exists(asset.key)) {
+        this.load.image(asset.key, asset.url);
+      }
+    });
 
     // Предзагрузка всех 101 модульных деталей для конструктора корабля
     const catalog = buildPartsCatalog();
@@ -617,13 +616,17 @@ export class GameScene extends Phaser.Scene {
     this.meteorManager.update(seconds, this.cameras.main, this.particleManager);
 
     // 1.2. Столкновение с метеоритом
-    this.meteorManager.checkPlayerCollision(this.playerShip, () => {
-      if (this.isMenuMode) {
-        this.particleManager.spawnSparkBurst(this.playerShip.x, this.playerShip.y);
-        return;
-      }
-      this.triggerGameOver('meteor');
-    });
+    this.meteorManager.checkPlayerCollision(
+      this.playerShip,
+      () => {
+        if (this.isMenuMode) {
+          this.particleManager.spawnSparkBurst(this.playerShip.x, this.playerShip.y);
+          return;
+        }
+        this.triggerGameOver('meteor');
+      },
+      this.particleManager,
+    );
 
     // 2. Обновление подсветки базы при наведении курсора
     const pointer = this.input.activePointer;
