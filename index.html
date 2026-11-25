@@ -76,135 +76,79 @@
       </kbd>
     </button>
 
-    <!-- Тактический виджет ракетного рывка (Rocket Dash HUD в нижней части экрана) -->
-    <aside id="dash-hud" class="dash-hud hidden" aria-label="Тактический ракетный ускоритель">
-      <div class="dash-hud-card" id="dash-trigger-card">
-        <div class="dash-hud-scanlines"></div>
-        <span class="corner-bracket corner-tl"></span>
-        <span class="corner-bracket corner-br"></span>
-
-        <!-- Клавиша SHIFT -->
-        <div class="dash-key-wrap">
-          <kbd class="dash-key-btn" id="dash-key-btn">
-            <span class="dash-key-label">SHIFT</span>
-            <span class="dash-key-led"></span>
-          </kbd>
-        </div>
-
-        <!-- Разделитель модулей -->
-        <div class="dash-divider"></div>
-
-        <!-- Значок двигателя ракеты -->
-        <div class="dash-engine-wrap" id="dash-engine-icon" title="Ракетный ускоритель танка">
-          <svg class="dash-engine-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Верхний крепеж и гидравлика двигателя -->
-            <rect x="13" y="2" width="10" height="4" rx="1.5" fill="#34d399" fill-opacity="0.9" />
-            <line x1="18" y1="2" x2="18" y2="6" stroke="#022c22" stroke-width="1.5" />
-
-            <!-- Камера сгорания -->
-            <path d="M12 6 H24 L22 13 H14 L12 6 Z" fill="#042f2e" stroke="#10b981" stroke-width="1.5"
-              stroke-linejoin="round" />
-            <line x1="13.5" y1="9.5" x2="22.5" y2="9.5" stroke="#34d399" stroke-width="1.2" />
-
-            <!-- Кольцо охлаждения сопла -->
-            <rect x="11.5" y="13" width="13" height="3" rx="1" fill="#065f46" stroke="#34d399" stroke-width="1.2" />
-
-            <!-- Расширяющееся сопло Лаваля (раструб ракетного двигателя) -->
-            <path d="M14 16 L8 24 H28 L22 16 Z" fill="#064e3b" stroke="#34d399" stroke-width="1.6"
-              stroke-linejoin="round" />
-            <line x1="11" y1="20" x2="25" y2="20" stroke="#10b981" stroke-width="1.2" />
-
-            <!-- Реактивное пламя форсажа (анимируется при рывке и готовности) -->
-            <g class="dash-flame-group">
-              <!-- Внешнее пламя -->
-              <path class="flame-outer" d="M10 24.5 L18 35 L26 24.5 Q18 28 10 24.5 Z" fill="#f97316" />
-              <!-- Среднее пламя -->
-              <path class="flame-mid" d="M12.5 24.5 L18 32 L23.5 24.5 Q18 27 12.5 24.5 Z" fill="#facc15" />
-              <!-- Ядро пламени -->
-              <path class="flame-core" d="M15 24.5 L18 29 L21 24.5 Q18 26 15 24.5 Z" fill="#ffffff" />
-            </g>
+    <!-- Тактические круглые кнопки способностей (SHIFT — Форсаж, Q — Овердрайв) -->
+    <aside id="dash-hud" class="dash-hud hidden" aria-label="Тактические способности корабля">
+      <!-- Способность 1: Форсаж (SHIFT) -->
+      <div class="ability-slot" id="dash-ability-slot">
+        <button type="button" class="ability-circle-btn dash-circle-btn" id="dash-trigger-card"
+          title="Ракетный форсаж [SHIFT]" aria-label="Ракетный форсаж [SHIFT]" style="--ability-fill: 100;">
+          <div class="ability-fill-sweep" aria-hidden="true"></div>
+          <svg class="ability-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="ability-ring-track" cx="50" cy="50" r="45"></circle>
+            <circle class="ability-ring-progress" cx="50" cy="50" r="45" pathLength="100"></circle>
           </svg>
-        </div>
+          <div class="ability-inner-ring" aria-hidden="true"></div>
 
-        <!-- Информационный блок: статус и таймер перезарядки -->
-        <div class="dash-details">
-          <div class="dash-status-row">
-            <span class="dash-sys-tag">BOOST // ФОРСАЖ</span>
-            <span class="dash-status-badge ready" id="dash-status-text">ГОТОВ</span>
+          <!-- Значок двигателя ракеты -->
+          <div class="dash-engine-wrap" id="dash-engine-icon">
+            <svg class="dash-engine-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="13" y="2" width="10" height="4" rx="1.5" fill="#34d399" fill-opacity="0.9" />
+              <line x1="18" y1="2" x2="18" y2="6" stroke="#022c22" stroke-width="1.5" />
+              <path d="M12 6 H24 L22 13 H14 L12 6 Z" fill="#042f2e" stroke="#10b981" stroke-width="1.5"
+                stroke-linejoin="round" />
+              <line x1="13.5" y1="9.5" x2="22.5" y2="9.5" stroke="#34d399" stroke-width="1.2" />
+              <rect x="11.5" y="13" width="13" height="3" rx="1" fill="#065f46" stroke="#34d399" stroke-width="1.2" />
+              <path d="M14 16 L8 24 H28 L22 16 Z" fill="#064e3b" stroke="#34d399" stroke-width="1.6"
+                stroke-linejoin="round" />
+              <line x1="11" y1="20" x2="25" y2="20" stroke="#10b981" stroke-width="1.2" />
+              <g class="dash-flame-group">
+                <path class="flame-outer" d="M10 24.5 L18 35 L26 24.5 Q18 28 10 24.5 Z" fill="#f97316" />
+                <path class="flame-mid" d="M12.5 24.5 L18 32 L23.5 24.5 Q18 27 12.5 24.5 Z" fill="#facc15" />
+                <path class="flame-core" d="M15 24.5 L18 29 L21 24.5 Q18 26 15 24.5 Z" fill="#ffffff" />
+              </g>
+            </svg>
           </div>
 
-          <!-- Голографический индикатор шкалы охлаждения (5 сек) -->
-          <div class="dash-progress-track">
-            <div class="dash-progress-fill" id="dash-cooldown-bar"></div>
-          </div>
-
-          <div class="dash-timer-row">
-            <span class="dash-cooldown-label">ПЕРЕЗАРЯДКА:</span>
-            <span class="dash-timer-val" id="dash-timer-text">5.0s</span>
-          </div>
-        </div>
+          <span class="ability-timer-badge" id="dash-timer-text"></span>
+        </button>
+        <kbd class="ability-key-hint" id="dash-key-btn">SHIFT</kbd>
       </div>
 
-      <!-- Тактический виджет боевого овердрайва (Клавиша Q) -->
-      <div class="dash-hud-card super-hud-card" id="super-trigger-card" title="Боевой режим овердрайва [Q]">
-        <div class="dash-hud-scanlines"></div>
-        <span class="corner-bracket corner-tl"></span>
-        <span class="corner-bracket corner-br"></span>
-
-        <!-- Клавиша Q для активации боевого режима -->
-        <div class="dash-key-wrap">
-          <kbd class="dash-key-btn super-key-btn" id="super-key-btn">
-            <span class="dash-key-label super-key-label">Q</span>
-            <span class="dash-key-led" id="super-key-led"></span>
-          </kbd>
-        </div>
-
-        <!-- Разделитель модулей -->
-        <div class="dash-divider"></div>
-
-        <!-- Значок тяжелого ракетного танка с пламенем сопел -->
-        <div class="super-tank-icon-wrap" id="super-tank-icon" title="Ракетный овердрайв супертанка">
-          <svg class="super-tank-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Корпус танка -->
-            <rect x="9" y="8" width="18" height="20" rx="3" fill="#064e3b" stroke="#34d399" stroke-width="1.4" />
-            <!-- Левая и правая ракетные установки с боеголовками -->
-            <rect x="4" y="6" width="4" height="18" rx="1.5" fill="#042f2e" stroke="#10b981" stroke-width="1.2" />
-            <polygon points="4,6 6,2 8,6" fill="#ef4444" />
-            <rect x="28" y="6" width="4" height="18" rx="1.5" fill="#042f2e" stroke="#10b981" stroke-width="1.2" />
-            <polygon points="28,6 30,2 32,6" fill="#ef4444" />
-            <!-- Орудийная башня и главное орудие -->
-            <circle cx="18" cy="18" r="5" fill="#0f766e" stroke="#34d399" stroke-width="1.2" />
-            <rect x="16.5" y="2" width="3" height="11" fill="#34d399" />
-            <!-- Двойные реактивные сопла кормы -->
-            <polygon points="10,28 8,33 13,33 12,28" fill="#065f46" stroke="#34d399" stroke-width="1" />
-            <polygon points="24,28 23,33 28,33 26,28" fill="#065f46" stroke="#34d399" stroke-width="1" />
-            <!-- Реактивное пламя из сопел кормы супертанка -->
-            <g class="super-flame-group">
-              <path d="M9 33 L10.5 36.5 L12 33 Z" fill="#f97316" />
-              <path d="M24 33 L25.5 36.5 L27 33 Z" fill="#f97316" />
-              <path d="M9.8 33 L10.5 35.5 L11.2 33 Z" fill="#facc15" />
-              <path d="M24.8 33 L25.5 35.5 L26.2 33 Z" fill="#facc15" />
-            </g>
+      <!-- Способность 2: Боевой овердрайв (Q) -->
+      <div class="ability-slot" id="super-ability-slot">
+        <button type="button" class="ability-circle-btn super-circle-btn" id="super-trigger-card"
+          title="Боевой режим овердрайва [Q]" aria-label="Боевой режим овердрайва [Q]" style="--ability-fill: 100;">
+          <div class="ability-fill-sweep" aria-hidden="true"></div>
+          <svg class="ability-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="ability-ring-track" cx="50" cy="50" r="45"></circle>
+            <circle class="ability-ring-progress" cx="50" cy="50" r="45" pathLength="100"></circle>
           </svg>
-        </div>
+          <div class="ability-inner-ring" aria-hidden="true"></div>
 
-        <!-- Информационный блок: статус, шкала и таймер овердрайва -->
-        <div class="dash-details">
-          <div class="dash-status-row">
-            <span class="dash-sys-tag">SIEGE // ОВЕРДРАЙВ</span>
-            <span class="dash-status-badge ready" id="super-status-text">ГОТОВ</span>
+          <!-- Значок боевого овердрайва -->
+          <div class="super-tank-icon-wrap" id="super-tank-icon">
+            <svg class="super-tank-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="9" y="8" width="18" height="20" rx="3" fill="#064e3b" stroke="#34d399" stroke-width="1.4" />
+              <rect x="4" y="6" width="4" height="18" rx="1.5" fill="#042f2e" stroke="#10b981" stroke-width="1.2" />
+              <polygon points="4,6 6,2 8,6" fill="#ef4444" />
+              <rect x="28" y="6" width="4" height="18" rx="1.5" fill="#042f2e" stroke="#10b981" stroke-width="1.2" />
+              <polygon points="28,6 30,2 32,6" fill="#ef4444" />
+              <circle cx="18" cy="18" r="5" fill="#0f766e" stroke="#34d399" stroke-width="1.2" />
+              <rect x="16.5" y="2" width="3" height="11" fill="#34d399" />
+              <polygon points="10,28 8,33 13,33 12,28" fill="#065f46" stroke="#34d399" stroke-width="1" />
+              <polygon points="24,28 23,33 28,33 26,28" fill="#065f46" stroke="#34d399" stroke-width="1" />
+              <g class="super-flame-group">
+                <path d="M9 33 L10.5 36.5 L12 33 Z" fill="#f97316" />
+                <path d="M24 33 L25.5 36.5 L27 33 Z" fill="#f97316" />
+                <path d="M9.8 33 L10.5 35.5 L11.2 33 Z" fill="#facc15" />
+                <path d="M24.8 33 L25.5 35.5 L26.2 33 Z" fill="#facc15" />
+              </g>
+            </svg>
           </div>
 
-          <!-- Голографический индикатор шкалы овердрайва / охлаждения (5 сек) -->
-          <div class="dash-progress-track">
-            <div class="dash-progress-fill" id="super-cooldown-bar"></div>
-          </div>
-
-          <div class="dash-timer-row">
-            <span class="dash-cooldown-label" id="super-label-text">ПЕРЕЗАРЯДКА:</span>
-            <span class="dash-timer-val" id="super-timer-text">5.0s</span>
-          </div>
-        </div>
+          <span class="ability-timer-badge" id="super-timer-text"></span>
+        </button>
+        <kbd class="ability-key-hint super-key-hint" id="super-key-btn">Q</kbd>
       </div>
     </aside>
 

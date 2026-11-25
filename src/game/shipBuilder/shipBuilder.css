@@ -341,7 +341,7 @@
   background: rgba(52, 211, 153, 0.75);
 }
 
-/* КОЛОНКА 1: МОДУЛИ (Кабина, Тело, Крылья, Двигатели, Пушки) */
+/* КОЛОНКА 1: МОДУЛИ (Корпус, Кабина, Крылья, Двигатели, Пушки) */
 .col-categories {
   width: 90px;
   flex: 0 0 90px;
@@ -1135,6 +1135,25 @@
   border-color: rgba(239, 68, 68, 0.55);
   color: #fca5a5;
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+/* Подсветка категории текущей выбранной детали корабля в блоке 04 */
+.hangar-limits-grid .limit-chip.selected {
+  background: linear-gradient(90deg, rgba(250, 204, 21, 0.28) 0%, rgba(234, 179, 8, 0.14) 100%);
+  border-color: #fde047;
+  box-shadow:
+    inset 3px 0 0 #fde047,
+    0 0 14px rgba(250, 204, 21, 0.65),
+    inset 0 0 10px rgba(250, 204, 21, 0.22);
+}
+
+.hangar-limits-grid .limit-chip.selected .limit-label {
+  color: #fef08a;
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.75);
+}
+
+.hangar-limits-grid .limit-chip.selected .limit-val {
+  color: #ffffff;
 }
 
 .limit-val.missing-val {

@@ -2,6 +2,20 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Обновление интерфейса конструктора корабля, круглые кнопки способностей и голографический HUD
+
+**Что сделано:**
+- **Конструктор корабля (блок 01, блок 04 и иконки категорий):**
+  - В [partsCatalog.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/partsCatalog.ts) категория `Тело` (`body`) переименована в `Корпус` и размещена выше категории `Кабина` (`pilot`).
+  - Перерисованы все 5 SVG-иконок категорий в блоке `01 // МОДУЛИ`, чтобы они точнее повторяли силуэты реальных спрайтов деталей (`Корпус`, `Кабина`, `Крылья`, `Двигатели`, `Пушки`).
+  - В [ShipBuilderModal.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/ShipBuilderModal.ts) и [shipBuilder.css](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/shipBuilder.css) добавлена подсветка соответствующей категории в блоке `04 // ЧАСТИ` при выборе детали корабля (`renderLimitsSelection()`, класс `.limit-chip.selected`).
+- **Круглые кнопки способностей (`SHIFT` и `Q`):**
+  - В [index.html](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/index.html), [main.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/main.ts) и [style.css](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/style.css) кнопки форсажа (`SHIFT`) и овердрайва (`Q`) переделаны в круглые кнопки с плавным круговым заполнением (SVG-кольцо прогресса и радиальный сектор) и таймером в центре во время перезарядки и действия.
+  - Для ПК кружки увеличены до `124×124px` с подписями клавиш `SHIFT` и `Q` под ними; для телефонов и сенсорных устройств размер адаптирован до `62×62px`, а подсказки клавиш скрыты.
+- **Радиус поражения корабля и верхняя панель HUD в стиле зелёной голограммы:**
+  - В [PlayerShip.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/PlayerShip.ts) круг радиуса поражения (`drawAttackRangeCircle`) оформлен в минималистичном изумрудно-голографическом стиле (`0x10b981`, `0x34d399`, `0x6ee7b7`) с заметной полупрозрачной областью внутри, мягким ореолом, дугами по осям и плавным вращением контура.
+  - В [HudManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudManager.ts) переработана верхняя боевая панель: добавлены сканлайны, скошенные голографические модули (`drawHoloPod`) с тактическими уголками для `HP`, `ЦЕЛИ`, `ВРЕМЯ БОЯ`, `МЕТАЛЛОЛОМ` и `ЭТАП`, а также сегментированная шкала прочности корабля.
+
 ## Подключение Яндекс Метрики и аналитики игровых событий
 
 **Что сделано:**

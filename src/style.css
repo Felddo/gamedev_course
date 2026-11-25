@@ -2379,20 +2379,20 @@ canvas {
 }
 
 /* ==========================================================
-   ROCKET DASH & OVERDRIVE HUD (Нижняя тактическая панель в правом нижнем углу)
+   CIRCULAR ABILITY BUTTONS (SHIFT — Форсаж, Q — Овердрайв)
    ========================================================== */
 .dash-hud {
   position: absolute;
-  bottom: max(16px, env(safe-area-inset-bottom, 16px));
-  right: max(16px, env(safe-area-inset-right, 16px));
+  bottom: max(22px, env(safe-area-inset-bottom, 22px));
+  right: max(26px, env(safe-area-inset-right, 26px));
   left: auto;
   transform: none;
   z-index: 18;
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 24px;
   max-width: calc(100vw - 32px);
   pointer-events: auto;
   transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
@@ -2406,250 +2406,247 @@ canvas {
   pointer-events: none;
 }
 
-.dash-hud-card {
+.ability-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Круглая кнопка способности (крупная и хорошо заметная на ПК) */
+.ability-circle-btn {
+  all: unset;
   position: relative;
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 10px 18px 10px 14px;
-  background: rgba(3, 31, 22, 0.88);
-  border: 1.5px solid rgba(16, 185, 129, 0.65);
-  border-radius: 6px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55), 0 0 16px rgba(16, 185, 129, 0.25);
-  backdrop-filter: blur(10px);
-  overflow: hidden;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, rgba(6, 48, 34, 0.94) 0%, rgba(2, 18, 13, 0.97) 100%);
+  border: 2.5px solid rgba(52, 211, 153, 0.85);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.7),
+    0 0 26px rgba(16, 185, 129, 0.38),
+    inset 0 0 20px rgba(16, 185, 129, 0.16);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
   touch-action: manipulation;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s, filter 0.15s;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.14s ease, filter 0.14s ease;
 }
 
-.dash-hud-card:hover {
-  border-color: rgba(52, 211, 153, 0.95);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.65), 0 0 22px rgba(52, 211, 153, 0.4);
+.ability-circle-btn:hover {
+  border-color: #6ee7b7;
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.78),
+    0 0 34px rgba(52, 211, 153, 0.62),
+    inset 0 0 24px rgba(52, 211, 153, 0.24);
+  transform: translateY(-2px);
 }
 
-.dash-hud-card:active {
-  transform: scale(0.96);
-  filter: brightness(1.2);
+.ability-circle-btn:active {
+  transform: scale(0.94);
+  filter: brightness(1.18);
 }
 
-/* Скрытие обозначений клавиш (SHIFT / Q) на мобильных и сенсорных устройствах */
-.is-mobile .dash-key-wrap,
-.touch-device .dash-key-wrap,
-.is-mobile .dash-divider,
-.touch-device .dash-divider {
-  display: none !important;
+/* Сектор радиального заполнения внутри кружка */
+.ability-fill-sweep {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    rgba(16, 185, 129, 0.28) 0%,
+    rgba(52, 211, 153, 0.36) calc(var(--ability-fill, 100) * 1%),
+    rgba(2, 12, 9, 0.84) calc(var(--ability-fill, 100) * 1%),
+    rgba(2, 12, 9, 0.84) 100%
+  );
+  transition: opacity 0.15s ease;
 }
 
-@media (hover: none) and (pointer: coarse) {
-  .dash-key-wrap,
-  .dash-divider {
-    display: none !important;
-  }
-}
-
-/* Компактный вид карточек на мобильных и узких экранах */
-.is-mobile .dash-hud-card,
-.touch-device .dash-hud-card {
-  padding: 7px 11px;
-  gap: 8px;
-  min-width: 120px;
-}
-
-.is-mobile .dash-details,
-.touch-device .dash-details {
-  min-width: 85px;
-  gap: 2px;
-}
-
-.is-mobile .dash-sys-tag,
-.touch-device .dash-sys-tag {
-  font-size: 8.5px;
-}
-
-.is-mobile .dash-status-badge,
-.touch-device .dash-status-badge {
-  font-size: 8.5px;
-  padding: 2px 5px;
-}
-
-.is-mobile .dash-progress-track,
-.touch-device .dash-progress-track {
-  height: 5px;
-}
-
-.is-mobile .dash-cooldown-label,
-.touch-device .dash-cooldown-label,
-.is-mobile .dash-timer-val,
-.touch-device .dash-timer-val {
-  font-size: 8.5px;
-}
-
-.is-mobile .dash-engine-wrap,
-.touch-device .dash-engine-wrap,
-.is-mobile .super-tank-icon-wrap,
-.touch-device .super-tank-icon-wrap {
-  width: 28px;
-  height: 28px;
-}
-
-@media (max-width: 800px) {
-  .dash-hud-card {
-    padding: 7px 11px;
-    gap: 8px;
-    min-width: 120px;
-  }
-  .dash-details {
-    min-width: 85px;
-    gap: 2px;
-  }
-  .dash-sys-tag {
-    font-size: 8.5px;
-  }
-  .dash-status-badge {
-    font-size: 8.5px;
-    padding: 2px 5px;
-  }
-  .dash-progress-track {
-    height: 5px;
-  }
-  .dash-cooldown-label,
-  .dash-timer-val {
-    font-size: 8.5px;
-  }
-  .dash-engine-wrap,
-  .super-tank-icon-wrap {
-    width: 28px;
-    height: 28px;
-  }
-}
-
-@media (max-width: 540px) {
-  .dash-hud {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-}
-
-.dash-hud-scanlines {
+/* Внешнее SVG-кольцо прогресса перезарядки */
+.ability-ring-svg {
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(16, 185, 129, 0.04) 0px,
-    rgba(16, 185, 129, 0.04) 1px,
-    transparent 1px,
-    transparent 3px
-  );
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
   pointer-events: none;
 }
 
-/* Клавиша SHIFT (тактический кейкап) */
-.dash-key-wrap {
+.ability-ring-track {
+  fill: none;
+  stroke: rgba(16, 185, 129, 0.16);
+  stroke-width: 5.5;
+}
+
+.ability-ring-progress {
+  fill: none;
+  stroke: #34d399;
+  stroke-width: 5.5;
+  stroke-linecap: butt;
+  stroke-dasharray: 100;
+  stroke-dashoffset: calc(100 - var(--ability-fill, 100));
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.8));
+  transition: stroke 0.2s ease;
+}
+
+.ability-inner-ring {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1.2px solid rgba(110, 231, 183, 0.24);
+  pointer-events: none;
+}
+
+/* Иконки внутри кружков */
+.dash-engine-wrap,
+.super-tank-icon-wrap {
+  position: relative;
+  z-index: 2;
+  width: 64px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
 }
 
-.dash-key-btn {
-  position: relative;
+.dash-engine-svg,
+.super-tank-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+/* Таймер обратного отсчета по центру кружка во время перезарядки / действия */
+.ability-timer-badge {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fef3c7;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.95);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* Подпись клавиши под кружком (для ПК) */
+.ability-key-hint {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 68px;
-  height: 38px;
-  padding: 0 12px;
-  background: linear-gradient(180deg, #064e3b 0%, #022c22 100%);
+  min-width: 52px;
+  height: 28px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, rgba(6, 78, 59, 0.94) 0%, rgba(2, 44, 34, 0.98) 100%);
   border: 1.5px solid #34d399;
   border-bottom-width: 3.5px;
-  border-radius: 5px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(110, 231, 183, 0.35);
-  transition: all 0.12s ease;
-}
-
-.dash-key-label {
+  border-radius: 6px;
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 800;
+  letter-spacing: 1.8px;
   color: #ecfdf5;
-  letter-spacing: 2px;
   text-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(110, 231, 183, 0.32);
+  pointer-events: none;
+  transition: all 0.15s ease;
 }
 
-.dash-key-led {
-  position: absolute;
-  top: 4px;
-  right: 5px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 6px #34d399;
-  transition: background 0.2s, box-shadow 0.2s;
+/* Состояние перезарядки: кружок пустеет и плавно заполняется до 100% */
+.ability-circle-btn.cooling {
+  border-color: rgba(148, 163, 184, 0.45);
+  background: radial-gradient(circle at 50% 40%, rgba(15, 23, 42, 0.9) 0%, rgba(2, 10, 14, 0.96) 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 0 14px rgba(0, 0, 0, 0.65);
 }
 
-/* Состояние перезарядки для клавиши */
-.dash-hud-card.cooling .dash-key-btn {
+.ability-circle-btn.cooling .ability-fill-sweep {
+  background: conic-gradient(
+    from 0deg,
+    rgba(16, 185, 129, 0.32) 0%,
+    rgba(52, 211, 153, 0.44) calc(var(--ability-fill, 0) * 1%),
+    rgba(2, 10, 14, 0.88) calc(var(--ability-fill, 0) * 1%),
+    rgba(2, 10, 14, 0.88) 100%
+  );
+}
+
+.ability-circle-btn.cooling .ability-ring-track {
+  stroke: rgba(148, 163, 184, 0.18);
+}
+
+.ability-circle-btn.cooling .ability-ring-progress {
+  stroke: #34d399;
+  filter: drop-shadow(0 0 5px rgba(52, 211, 153, 0.75));
+}
+
+.ability-circle-btn.cooling .dash-engine-svg,
+.ability-circle-btn.cooling .super-tank-svg {
+  filter: grayscale(0.75) opacity(0.35);
+}
+
+.ability-circle-btn.cooling .dash-flame-group,
+.ability-circle-btn.cooling .super-flame-group {
+  opacity: 0.15;
+  animation: none;
+}
+
+.ability-circle-btn.cooling .ability-timer-badge {
+  opacity: 1;
+  color: #ecfdf5;
+}
+
+.ability-slot.cooling .ability-key-hint {
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   border-color: #475569;
   border-bottom-color: #334155;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-
-.dash-hud-card.cooling .dash-key-label {
   color: #94a3b8;
   text-shadow: none;
 }
 
-.dash-hud-card.cooling .dash-key-led {
-  background: #f59e0b;
-  box-shadow: 0 0 6px #f59e0b;
+/* Активный форсаж (SHIFT) */
+.ability-circle-btn.dashing {
+  border-color: #fb923c;
+  box-shadow: 0 0 28px rgba(249, 115, 22, 0.85), inset 0 0 20px rgba(249, 115, 22, 0.35);
+  transform: scale(1.04);
 }
 
-/* Состояние активного рывка */
-.dash-hud-card.dashing .dash-key-btn {
+.ability-circle-btn.dashing .ability-ring-progress {
+  stroke: #f97316;
+  filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.9));
+}
+
+.ability-circle-btn.dashing .dash-engine-svg {
+  transform: scale(1.16);
+  filter: drop-shadow(0 0 12px rgba(249, 115, 22, 0.95));
+}
+
+.ability-circle-btn.dashing .dash-flame-group {
+  animation: none;
+  transform: scaleY(1.35) scaleX(1.15);
+}
+
+.ability-slot.dashing .ability-key-hint {
   transform: translateY(2px);
   border-bottom-width: 1.5px;
   background: #10b981;
   border-color: #ecfdf5;
-  box-shadow: 0 0 18px rgba(52, 211, 153, 0.9);
-}
-
-.dash-hud-card.dashing .dash-key-label {
   color: #021a12;
   text-shadow: none;
-}
-
-/* Разделитель модулей */
-.dash-divider {
-  width: 1px;
-  height: 38px;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(52, 211, 153, 0.5) 30%,
-    rgba(52, 211, 153, 0.5) 70%,
-    transparent 100%
-  );
-}
-
-/* Значок двигателя ракеты */
-.dash-engine-wrap {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.dash-engine-svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.4));
-  transition: transform 0.2s, filter 0.2s;
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.9);
 }
 
 .dash-flame-group {
@@ -2668,130 +2665,68 @@ canvas {
   }
 }
 
-.dash-hud-card.cooling .dash-flame-group {
-  opacity: 0.2;
-  animation: none;
+/* Адаптация кружков под планшеты и телефоны (на телефонах меньше и БЕЗ подсказок клавиш) */
+.is-mobile .ability-key-hint,
+.touch-device .ability-key-hint,
+.is-phone .ability-key-hint {
+  display: none !important;
 }
 
-.dash-hud-card.cooling .dash-engine-svg {
-  filter: grayscale(0.7) opacity(0.5);
+@media (hover: none) and (pointer: coarse) {
+  .ability-key-hint {
+    display: none !important;
+  }
 }
 
-.dash-hud-card.dashing .dash-engine-svg {
-  transform: scale(1.18);
-  filter: drop-shadow(0 0 14px rgba(249, 115, 22, 0.95));
+.is-phone .dash-hud,
+.is-mobile .dash-hud,
+.touch-device .dash-hud {
+  bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  right: max(14px, env(safe-area-inset-right, 14px));
+  gap: 12px;
 }
 
-.dash-hud-card.dashing .dash-flame-group {
-  animation: none;
-  transform: scaleY(1.4) scaleX(1.2);
+.is-phone .ability-circle-btn,
+.is-mobile .ability-circle-btn,
+.touch-device .ability-circle-btn {
+  width: 62px;
+  height: 62px;
 }
 
-/* Информационный блок */
-.dash-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 150px;
+.is-phone .dash-engine-wrap,
+.is-phone .super-tank-icon-wrap,
+.is-mobile .dash-engine-wrap,
+.is-mobile .super-tank-icon-wrap,
+.touch-device .dash-engine-wrap,
+.touch-device .super-tank-icon-wrap {
+  width: 32px;
+  height: 32px;
 }
 
-.dash-status-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.dash-sys-tag {
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 700;
-  color: #6ee7b7;
-  letter-spacing: 1px;
-}
-
-.dash-status-badge {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 3px;
-  letter-spacing: 1px;
-  transition: all 0.2s;
-}
-
-.dash-status-badge.ready {
-  background: rgba(16, 185, 129, 0.25);
-  border: 1px solid #10b981;
-  color: #ecfdf5;
-  text-shadow: 0 0 6px rgba(52, 211, 153, 0.8);
-}
-
-.dash-status-badge.cooling {
-  background: rgba(245, 158, 11, 0.2);
-  border: 1px solid #f59e0b;
-  color: #fbbf24;
-}
-
-.dash-status-badge.active {
-  background: rgba(249, 115, 22, 0.35);
-  border: 1px solid #f97316;
-  color: #fed7aa;
-  box-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
-}
-
-/* Прогресс-бар перезарядки */
-.dash-progress-track {
-  width: 100%;
-  height: 6px;
-  background: rgba(2, 44, 34, 0.9);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  border-radius: 3px;
-  overflow: hidden;
-  position: relative;
-}
-
-.dash-progress-fill {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, #059669 0%, #34d399 100%);
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
-  transition: width 0.08s linear, background 0.2s;
-}
-
-.dash-hud-card.cooling .dash-progress-fill {
-  background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%);
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
-}
-
-.dash-timer-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.dash-cooldown-label {
-  font-family: var(--font-ui);
-  font-size: 10px;
-  color: #a7f3d0;
-  letter-spacing: 0.5px;
-}
-
-.dash-timer-val {
-  font-family: var(--font-display);
+.is-phone .ability-timer-badge,
+.is-mobile .ability-timer-badge,
+.touch-device .ability-timer-badge {
   font-size: 13px;
-  font-weight: 700;
-  color: #ecfdf5;
-  letter-spacing: 1px;
 }
 
-/* ==========================================================
-   SUPER TANK OVERDRIVE HUD (ПКМ / Правая кнопка мыши)
-   ========================================================== */
-.mouse-key-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+@media (max-width: 800px) {
+  .dash-hud {
+    bottom: max(14px, env(safe-area-inset-bottom, 14px));
+    right: max(14px, env(safe-area-inset-right, 14px));
+    gap: 12px;
+  }
+  .ability-circle-btn {
+    width: 62px;
+    height: 62px;
+  }
+  .dash-engine-wrap,
+  .super-tank-icon-wrap {
+    width: 32px;
+    height: 32px;
+  }
+  .ability-timer-badge {
+    font-size: 13px;
+  }
 }
 
 /* Кнопка тактической паузы [ESC] в верхнем левом углу */
@@ -2913,198 +2848,62 @@ canvas {
   height: 10px;
 }
 
-/* Клавиша Q для боевого овердрайва */
-.super-key-btn {
-  min-width: 48px;
-}
-
-.super-key-label {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 800;
-  color: #ecfdf5;
-  letter-spacing: 1px;
-  text-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
-}
-
-.mouse-key-box {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 72px;
-  height: 38px;
-  padding: 0 10px;
-  background: linear-gradient(180deg, #064e3b 0%, #022c22 100%);
-  border: 1px solid #34d399;
-  border-bottom-width: 2.5px;
-  border-radius: 5px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 8px rgba(0, 0, 0, 0.4);
-  transition: all 0.2s;
-}
-
-.mouse-svg {
-  width: 20px;
-  height: 26px;
-  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5));
-  transition: transform 0.2s;
-}
-
-.rmb-highlight {
-  transition: fill 0.2s, filter 0.2s;
-  animation: rmb-pulse 2.2s infinite ease-in-out;
-}
-
-@keyframes rmb-pulse {
-  0%, 100% {
-    fill: #34d399;
-    filter: drop-shadow(0 0 2px #34d399);
-  }
-  50% {
-    fill: #6ee7b7;
-    filter: drop-shadow(0 0 6px #6ee7b7);
-  }
-}
-
-.mouse-label {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 800;
-  color: #a7f3d0;
-  letter-spacing: 1px;
-}
-
-/* Иконка супертанка */
-.super-tank-icon-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-}
-
-.super-tank-svg {
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 0 5px rgba(52, 211, 153, 0.4));
-  transition: transform 0.2s, filter 0.2s;
-}
-
 .super-flame-group {
-  animation: flame-flicker 0.4s infinite alternate;
+  animation: flameFlicker 0.4s infinite alternate;
   transform-origin: 18px 33px;
 }
 
-/* Активное состояние супертанка (Овердрайв) */
-.super-hud-card.active {
-  border-color: rgba(249, 115, 22, 0.95);
-  box-shadow: 0 4px 22px rgba(249, 115, 22, 0.4), 0 0 18px rgba(249, 115, 22, 0.35);
+/* Активное состояние овердрайва (Q) */
+.ability-circle-btn.active {
+  border-color: #fb923c;
+  box-shadow: 0 0 28px rgba(249, 115, 22, 0.65), inset 0 0 18px rgba(249, 115, 22, 0.25);
   animation: super-active-glow 1s infinite alternate ease-in-out;
 }
 
 @keyframes super-active-glow {
   0% {
-    border-color: rgba(249, 115, 22, 0.8);
-    box-shadow: 0 4px 22px rgba(249, 115, 22, 0.35), 0 0 16px rgba(249, 115, 22, 0.3);
+    border-color: rgba(249, 115, 22, 0.85);
+    box-shadow: 0 4px 22px rgba(249, 115, 22, 0.4), 0 0 18px rgba(249, 115, 22, 0.35);
   }
   100% {
     border-color: rgba(251, 146, 60, 1);
-    box-shadow: 0 4px 28px rgba(249, 115, 22, 0.6), 0 0 24px rgba(251, 146, 60, 0.5);
+    box-shadow: 0 4px 28px rgba(249, 115, 22, 0.7), 0 0 26px rgba(251, 146, 60, 0.6);
   }
 }
 
-.super-hud-card.active .super-key-btn {
+.ability-circle-btn.active .ability-fill-sweep {
+  background: conic-gradient(
+    from 0deg,
+    rgba(249, 115, 22, 0.35) 0%,
+    rgba(250, 204, 21, 0.3) calc(var(--ability-fill, 100) * 1%),
+    rgba(2, 12, 9, 0.72) calc(var(--ability-fill, 100) * 1%),
+    rgba(2, 12, 9, 0.72) 100%
+  );
+}
+
+.ability-circle-btn.active .ability-ring-progress {
+  stroke: #f97316;
+  filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.95));
+}
+
+.ability-circle-btn.active .super-tank-svg {
+  filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.85));
+  transform: scale(1.08);
+}
+
+.ability-circle-btn.active .ability-timer-badge {
+  opacity: 1;
+  color: #fed7aa;
+}
+
+.ability-slot.active .ability-key-hint {
   transform: translateY(2px);
   border-bottom-width: 1.5px;
   background: linear-gradient(180deg, #9a3412 0%, #431407 100%);
   border-color: #fb923c;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 16px rgba(249, 115, 22, 0.85);
-}
-
-.super-hud-card.active .super-key-label {
   color: #fed7aa;
   text-shadow: 0 0 8px #f97316;
-}
-
-.super-hud-card.active .mouse-key-box {
-  background: linear-gradient(180deg, #9a3412 0%, #431407 100%);
-  border-color: #fb923c;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 12px rgba(249, 115, 22, 0.5);
-}
-
-.super-hud-card.active .rmb-highlight {
-  fill: #f97316;
-  filter: drop-shadow(0 0 6px #f97316);
-  animation: none;
-}
-
-.super-hud-card.active .mouse-label {
-  color: #fed7aa;
-}
-
-.super-hud-card.active #super-key-led {
-  background: #f97316;
-  box-shadow: 0 0 8px #f97316;
-}
-
-.super-hud-card.active .super-flame-group {
-  animation: flame-boost 0.18s infinite alternate;
-}
-
-.super-hud-card.active .super-tank-svg {
-  filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.8));
-  transform: scale(1.08);
-}
-
-.super-hud-card.active .dash-progress-fill {
-  background: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #facc15 100%);
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
-}
-
-/* Охлаждение / перезарядка супертанка */
-.super-hud-card.cooling .super-key-btn {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border-color: rgba(148, 163, 184, 0.4);
-  border-bottom-color: #334155;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-
-.super-hud-card.cooling .super-key-label {
-  color: #94a3b8;
-  text-shadow: none;
-}
-
-.super-hud-card.cooling .mouse-key-box {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border-color: rgba(148, 163, 184, 0.4);
-  box-shadow: none;
-}
-
-.super-hud-card.cooling .mouse-label {
-  color: #94a3b8;
-}
-
-.super-hud-card.cooling .rmb-highlight {
-  fill: #64748b;
-  animation: none;
-}
-
-.super-hud-card.cooling #super-key-led {
-  background: #f59e0b;
-  box-shadow: 0 0 6px #f59e0b;
-}
-
-.super-hud-card.cooling .super-flame-group {
-  display: none;
-}
-
-.super-hud-card.cooling .super-tank-svg {
-  filter: grayscale(0.5) opacity(0.7);
-}
-
-.super-hud-card.cooling .dash-progress-fill {
-  background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%);
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.85);
 }
 
 /* ==========================================================
@@ -4011,7 +3810,7 @@ body:not(.touch-device) .virtual-joystick {
 .modal-action-btn:active,
 .pause-menu-btn:active,
 .modal-toggle-btn:active,
-.dash-hud-card:active {
+.ability-circle-btn:active {
   transform: scale(0.97);
   filter: brightness(1.25);
 }

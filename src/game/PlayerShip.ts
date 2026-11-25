@@ -421,7 +421,7 @@ export class PlayerShip {
   }
 
   /**
-   * Отрисовка визуально малозаметного круга радиуса поражения корабля
+   * Отрисовка минималистичного круга радиуса поражения корабля в стиле зеленой голограммы
    */
   public drawAttackRangeCircle(): void {
     if (!this.attackRangeCircle) return;
@@ -429,21 +429,46 @@ export class PlayerShip {
 
     const radius = this.getAttackRadius();
 
-    // Мягкая малозаметная полупрозрачная подсветка зоны поражения
-    this.attackRangeCircle.fillStyle(0x38bdf8, 0.02);
+    // 1. Заметная, но мягкая изумрудная голографическая заливка области поражения
+    this.attackRangeCircle.fillStyle(0x10b981, 0.065);
     this.attackRangeCircle.fillCircle(0, 0, radius);
 
-    // Малозаметная тактическая неоновая окружность радиуса поражения
-    this.attackRangeCircle.lineStyle(1.2, 0x38bdf8, 0.22);
+    // Мягкий внутренний голографический ореол вдоль внутренней кромки зоны
+    this.attackRangeCircle.lineStyle(12, 0x34d399, 0.045);
+    this.attackRangeCircle.strokeCircle(0, 0, Math.max(10, radius - 6));
+
+    // 2. Мягкое внешнее голографическое свечение по периметру
+    this.attackRangeCircle.lineStyle(4, 0x10b981, 0.07);
     this.attackRangeCircle.strokeCircle(0, 0, radius);
 
-    // Аккуратные тактические риски по 4 направлениям
-    this.attackRangeCircle.lineStyle(1.5, 0x38bdf8, 0.35);
-    const tickLen = 6;
-    this.attackRangeCircle.lineBetween(-radius - tickLen, 0, -radius + tickLen, 0);
-    this.attackRangeCircle.lineBetween(radius - tickLen, 0, radius + tickLen, 0);
-    this.attackRangeCircle.lineBetween(0, -radius - tickLen, 0, -radius + tickLen);
-    this.attackRangeCircle.lineBetween(0, radius - tickLen, 0, radius + tickLen);
+    // 3. Тонкая базовая окружность радиуса поражения
+    this.attackRangeCircle.lineStyle(1.1, 0x10b981, 0.22);
+    this.attackRangeCircle.strokeCircle(0, 0, radius);
+
+    // 4. Четыре аккуратных голографических дуги-акцента по осям
+    const arcHalfSpan = Phaser.Math.DegToRad(11);
+    this.attackRangeCircle.lineStyle(1.8, 0x34d399, 0.3);
+    for (let i = 0; i < 4; i++) {
+      const centerAngle = (i * Math.PI) / 2;
+      this.attackRangeCircle.beginPath();
+      this.attackRangeCircle.arc(0, 0, radius, centerAngle - arcHalfSpan, centerAngle + arcHalfSpan);
+      this.attackRangeCircle.strokePath();
+    }
+
+    // 5. Минималистичные внутренние риски по 4 основным и 4 диагональным направлениям
+    for (let i = 0; i < 8; i++) {
+      const angle = (i * Math.PI) / 4;
+      const isCardinal = i % 2 === 0;
+      const tickInner = radius - (isCardinal ? 5 : 3);
+      const tickOuter = radius + (isCardinal ? 2 : 0);
+      this.attackRangeCircle.lineStyle(isCardinal ? 1.4 : 1.0, 0x6ee7b7, isCardinal ? 0.34 : 0.18);
+      this.attackRangeCircle.lineBetween(
+        Math.cos(angle) * tickInner,
+        Math.sin(angle) * tickInner,
+        Math.cos(angle) * tickOuter,
+        Math.sin(angle) * tickOuter,
+      );
+    }
   }
 
   /**
@@ -924,8 +949,11 @@ export class PlayerShip {
       this.syncEngineFlames(shouldShow);
     }
 
-    // Позиционирование круга радиуса поражения корабля
-    this.attackRangeCircle?.setPosition(this.shipSprite.x, this.shipSprite.y);
+    // Позиционирование и плавное голографическое вращение круга радиуса поражения корабля
+    if (this.attackRangeCircle) {
+      this.attackRangeCircle.setPosition(this.shipSprite.x, this.shipSprite.y);
+      this.attackRangeCircle.rotation += seconds * 0.1;
+    }
 
     // 3. Эффекты пламени сопел и выхлопа дыма/огня всех двигателей
     if (this.isDashing) {

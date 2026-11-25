@@ -140,21 +140,16 @@ const menuScrapBalance = document.getElementById('menu-scrap-balance') as HTMLEl
 const mcScrapTotal = document.getElementById('mc-scrap-total') as HTMLElement;
 const mcScrapBalance = document.getElementById('mc-scrap-balance') as HTMLElement;
 
-// Rocket Dash HUD Elements
+// Rocket Dash HUD Elements (Клавиша SHIFT)
 const dashHud = document.getElementById('dash-hud') as HTMLElement;
+const dashAbilitySlot = document.getElementById('dash-ability-slot') as HTMLElement | null;
 const dashTriggerCard = document.getElementById('dash-trigger-card') as HTMLElement;
-const dashKeyBtn = document.getElementById('dash-key-btn') as HTMLElement;
-const dashStatusText = document.getElementById('dash-status-text') as HTMLElement;
-const dashCooldownBar = document.getElementById('dash-cooldown-bar') as HTMLElement;
 const dashTimerText = document.getElementById('dash-timer-text') as HTMLElement;
 
-// Super Tank Overdrive HUD Elements (ПКМ / Клавиша Q)
+// Super Tank Overdrive HUD Elements (Клавиша Q)
+const superAbilitySlot = document.getElementById('super-ability-slot') as HTMLElement | null;
 const superTriggerCard = document.getElementById('super-trigger-card') as HTMLElement;
-const superKeyBtn = document.getElementById('super-key-btn') as HTMLElement;
-const superStatusText = document.getElementById('super-status-text') as HTMLElement;
-const superCooldownBar = document.getElementById('super-cooldown-bar') as HTMLElement;
 const superTimerText = document.getElementById('super-timer-text') as HTMLElement;
-const superLabelText = document.getElementById('super-label-text') as HTMLElement;
 
 // Top-left Esc Pause Button Element
 const topEscBtn = document.getElementById('btn-top-esc') as HTMLButtonElement;
@@ -1161,7 +1156,31 @@ window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
 });
 
-// Синхронизация состояния ракетного рывка с тактическим HUD
+function updateAbilityCircleState(
+  slot: HTMLElement | null,
+  btn: HTMLElement | null,
+  timerEl: HTMLElement | null,
+  activeClass: 'dashing' | 'active',
+  isActive: boolean,
+  isReady: boolean,
+  fillPercent: number,
+  timerText: string,
+): void {
+  if (!btn) return;
+  const clampedFill = Math.max(0, Math.min(100, fillPercent)).toFixed(1);
+
+  slot?.classList.toggle(activeClass, isActive);
+  slot?.classList.toggle('cooling', !isActive && !isReady);
+  btn.classList.toggle(activeClass, isActive);
+  btn.classList.toggle('cooling', !isActive && !isReady);
+  btn.style.setProperty('--ability-fill', isActive || !isReady ? clampedFill : '100');
+
+  if (timerEl) {
+    timerEl.textContent = timerText;
+  }
+}
+
+// Синхронизация состояния ракетного рывка с круговой кнопкой способности
 window.addEventListener('tank-dash-state', ((e: CustomEvent<{
   cooldown: number;
   maxCooldown: number;
@@ -1169,52 +1188,25 @@ window.addEventListener('tank-dash-state', ((e: CustomEvent<{
   isDashing: boolean;
 }>) => {
   const state = e.detail;
-  if (!state || !dashTriggerCard) return;
+  if (!state) return;
 
-  if (state.isDashing) {
-    dashTriggerCard.classList.remove('cooling');
-    dashTriggerCard.classList.add('dashing');
-    if (dashStatusText) {
-      dashStatusText.textContent = 'ФОРСАЖ!';
-      dashStatusText.className = 'dash-status-badge active';
-    }
-    if (dashCooldownBar) {
-      dashCooldownBar.style.width = '100%';
-    }
-    if (dashTimerText) {
-      dashTimerText.textContent = 'РЫВОК';
-    }
-  } else if (!state.isReady) {
-    dashTriggerCard.classList.remove('dashing');
-    dashTriggerCard.classList.add('cooling');
+  const progressPercent = state.maxCooldown > 0
+    ? ((state.maxCooldown - state.cooldown) / state.maxCooldown) * 100
+    : 0;
 
-    const progressPercent = Math.max(0, Math.min(100, ((state.maxCooldown - state.cooldown) / state.maxCooldown) * 100));
-    if (dashCooldownBar) {
-      dashCooldownBar.style.width = `${progressPercent.toFixed(1)}%`;
-    }
-    if (dashStatusText) {
-      dashStatusText.textContent = 'ОХЛАЖДЕНИЕ';
-      dashStatusText.className = 'dash-status-badge cooling';
-    }
-    if (dashTimerText) {
-      dashTimerText.textContent = `${state.cooldown.toFixed(1)}s`;
-    }
-  } else {
-    dashTriggerCard.classList.remove('cooling', 'dashing');
-    if (dashCooldownBar) {
-      dashCooldownBar.style.width = '100%';
-    }
-    if (dashStatusText) {
-      dashStatusText.textContent = 'ГОТОВ';
-      dashStatusText.className = 'dash-status-badge ready';
-    }
-    if (dashTimerText) {
-      dashTimerText.textContent = '5.0s';
-    }
-  }
+  updateAbilityCircleState(
+    dashAbilitySlot,
+    dashTriggerCard,
+    dashTimerText,
+    'dashing',
+    state.isDashing,
+    state.isReady,
+    state.isDashing ? 100 : progressPercent,
+    !state.isDashing && !state.isReady ? state.cooldown.toFixed(1) : '',
+  );
 }) as EventListener);
 
-// Синхронизация состояния овердрайва супертанка (ПКМ) с тактическим HUD
+// Синхронизация состояния овердрайва супертанка с круговой кнопкой способности
 window.addEventListener('tank-super-state', ((e: CustomEvent<{
   cooldown: number;
   maxCooldown: number;
@@ -1224,59 +1216,29 @@ window.addEventListener('tank-super-state', ((e: CustomEvent<{
   isActive: boolean;
 }>) => {
   const state = e.detail;
-  if (!state || !superTriggerCard) return;
+  if (!state) return;
 
-  if (state.isActive) {
-    superTriggerCard.classList.remove('cooling');
-    superTriggerCard.classList.add('active');
-    if (superStatusText) {
-      superStatusText.textContent = 'АКТИВЕН!';
-      superStatusText.className = 'dash-status-badge active';
-    }
-    const durationPercent = Math.max(0, Math.min(100, (state.duration / state.maxDuration) * 100));
-    if (superCooldownBar) {
-      superCooldownBar.style.width = `${durationPercent.toFixed(1)}%`;
-    }
-    if (superLabelText) {
-      superLabelText.textContent = 'ДЕЙСТВИЕ:';
-    }
-    if (superTimerText) {
-      superTimerText.textContent = `${state.duration.toFixed(1)}s`;
-    }
-  } else if (!state.isReady) {
-    superTriggerCard.classList.remove('active');
-    superTriggerCard.classList.add('cooling');
+  const durationPercent = state.maxDuration > 0 ? (state.duration / state.maxDuration) * 100 : 0;
+  const cooldownPercent = state.maxCooldown > 0
+    ? ((state.maxCooldown - state.cooldown) / state.maxCooldown) * 100
+    : 0;
 
-    const progressPercent = Math.max(0, Math.min(100, ((state.maxCooldown - state.cooldown) / state.maxCooldown) * 100));
-    if (superCooldownBar) {
-      superCooldownBar.style.width = `${progressPercent.toFixed(1)}%`;
-    }
-    if (superStatusText) {
-      superStatusText.textContent = 'ОХЛАЖДЕНИЕ';
-      superStatusText.className = 'dash-status-badge cooling';
-    }
-    if (superLabelText) {
-      superLabelText.textContent = 'ПЕРЕЗАРЯДКА:';
-    }
-    if (superTimerText) {
-      superTimerText.textContent = `${state.cooldown.toFixed(1)}s`;
-    }
-  } else {
-    superTriggerCard.classList.remove('cooling', 'active');
-    if (superCooldownBar) {
-      superCooldownBar.style.width = '100%';
-    }
-    if (superStatusText) {
-      superStatusText.textContent = 'ГОТОВ';
-      superStatusText.className = 'dash-status-badge ready';
-    }
-    if (superLabelText) {
-      superLabelText.textContent = 'ПЕРЕЗАРЯДКА:';
-    }
-    if (superTimerText) {
-      superTimerText.textContent = '5.0s';
-    }
-  }
+  const timerText = state.isActive
+    ? state.duration.toFixed(1)
+    : !state.isReady
+      ? state.cooldown.toFixed(1)
+      : '';
+
+  updateAbilityCircleState(
+    superAbilitySlot,
+    superTriggerCard,
+    superTimerText,
+    'active',
+    state.isActive,
+    state.isReady,
+    state.isActive ? durationPercent : cooldownPercent,
+    timerText,
+  );
 }) as EventListener);
 
 // Горячие клавиши

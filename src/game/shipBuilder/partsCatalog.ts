@@ -77,26 +77,25 @@ const CATEGORIES_CONFIG: Array<{
   iconSvg: string;
 }> = [
   {
+    id: 'body',
+    title: 'Корпус',
+    englishName: 'HULL // BODY',
+    description: 'Несущий каркас, броневые плиты и блоки корпуса',
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 3h6l3.5 7.5-1.5 8-3 2.5h-4l-3-2.5-1.5-8L9 3z"/>
+      <path d="M10.5 7.5h3l1.5 4-1 5h-4l-1-5 1.5-4z" stroke-width="1.3"/>
+      <path d="M12 3v4.5" stroke-width="1.3"/>
+    </svg>`,
+  },
+  {
     id: 'pilot',
     title: 'Кабина',
     englishName: 'COCKPIT // PILOT',
     description: 'Командные модули, визоры и кабины пилота',
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z"/>
-      <circle cx="12" cy="11" r="3"/>
-      <path d="M12 14v4"/>
-    </svg>`,
-  },
-  {
-    id: 'body',
-    title: 'Тело',
-    englishName: 'HULL // BODY',
-    description: 'Несущий каркас, броневые плиты и блоки корпуса',
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <rect x="5" y="4" width="14" height="16" rx="3"/>
-      <line x1="9" y1="9" x2="15" y2="9"/>
-      <line x1="9" y1="15" x2="15" y2="15"/>
-      <line x1="12" y1="4" x2="12" y2="20"/>
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2.5C9.2 5 7.5 9.5 7.5 15l2 5.5h5l2-5.5c0-5.5-1.7-10-4.5-12.5z"/>
+      <path d="M9.5 10.5L12 7.5l2.5 3v4.5L12 16.5 9.5 15v-4.5z" stroke-width="1.3"/>
+      <path d="M12 7.5v9" stroke-width="1.2"/>
     </svg>`,
   },
   {
@@ -104,10 +103,10 @@ const CATEGORIES_CONFIG: Array<{
     title: 'Крылья',
     englishName: 'WINGS // AERO',
     description: 'Маневровые крылья, аэродинамические плоскости и пилоны',
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M12 4l-9 8 9 8 9-8-9-8z"/>
-      <path d="M3 12h18"/>
-      <path d="M12 4v16"/>
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.5 4.5L6.5 10 2.5 13v4l4 2.5 3-2V4.5z"/>
+      <path d="M14.5 4.5l3 5.5 4 3v4l-4 2.5-3-2V4.5z"/>
+      <path d="M9.5 12h5" stroke-width="1.4"/>
     </svg>`,
   },
   {
@@ -115,10 +114,11 @@ const CATEGORIES_CONFIG: Array<{
     title: 'Двигатели',
     englishName: 'THRUSTERS // ENGINES',
     description: 'Маршевые фотонно-плазменные сопла и реактивные приводы',
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M8 3h8l-1 9H9L8 3z"/>
-      <path d="M7 12h10l-2 5H9l-2-5z"/>
-      <path d="M10 17l2 4 2-4"/>
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3h8l1.5 2v5l-2 2.5h-7L6.5 10V5L8 3z"/>
+      <path d="M9.5 12.5h5l1.5 4h-8l1.5-4z"/>
+      <path d="M9 16.5l3 5 3-5"/>
+      <path d="M9.5 7.5h5" stroke-width="1.4"/>
     </svg>`,
   },
   {
@@ -126,10 +126,13 @@ const CATEGORIES_CONFIG: Array<{
     title: 'Пушки',
     englishName: 'WEAPONS // GUNS',
     description: 'Импульсные орудия, бластеры и спаренные стволы',
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <rect x="10" y="2" width="4" height="12" rx="1"/>
-      <path d="M7 14h10v6H7v-6z"/>
-      <line x1="12" y1="2" x2="12" y2="14"/>
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8.5 3v8"/>
+      <path d="M15.5 3v8"/>
+      <path d="M7.5 4.5h2"/>
+      <path d="M14.5 4.5h2"/>
+      <path d="M6 11h12l1 2.5v5l-2 2.5H7l-2-2.5v-5L6 11z"/>
+      <path d="M9.5 15.5h5" stroke-width="1.4"/>
     </svg>`,
   },
 ];

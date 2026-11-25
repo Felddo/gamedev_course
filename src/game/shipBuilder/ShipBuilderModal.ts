@@ -315,7 +315,7 @@ export class ShipBuilderModal {
     this.totalShipBuilderTime = campaignManager.getTotalShipBuilderTime();
 
     const firstCat = this.catalog[0];
-    this.activeCategoryId = firstCat?.id || 'pilot';
+    this.activeCategoryId = firstCat?.id || 'body';
     if (firstCat && firstCat.hasSubfolders && firstCat.folders.length > 0) {
       this.activeSubfolderName = firstCat.folders[0].name;
     }
@@ -386,7 +386,7 @@ export class ShipBuilderModal {
           <!-- СЕКЦИЯ КОЛОНОК НАВИГАЦИИ (СЛЕВА НАПРАВО) -->
           <div class="shipyard-columns-flow" id="shipyard-columns-flow">
             
-            <!-- 1. СТОЛБЕЦ: МОДУЛИ (Кабина, Тело, Крылья, Двигатели, Пушки) -->
+            <!-- 1. СТОЛБЕЦ: МОДУЛИ (Корпус, Кабина, Крылья, Двигатели, Пушки) -->
             <div class="flow-col col-categories" id="col-categories">
               <div class="col-head">
                 <span class="col-head-tag">01 // МОДУЛИ</span>
@@ -1340,7 +1340,7 @@ export class ShipBuilderModal {
 
   /**
    * Рендеринг тактических индикаторов лимитов:
-   * Кабина, Корпус, Крылья, Двигатели, Пушки
+   * Корпус, Кабина, Крылья, Двигатели, Пушки
    */
   private renderLimitsGrid(): void {
     if (!this.limitsGridEl) return;
@@ -1357,6 +1357,7 @@ export class ShipBuilderModal {
       const isMissing = current < 1;
       const badge = document.createElement('div');
       badge.className = `limit-chip ${isFull ? 'full' : isMissing ? 'missing' : 'available'}`;
+      badge.setAttribute('data-category', catId);
       badge.setAttribute(
         'title',
         `${cfg.title}: установлено ${current} из ${cfg.max}${isMissing ? ' (ОБЯЗАТЕЛЬНО: минимум 1 для вылета)' : ''}`
@@ -1375,6 +1376,8 @@ export class ShipBuilderModal {
       this.limitsGridEl.appendChild(badge);
     });
 
+    this.renderLimitsSelection();
+
     if (this.partsCounterEl) {
       const total = this.droppedParts.length;
       let maxTotal = 0;
@@ -1386,7 +1389,7 @@ export class ShipBuilderModal {
   }
 
   /**
-   * 1. РЕНДЕРИНГ ЛЕВОГО СТОЛБЦА: МОДУЛИ (Кабина, Тело, Крылья, Двигатели, Пушки)
+   * 1. РЕНДЕРИНГ ЛЕВОГО СТОЛБЦА: МОДУЛИ (Корпус, Кабина, Крылья, Двигатели, Пушки)
    * Вертикальный порядок: Значок -> Название части -> Количество
    */
   private renderCategoriesColumn(): void {
@@ -1877,6 +1880,26 @@ export class ShipBuilderModal {
     this.selectedPartUid = uid;
     this.renderDroppedPartsSelection();
     this.updateSelectedToolbar();
+    this.renderLimitsSelection();
+  }
+
+  /**
+   * Подсветка соответствующей категории выбранной детали в блоке 04 (Части)
+   */
+  private renderLimitsSelection(): void {
+    if (!this.limitsGridEl) return;
+    const selectedPart = this.droppedParts.find((p) => p.uid === this.selectedPartUid);
+    const selectedCatId = selectedPart?.part.category ?? null;
+
+    const chips = this.limitsGridEl.querySelectorAll('.limit-chip');
+    chips.forEach((chip) => {
+      const catId = chip.getAttribute('data-category');
+      if (selectedCatId && catId === selectedCatId) {
+        chip.classList.add('selected');
+      } else {
+        chip.classList.remove('selected');
+      }
+    });
   }
 
   /**
