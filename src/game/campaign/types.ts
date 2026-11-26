@@ -84,6 +84,7 @@ export interface CampaignSaveData {
   rewardedTacticalMissions: string[]; // Миссии, за которые уже получен выбор тактического улучшения (1-2, 1-4, 2-2, 2-4, 3-2, 3-4)
   savedShipAssembly?: SavedDroppedPart[]; // Сохраненная кастомная сборка корабля
   equippedMissileId?: string; // Текущая купленная ракета в магазине (например, 'rare_004')
+  shopMissionBySector?: Record<number, string>; // Запланированная миссия появления магазина для каждого сектора (1..3)
   runId?: string;               // Уникальный идентификатор текущего прохождения кампании
   totalShipBuilderTime?: number; // Суммарное время в конструкторе корабля за прохождение (в секундах)
   trackedFirstModification?: boolean; // Флаг отправки события first_modification_reached

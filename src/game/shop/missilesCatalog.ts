@@ -24,8 +24,7 @@ export interface MissileRarityInfo {
   glowColor: string;
   badgeBg: string;
   textColor: string;
-  priceLow: number;    // Цена в магазине на уровне 1-2
-  priceNormal: number; // Цена в магазинах на остальных уровнях
+  pricesBySector: Record<1 | 2 | 3, number>; // Цена по фазам (секторам) 1 -> 2 -> 3
 }
 
 export const MISSILE_RARITY_CONFIG: Record<MissileRarity, MissileRarityInfo> = {
@@ -39,8 +38,7 @@ export const MISSILE_RARITY_CONFIG: Record<MissileRarity, MissileRarityInfo> = {
     glowColor: 'rgba(148, 163, 184, 0.35)',
     badgeBg: 'rgba(148, 163, 184, 0.16)',
     textColor: '#cbd5e1',
-    priceLow: 15,
-    priceNormal: 55,
+    pricesBySector: { 1: 15, 2: 55, 3: 100 },
   },
   rare: {
     rarity: 'rare',
@@ -52,8 +50,7 @@ export const MISSILE_RARITY_CONFIG: Record<MissileRarity, MissileRarityInfo> = {
     glowColor: 'rgba(250, 204, 21, 0.4)',
     badgeBg: 'rgba(250, 204, 21, 0.18)',
     textColor: '#fde047',
-    priceLow: 30,
-    priceNormal: 120,
+    pricesBySector: { 1: 30, 2: 110, 3: 200 },
   },
   legendary: {
     rarity: 'legendary',
@@ -65,8 +62,7 @@ export const MISSILE_RARITY_CONFIG: Record<MissileRarity, MissileRarityInfo> = {
     glowColor: 'rgba(239, 68, 68, 0.48)',
     badgeBg: 'rgba(239, 68, 68, 0.18)',
     textColor: '#fca5a5',
-    priceLow: 55,
-    priceNormal: 240,
+    pricesBySector: { 1: 55, 2: 200, 3: 350 },
   },
 };
 
@@ -176,10 +172,15 @@ export interface ShopMissileOffer {
 
 export const DEFAULT_MISSILE_ID = 'common_010';
 
+export function getMissilePriceForSector(rarity: MissileRarity, sector = 1): number {
+  const clamped = Math.max(1, Math.min(3, Math.round(sector))) as 1 | 2 | 3;
+  return MISSILE_RARITY_CONFIG[rarity].pricesBySector[clamped];
+}
+
 export function buildMissileSpec(
   rarity: MissileRarity,
   typeCode: MissileTypeCode,
-  isLowPriceLevel = false,
+  sector = 1,
 ): ShopMissileOffer {
   const rarityInfo = MISSILE_RARITY_CONFIG[rarity];
   const typeDef = MISSILE_TYPE_DEFS[typeCode];
@@ -194,7 +195,7 @@ export function buildMissileSpec(
     name: typeDef.name,
     description: typeDef.description,
     damage: rarityInfo.damage,
-    price: isLowPriceLevel ? rarityInfo.priceLow : rarityInfo.priceNormal,
+    price: getMissilePriceForSector(rarity, sector),
     textureKey,
     spriteUrl,
   };
@@ -209,7 +210,7 @@ export function parseMissileId(missileId?: string | null): ShopMissileOffer | nu
   if (!MISSILE_RARITY_CONFIG[rarity] || !MISSILE_TYPE_DEFS[code]) {
     return null;
   }
-  return buildMissileSpec(rarity, code, false);
+  return buildMissileSpec(rarity, code, 1);
 }
 
 function rollWeightedRarity(): MissileRarity {
@@ -226,16 +227,29 @@ function rollWeightedRarity(): MissileRarity {
   return 'common';
 }
 
+function resolveSectorNumber(sectorOrMissionId?: number | string | null): number {
+  if (typeof sectorOrMissionId === 'number' && Number.isFinite(sectorOrMissionId)) {
+    return Math.max(1, Math.min(3, Math.round(sectorOrMissionId)));
+  }
+  if (typeof sectorOrMissionId === 'string') {
+    const parsed = parseInt(sectorOrMissionId.split('-')[0], 10);
+    if (Number.isFinite(parsed)) {
+      return Math.max(1, Math.min(3, parsed));
+    }
+  }
+  return 1;
+}
+
 /**
  * Случайная генерация 3 уникальных ракет для магазина:
  * - Чем выше редкость, тем ниже шанс появления и выше цена
- * - На уровне 1-2 цены маленькие, на остальных — обычные
+ * - Чем дальше фаза (сектор 1 -> 2 -> 3), тем дороже товары
  */
 export function rollShopMissileOffers(
-  missionId?: string | null,
+  sectorOrMissionId?: number | string | null,
   count = 3,
 ): ShopMissileOffer[] {
-  const isLowPriceLevel = missionId === '1-2';
+  const sector = resolveSectorNumber(sectorOrMissionId);
   const offers: ShopMissileOffer[] = [];
   const usedIds = new Set<string>();
   let guard = 0;
@@ -247,7 +261,7 @@ export function rollShopMissileOffers(
     const candidateId = `${rarity}_${code}`;
     if (usedIds.has(candidateId)) continue;
     usedIds.add(candidateId);
-    offers.push(buildMissileSpec(rarity, code, isLowPriceLevel));
+    offers.push(buildMissileSpec(rarity, code, sector));
   }
 
   return offers;

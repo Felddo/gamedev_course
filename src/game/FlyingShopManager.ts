@@ -3,6 +3,7 @@ import shopStationUrl from '../assets/Sprites/Shop/spaceStation_020.png';
 import { FlyingShop } from './types';
 import { MAP_WIDTH, MAP_HEIGHT } from './constants';
 import { CampaignMission } from './campaign/types';
+import { campaignManager } from './campaign/CampaignManager';
 import { soundFx } from './audio';
 import { ShopMissileOffer, rollShopMissileOffers } from './shop/missilesCatalog';
 
@@ -11,17 +12,19 @@ export const FLYING_SHOP_SPRITE_ASSET = {
   url: shopStationUrl,
 };
 
-// Средний размер станции (середина диапазона SpaceStationManager 146..310px)
-const SHOP_RENDERED_SIZE = 228;
-const SHOP_DWELL_DURATION = 2.0; // секунд удержания в сфере для входа
-const SHOP_RANDOM_SPAWN_CHANCE = 0.45; // шанс появления на уровнях кроме 1-2
+// Увеличенный размер модели магазина (значительно крупнее обычных станций 146..310px)
+const SHOP_RENDERED_SIZE = 500;
+const SHOP_DWELL_DURATION = 3.0; // секунд удержания в сфере для входа
 
 /**
  * Менеджер летающего магазина:
- * - На уровне 1-2 появляется со 100% вероятностью
- * - На остальных уровнях появляется случайно (может и не появиться)
- * - Всегда среднего размера, со спрайтом spaceStation_020.png
- * - Окружен желтоватой сферой; при нахождении игрока внутри 2 секунды круг
+ * - Появляется по одному разу в каждой фазе (секторе):
+ *   в фазе 1 — на уровне 1-2, в фазе 2 — на случайном уровне (2-1..2-5),
+ *   в фазе 3 — на случайном уровне до 3-5 (3-1..3-4)
+ * - Чем дальше фаза, тем дороже ассортимент
+ * - Всегда крупного размера, со спрайтом spaceStation_020.png
+ * - Над базой отображается голографическая желтая надпись SHOP
+ * - Окружен желтоватой сферой; при нахождении игрока внутри 3 секунды круг
  *   заполняется более насыщенным желтым и открывает окно магазина
  */
 export class FlyingShopManager {
@@ -52,6 +55,7 @@ export class FlyingShopManager {
 
   public reset(): void {
     if (this.shop) {
+      this.shop.shopLabel.destroy();
       this.shop.sphereGraphics.destroy();
       this.shop.sprite.destroy();
       this.shop = null;
@@ -64,14 +68,11 @@ export class FlyingShopManager {
     this.reset();
     if (!mission) return;
 
-    const shouldSpawn =
-      mission.id === '1-2' ? true : Math.random() < SHOP_RANDOM_SPAWN_CHANCE;
-
-    if (!shouldSpawn) {
+    if (!campaignManager.shouldSpawnShopInMission(mission)) {
       return;
     }
 
-    this.currentOffers = rollShopMissileOffers(mission.id, 3);
+    this.currentOffers = rollShopMissileOffers(mission.sector, 3);
     this.spawnShop();
   }
 
@@ -84,15 +85,15 @@ export class FlyingShopManager {
     const cy = MAP_HEIGHT / 2;
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const dist = Phaser.Math.FloatBetween(520, 920);
-    const x = Phaser.Math.Clamp(cx + Math.cos(angle) * dist, 380, MAP_WIDTH - 380);
-    const y = Phaser.Math.Clamp(cy + Math.sin(angle) * dist, 380, MAP_HEIGHT - 380);
+    const x = Phaser.Math.Clamp(cx + Math.cos(angle) * dist, 420, MAP_WIDTH - 420);
+    const y = Phaser.Math.Clamp(cy + Math.sin(angle) * dist, 420, MAP_HEIGHT - 420);
 
     const sprite = this.scene.add.sprite(x, y, FLYING_SHOP_SPRITE_ASSET.key);
     const texW = sprite.width > 0 ? sprite.width : 124;
     const texH = sprite.height > 0 ? sprite.height : 347;
     const maxTexDim = Math.max(texW, texH);
 
-    // Размер магазина всегда средний
+    // Крупный размер модели магазина
     const scale = SHOP_RENDERED_SIZE / maxTexDim;
     const halfWidth = (texW * scale) / 2;
     const halfHeight = (texH * scale) / 2;
@@ -107,9 +108,32 @@ export class FlyingShopManager {
     const sphereGraphics = this.scene.add.graphics();
     sphereGraphics.setDepth(6.1);
 
+    const shopLabel = this.scene.add
+      .text(x, y - sphereRadius - 38, 'SHOP', {
+        fontFamily: "'Orbitron', 'Rajdhani', monospace",
+        fontSize: '46px',
+        fontStyle: 'bold',
+        color: '#fef08a',
+        stroke: '#713f12',
+        strokeThickness: 5,
+        letterSpacing: 8,
+        shadow: {
+          offsetX: 0,
+          offsetY: 0,
+          color: '#facc15',
+          blur: 18,
+          fill: true,
+          stroke: true,
+        },
+        resolution: 3,
+      })
+      .setOrigin(0.5, 0.5)
+      .setDepth(15.2);
+
     this.shop = {
       sprite,
       sphereGraphics,
+      shopLabel,
       x,
       y,
       speed: Phaser.Math.FloatBetween(18, 26),
@@ -156,9 +180,9 @@ export class FlyingShopManager {
     shop.x += Math.cos(shop.moveAngle) * shop.speed * speedFactor * seconds;
     shop.y += Math.sin(shop.moveAngle) * shop.speed * speedFactor * seconds;
 
-    const minBound = 340;
-    const maxBoundX = MAP_WIDTH - 340;
-    const maxBoundY = MAP_HEIGHT - 340;
+    const minBound = 400;
+    const maxBoundX = MAP_WIDTH - 400;
+    const maxBoundY = MAP_HEIGHT - 400;
     if (shop.x < minBound) {
       shop.x = minBound;
       shop.moveAngle = Math.PI - shop.moveAngle;
@@ -177,7 +201,7 @@ export class FlyingShopManager {
     shop.sprite.setPosition(shop.x, shop.y);
     shop.sprite.rotation += shop.rotationSpeed * seconds;
 
-    // Таймер удержания 2 секунды внутри желтой сферы
+    // Таймер удержания 3 секунды внутри желтой сферы
     if (isInside && !shop.mustExitBeforeReenter && shop.reenterCooldown <= 0) {
       shop.dwellTimer = Math.min(SHOP_DWELL_DURATION, shop.dwellTimer + seconds);
       if (shop.dwellTimer >= SHOP_DWELL_DURATION) {
@@ -213,7 +237,7 @@ export class FlyingShopManager {
     g.fillStyle(0xfacc15, baseFillAlpha);
     g.fillCircle(x, y, sphereRadius);
 
-    // Внутренний заполняющийся желтый круг от центра к краям по мере удержания 2 сек
+    // Внутренний заполняющийся желтый круг от центра к краям по мере удержания 3 сек
     if (progress > 0) {
       const fillRadius = Math.max(4, sphereRadius * progress);
       g.fillStyle(0xfde047, 0.22 + progress * 0.30);
@@ -239,6 +263,54 @@ export class FlyingShopManager {
       g.arc(x, y, sphereRadius + 6, startA, startA + segAngle);
       g.strokePath();
     }
+
+    // Голографическая желтая табличка SHOP над базой
+    const bob = Math.sin(pulsePhase * 1.1) * 3.5;
+    const labelY = y - sphereRadius - 38 + bob;
+    const shimmer = 0.85 + Math.sin(pulsePhase * 2.4) * 0.13;
+    const boxW = 240;
+    const boxH = 62;
+    const boxLeft = x - boxW / 2;
+    const boxTop = labelY - boxH / 2;
+
+    shop.shopLabel.setPosition(x, labelY);
+    shop.shopLabel.setAlpha(isInside ? 1.0 : shimmer);
+
+    // Полупрозрачная голографическая подложка и свечение
+    g.fillStyle(0xfacc15, (isInside ? 0.18 : 0.11) * shimmer);
+    g.fillRoundedRect(boxLeft, boxTop, boxW, boxH, 8);
+
+    // Голографические линии сканирования (scanlines)
+    g.lineStyle(1, 0xfef08a, 0.16 * shimmer);
+    for (let sy = boxTop + 7; sy < boxTop + boxH - 4; sy += 7) {
+      g.lineBetween(boxLeft + 8, sy, boxLeft + boxW - 8, sy);
+    }
+
+    // Тонкая рамка голограммы
+    g.lineStyle(1.6, 0xfacc15, (isInside ? 0.85 : 0.55) * shimmer);
+    g.strokeRoundedRect(boxLeft, boxTop, boxW, boxH, 8);
+
+    // Угловые тактические скобки голографического проектора
+    const br = 13;
+    g.lineStyle(2.4, 0xfef08a, isInside ? 1.0 : 0.92 * shimmer);
+    // Левый верхний
+    g.lineBetween(boxLeft, boxTop + br, boxLeft, boxTop);
+    g.lineBetween(boxLeft, boxTop, boxLeft + br, boxTop);
+    // Правый верхний
+    g.lineBetween(boxLeft + boxW - br, boxTop, boxLeft + boxW, boxTop);
+    g.lineBetween(boxLeft + boxW, boxTop, boxLeft + boxW, boxTop + br);
+    // Левый нижний
+    g.lineBetween(boxLeft, boxTop + boxH - br, boxLeft, boxTop + boxH);
+    g.lineBetween(boxLeft, boxTop + boxH, boxLeft + br, boxTop + boxH);
+    // Правый нижний
+    g.lineBetween(boxLeft + boxW - br, boxTop + boxH, boxLeft + boxW, boxTop + boxH);
+    g.lineBetween(boxLeft + boxW, boxTop + boxH, boxLeft + boxW, boxTop + boxH - br);
+
+    // Луч-указатель от голограммы к верхней точке желтой сферы
+    g.lineStyle(1.5, 0xfde047, 0.55 * shimmer);
+    g.lineBetween(x, boxTop + boxH, x, y - sphereRadius);
+    g.fillStyle(0xfef08a, 0.85 * shimmer);
+    g.fillCircle(x, y - sphereRadius, 3);
 
     // Дуга прогресса заполнения по периметру
     if (progress > 0) {

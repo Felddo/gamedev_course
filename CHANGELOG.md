@@ -2,6 +2,24 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Обновление летающего магазина, метеоритов, звука и крыльев в конструкторе корабля
+
+**Что сделано:**
+- **Летающий магазин и экономика по фазам:**
+  - В [FlyingShopManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/FlyingShopManager.ts) и [types.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/types.ts) увеличена модель магазина (`SHOP_RENDERED_SIZE = 500`), время удержания в жёлтой сфере для входа увеличено до `3.0` сек, а над базой добавлена крупная жёлтая голографическая табличка `SHOP`.
+  - В [CampaignManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/campaign/CampaignManager.ts) и [campaign/types.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/campaign/types.ts) появление магазина привязано к одному разу на фазу (сектор): `1-2` в фазе 1, случайный уровень в фазе 2 (`2-1`–`2-5`) и случайный уровень до `3-5` в фазе 3 (`3-1`–`3-4`).
+  - В [missilesCatalog.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shop/missilesCatalog.ts) цены на ракеты растут от фазы к фазе (`pricesBySector`), а в [ShopModal.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shop/ShopModal.ts) окно магазина автоматически закрывается сразу после покупки снаряда.
+- **Миникарта (тактический радар):**
+  - В [HudManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudManager.ts) отключено отображение метеоритов на миникарте и добавлены жёлтые стрелочки вокруг иконки магазина, указывающие на него.
+- **Метеориты и модификации:**
+  - Из [modificationsData.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/modifications/modificationsData.ts) и [PlayerShip.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/PlayerShip.ts) удалена модификация `meteor_shielding` («Противометеоритная броня»).
+  - В [MeteorManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/MeteorManager.ts) и [main.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/main.ts) столкновение с метеоритом всегда наносит `50%` урона от `maxHp` корабля, а сам метеорит при столкновении не исчезает, а физически отскакивает от игрока.
+- **Звук и визуальная обратная связь при сборе лома:**
+  - В [audio.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/audio.ts) звук сбора металлолома (`playScrapPickup`) сделан мягче и тише, а звук стрельбы (`playCannon`, `playSuperCannon`) — чётче и плотнее.
+  - В [ParticleManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/ParticleManager.ts) убрана всплывающая текстовая подпись количества подобранного металлолома.
+- **Крылья в конструкторе корабля:**
+  - В [modulesCatalog.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/modulesCatalog.ts) и [ShipBuilderModal.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shipBuilder/ShipBuilderModal.ts) крылья строго распределены по цветам и редкостям (обычные — только синие, редкие — зелёные, легендарные — красные), и к каждой редкости добавлено по 2 новых крыла (`8 / 6 / 4`).
+
 ## Летающий магазин и 10 типов ракет с редкостью и боевыми механиками
 
 **Что сделано:**

@@ -74,7 +74,7 @@ class SoundFx {
   }
 
   /**
-   * Мощный выстрел носового корабельного орудия.
+   * Четкий и плотный выстрел носового корабельного орудия.
    */
   playCannon(): void {
     try {
@@ -83,37 +83,46 @@ class SoundFx {
       if (!this.ctx || !dest || this.muted) return;
       const now = this.ctx.currentTime;
 
-      // 1. Ударная волна орудия (низкочастотный импульс выстрела)
+      // 1. Четкий ударный импульс орудия
       const osc = this.ctx.createOscillator();
+      const oscFilter = this.ctx.createBiquadFilter();
       const oscGain = this.ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.exponentialRampToValueAtTime(32, now + 0.20);
-      oscGain.gain.setValueAtTime(0.18, now);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
-      osc.connect(oscGain);
+      osc.frequency.setValueAtTime(165, now);
+      osc.frequency.exponentialRampToValueAtTime(36, now + 0.16);
+
+      oscFilter.type = 'lowpass';
+      oscFilter.frequency.setValueAtTime(580, now);
+      oscFilter.frequency.exponentialRampToValueAtTime(140, now + 0.16);
+
+      oscGain.gain.setValueAtTime(0.001, now);
+      oscGain.gain.linearRampToValueAtTime(0.20, now + 0.002);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+      osc.connect(oscFilter);
+      oscFilter.connect(oscGain);
       oscGain.connect(dest);
       osc.start(now);
-      osc.stop(now + 0.20);
+      osc.stop(now + 0.16);
 
-      // 2. Взрывной хлопок газов и лязг механизма
+      // 2. Четкий щелчок затвора и хлопок газов
       const sampleRate = this.ctx.sampleRate;
-      const duration = 0.22;
+      const duration = 0.13;
       const buffer = this.ctx.createBuffer(1, Math.floor(sampleRate * duration), sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < data.length; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.05));
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.028));
       }
       const noise = this.ctx.createBufferSource();
       noise.buffer = buffer;
 
       const filter = this.ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(750, now);
-      filter.frequency.exponentialRampToValueAtTime(90, now + duration);
+      filter.frequency.setValueAtTime(620, now);
+      filter.frequency.exponentialRampToValueAtTime(110, now + duration);
 
       const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.12, now);
+      noiseGain.gain.setValueAtTime(0.09, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       noise.connect(filter);
@@ -498,7 +507,7 @@ class SoundFx {
   }
 
   /**
-   * Сверхтяжелый залп орудий в режиме овердрайва.
+   * Четкий тяжелый залп орудий в режиме овердрайва.
    */
   playSuperCannon(): void {
     try {
@@ -507,31 +516,36 @@ class SoundFx {
       if (!this.ctx || !dest || this.muted) return;
       const now = this.ctx.currentTime;
 
-      // Глубокий басовый удар
+      // Четкий плотный басовый удар
       const osc = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(160, now);
-      osc.frequency.exponentialRampToValueAtTime(25, now + 0.28);
-      oscGain.gain.setValueAtTime(0.20, now);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(28, now + 0.24);
+      oscGain.gain.setValueAtTime(0.001, now);
+      oscGain.gain.linearRampToValueAtTime(0.22, now + 0.002);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
       osc.connect(oscGain);
       oscGain.connect(dest);
       osc.start(now);
-      osc.stop(now + 0.28);
+      osc.stop(now + 0.24);
 
-      // Металлический отзвук ствола
+      // Четкий отзвук ствола через мягкий фильтр
       const ringOsc = this.ctx.createOscillator();
+      const ringFilter = this.ctx.createBiquadFilter();
       const ringGain = this.ctx.createGain();
       ringOsc.type = 'triangle';
-      ringOsc.frequency.setValueAtTime(420, now);
-      ringOsc.frequency.exponentialRampToValueAtTime(110, now + 0.16);
-      ringGain.gain.setValueAtTime(0.10, now);
-      ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-      ringOsc.connect(ringGain);
+      ringOsc.frequency.setValueAtTime(280, now);
+      ringOsc.frequency.exponentialRampToValueAtTime(80, now + 0.14);
+      ringFilter.type = 'lowpass';
+      ringFilter.frequency.setValueAtTime(700, now);
+      ringGain.gain.setValueAtTime(0.09, now);
+      ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      ringOsc.connect(ringFilter);
+      ringFilter.connect(ringGain);
       ringGain.connect(dest);
       ringOsc.start(now);
-      ringOsc.stop(now + 0.16);
+      ringOsc.stop(now + 0.14);
     } catch {
       // Игнорируем
     }
@@ -674,7 +688,7 @@ class SoundFx {
   }
 
   /**
-   * Металлический звонкий звук подбора металлолома (scrap clink / pickup).
+   * Мягкий теплый звук подбора металлолома.
    */
   playScrapPickup(): void {
     try {
@@ -683,30 +697,36 @@ class SoundFx {
       if (!this.ctx || !dest || this.muted) return;
       const now = this.ctx.currentTime;
 
-      // Мягкий металлический резонанс с умеренной громкостью
+      // Мягкие синусоидальные тоны с плавной атакой и фильтром нижних частот
       const osc1 = this.ctx.createOscillator();
       const osc2 = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
       const gain = this.ctx.createGain();
 
-      osc1.type = 'triangle';
-      osc1.frequency.setValueAtTime(1200, now);
-      osc1.frequency.exponentialRampToValueAtTime(1800, now + 0.08);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(520, now);
+      osc1.frequency.exponentialRampToValueAtTime(760, now + 0.10);
 
       osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(2400, now);
-      osc2.frequency.exponentialRampToValueAtTime(2800, now + 0.06);
+      osc2.frequency.setValueAtTime(780, now);
+      osc2.frequency.exponentialRampToValueAtTime(1040, now + 0.08);
 
-      gain.gain.setValueAtTime(0.08, now);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.016, now + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
 
-      osc1.connect(gain);
-      osc2.connect(gain);
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
       gain.connect(dest);
 
       osc1.start(now);
       osc2.start(now);
-      osc1.stop(now + 0.14);
-      osc2.stop(now + 0.14);
+      osc1.stop(now + 0.15);
+      osc2.stop(now + 0.15);
     } catch {
       // Игнорируем
     }

@@ -117,17 +117,23 @@ const MODULE_SPRITE_DIMENSIONS: Record<string, { w: number; h: number }> = {
 
   // Крылья (wings)
   wings_blue_spaceParts_010: { w: 38, h: 71 },
-  wings_green_spaceParts_011: { w: 38, h: 71 },
-  wings_blue_spaceParts_014: { w: 50, h: 67 },
-  wings_green_spaceParts_015: { w: 50, h: 67 },
-  wings_blue_spaceParts_016: { w: 39, h: 71 },
-  wings_green_spaceParts_017: { w: 39, h: 71 },
-  wings_green_spaceParts_013: { w: 48, h: 70 },
-  wings_blue_spaceParts_018: { w: 41, h: 71 },
-  wings_green_spaceParts_019: { w: 41, h: 71 },
   wings_blue_spaceParts_012: { w: 48, h: 70 },
+  wings_blue_spaceParts_014: { w: 50, h: 67 },
+  wings_blue_spaceParts_016: { w: 39, h: 71 },
+  wings_blue_spaceParts_018: { w: 41, h: 71 },
+  wings_blue_spaceParts_020: { w: 37, h: 72 },
+  wings_blue_spaceParts_022: { w: 26, h: 84 },
+  wings_blue_spaceParts_024: { w: 36, h: 79 },
+  wings_green_spaceParts_011: { w: 38, h: 71 },
+  wings_green_spaceParts_013: { w: 48, h: 70 },
+  wings_green_spaceParts_015: { w: 50, h: 67 },
+  wings_green_spaceParts_017: { w: 39, h: 71 },
+  wings_green_spaceParts_019: { w: 41, h: 71 },
+  wings_green_spaceParts_021: { w: 37, h: 72 },
   wings_red_spaceParts_001: { w: 39, h: 71 },
   wings_red_spaceParts_002: { w: 41, h: 71 },
+  wings_red_spaceParts_003: { w: 37, h: 72 },
+  wings_red_spaceParts_004: { w: 26, h: 84 },
 
   // Двигатели (engines)
   engines_0: { w: 29, h: 47 },
@@ -845,20 +851,11 @@ export class ShipBuilderModal {
     const enginesPart = this.findPartById('engines_0') || findPart('engines');
     const gunsPart = this.findPartById('guns_0') || findPart('guns');
 
-    const bayRect = this.centerBayEl ? this.centerBayEl.getBoundingClientRect() : null;
-    let cx = bayRect && bayRect.width > 0 ? bayRect.width / 2 : 0;
-    let cy = bayRect && bayRect.height > 0 ? bayRect.height / 2 : 0;
-    if (cx <= 0 || cy <= 0) {
-      if (isMobilePhone()) {
-        cx = 99; // 198 / 2 для сетки 9х9
-        cy = 99;
-      } else {
-        cx = 175; // 350 / 2
-        cy = 175;
-      }
-    }
+    const { cellW, cellH, maxW, maxH } = this.getGridMetrics();
+    const cx = this.snapToSquareCenter(maxW / 2, cellW);
+    const cy = this.snapToSquareCenter(maxH / 2, cellH);
 
-    // 1. Корпус (центр)
+    // 1. Корпус (центр квадрата)
     if (bodyPart) {
       this.droppedParts.push({
         uid: 'preset_body_' + Math.random().toString(36).substr(2, 6),
@@ -873,13 +870,13 @@ export class ShipBuilderModal {
       });
     }
 
-    // 2. Двигатель (снизу)
+    // 2. Двигатель (ровно на 2 клетки ниже корпуса)
     if (enginesPart) {
       this.droppedParts.push({
         uid: 'preset_engine_' + Math.random().toString(36).substr(2, 6),
         part: enginesPart,
         x: cx,
-        y: cy + 38,
+        y: this.snapToHalfGrid(cy + cellH * 2, cellH),
         zIndex: 2,
         rotation: 0,
         flipX: false,
@@ -888,13 +885,13 @@ export class ShipBuilderModal {
       });
     }
 
-    // 3. Крылья левое и правое (подвинуты ближе к телу)
+    // 3. Крылья левое и правое (симметрично по сетке с шагом полклетки)
     if (wingsPart) {
       this.droppedParts.push({
         uid: 'preset_wing_l_' + Math.random().toString(36).substr(2, 6),
         part: wingsPart,
-        x: cx - 28,
-        y: cy + 4,
+        x: this.snapToHalfGrid(cx - cellW * 1.5, cellW),
+        y: cy,
         zIndex: 2,
         rotation: 0,
         flipX: false,
@@ -904,8 +901,8 @@ export class ShipBuilderModal {
       this.droppedParts.push({
         uid: 'preset_wing_r_' + Math.random().toString(36).substr(2, 6),
         part: wingsPart,
-        x: cx + 28,
-        y: cy + 4,
+        x: this.snapToHalfGrid(cx + cellW * 1.5, cellW),
+        y: cy,
         zIndex: 2,
         rotation: 0,
         flipX: true,
@@ -914,13 +911,13 @@ export class ShipBuilderModal {
       });
     }
 
-    // 4. Кабина (запихнута прямо в тело)
+    // 4. Кабина (на полклетки выше центра корпуса)
     if (pilotPart) {
       this.droppedParts.push({
         uid: 'preset_pilot_' + Math.random().toString(36).substr(2, 6),
         part: pilotPart,
         x: cx,
-        y: cy - 4,
+        y: this.snapToHalfGrid(cy - cellH * 0.5, cellH),
         zIndex: 3,
         rotation: 0,
         flipX: false,
@@ -929,13 +926,13 @@ export class ShipBuilderModal {
       });
     }
 
-    // 5. Пушка (опущена чуть ниже, чтобы выглядывала из-за тела)
+    // 5. Пушка (на 1.5 клетки выше центра корпуса)
     if (gunsPart) {
       this.droppedParts.push({
         uid: 'preset_gun_' + Math.random().toString(36).substr(2, 6),
         part: gunsPart,
         x: cx,
-        y: cy - 34,
+        y: this.snapToHalfGrid(cy - cellH * 1.5, cellH),
         zIndex: 1,
         rotation: 0,
         flipX: false,
@@ -952,6 +949,7 @@ export class ShipBuilderModal {
     this.renderCategoriesColumn();
     this.renderDroppedParts();
     this.updateSelectedToolbar();
+    this.persistAssembly();
     this.persistAssembly();
   }
 
@@ -1253,9 +1251,7 @@ export class ShipBuilderModal {
    */
   private ensurePartsInBay(): void {
     if (!this.centerBayEl || this.droppedParts.length === 0) return;
-    const rect = this.centerBayEl.getBoundingClientRect();
-    const bayW = rect && rect.width > 0 ? rect.width : (isMobilePhone() ? 198 : 350);
-    const bayH = rect && rect.height > 0 ? rect.height : (isMobilePhone() ? 198 : 350);
+    const { cellW, cellH, maxW: bayW, maxH: bayH } = this.getGridMetrics();
 
     const bodyPart = this.droppedParts.find((p) => p.part.category === 'body');
     const pilotPart = this.droppedParts.find((p) => p.part.category === 'pilot');
@@ -1278,8 +1274,8 @@ export class ShipBuilderModal {
       anchorY = sumY / this.droppedParts.length;
     }
 
-    const targetX = bayW / 2;
-    const targetY = bayH / 2;
+    const targetX = this.snapToSquareCenter(bayW / 2, cellW);
+    const targetY = this.snapToSquareCenter(bayH / 2, cellH);
 
     let isOutOfBounds = false;
     for (const p of this.droppedParts) {
@@ -1290,11 +1286,11 @@ export class ShipBuilderModal {
     }
 
     if (isOutOfBounds || Math.abs(anchorX - targetX) > 40 || Math.abs(anchorY - targetY) > 40) {
-      const shiftX = targetX - anchorX;
-      const shiftY = targetY - anchorY;
+      const shiftX = this.snapToHalfGrid(targetX - anchorX, cellW);
+      const shiftY = this.snapToHalfGrid(targetY - anchorY, cellH);
       this.droppedParts.forEach((p) => {
-        p.x = Math.max(15, Math.min(bayW - 15, p.x + shiftX));
-        p.y = Math.max(15, Math.min(bayH - 15, p.y + shiftY));
+        p.x = Number(Math.max(15, Math.min(bayW - 15, p.x + shiftX)).toFixed(2));
+        p.y = Number(Math.max(15, Math.min(bayH - 15, p.y + shiftY)).toFixed(2));
       });
       this.renderDroppedParts();
       this.persistAssembly();
@@ -1990,6 +1986,16 @@ export class ShipBuilderModal {
     }
 
     return { cellW, cellH, maxW, maxH };
+  }
+
+  private snapToSquareCenter(value: number, cellSize: number): number {
+    const cellIdx = Math.round(value / cellSize - 0.5);
+    return Number(((cellIdx + 0.5) * cellSize).toFixed(2));
+  }
+
+  private snapToHalfGrid(value: number, cellSize: number): number {
+    const halfStep = cellSize / 2;
+    return Number((Math.round(value / halfStep) * halfStep).toFixed(2));
   }
 
   /**

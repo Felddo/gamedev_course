@@ -1,6 +1,6 @@
 /**
  * Система модификаций корабля (Ship Modifications System).
- * Централизованный каталог 9 модификаций по мотивам Soul Knight.
+ * Централизованный каталог 8 модификаций по мотивам Soul Knight.
  */
 
 export type ModificationCategory = 'utility' | 'weapon' | 'resources' | 'defense' | 'mobility';
@@ -141,36 +141,7 @@ export const SHIP_MODIFICATIONS: ShipModification[] = [
     `,
   },
 
-  // 5. Противометеоритная броня
-  {
-    id: 'meteor_shielding',
-    name: 'Противометеоритная броня',
-    category: 'defense',
-    categoryLabel: 'ЗАЩИТА',
-    bonusValue: '-50% УРОН ОТ МЕТЕОРИТОВ',
-    shortDesc: 'Уменьшает урон при столкновении с метеоритом на 50% (вместо мгновенной гибели)',
-    accentColor: '#f59e0b',
-    secondaryColor: '#d97706',
-    badgeBg: 'rgba(245, 158, 11, 0.16)',
-    iconSvg: `
-      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Защитный силовой купол -->
-        <path d="M12 42 C12 24 22 14 34 14 C46 14 54 24 54 42" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
-        <path d="M18 44 C18 30 25 21 34 21 C43 21 48 30 48 44" stroke="#fde047" stroke-width="1.8" stroke-dasharray="4 3"/>
-        <!-- Летящий метеорит -->
-        <polygon points="18,12 26,10 30,17 24,23 16,20" fill="#92400e" stroke="#fb923c" stroke-width="2" stroke-linejoin="round"/>
-        <line x1="8" y1="6" x2="15" y2="12" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
-        <line x1="14" y1="4" x2="19" y2="9" stroke="#fde047" stroke-width="1.5" stroke-linecap="round"/>
-        <!-- Искры отражения на щите -->
-        <line x1="28" y1="22" x2="34" y2="18" stroke="#fef08a" stroke-width="2" stroke-linecap="round"/>
-        <line x1="25" y1="26" x2="31" y2="27" stroke="#fef08a" stroke-width="2" stroke-linecap="round"/>
-        <!-- Корпус корабля под защитой -->
-        <polygon points="34,30 42,46 34,42 26,46" fill="#042219" stroke="#34d399" stroke-width="2" stroke-linejoin="round"/>
-      </svg>
-    `,
-  },
-
-  // 7. Переработчик обломков
+  // 5. Переработчик обломков
   {
     id: 'scrap_recycler',
     name: 'Переработчик обломков',

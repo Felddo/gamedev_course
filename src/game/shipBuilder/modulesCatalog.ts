@@ -357,9 +357,9 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
   },
 
   // =========================================================================
-  // 3. КРЫЛЬЯ // WINGS (12 деталей: 6 обычные, 4 редкие, 2 легендарные)
+  // 3. КРЫЛЬЯ // WINGS (18 деталей: 8 обычные синие, 6 редкие зеленые, 4 легендарные красные)
   // =========================================================================
-  // --- ОБЫЧНЫЕ (6 деталей) ---
+  // --- ОБЫЧНЫЕ (8 синих деталей) ---
   {
     id: 'mod_wings_standard',
     name: '«Дельта»',
@@ -378,7 +378,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     id: 'mod_wings_interceptor',
     name: '«Сокол»',
     category: 'wings',
-    partId: 'wings_green_spaceParts_011',
+    partId: 'wings_blue_spaceParts_012',
     rarity: 'common',
     tier: 0,
     price: 70,
@@ -406,7 +406,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     id: 'mod_wings_arrow',
     name: '«Стрела»',
     category: 'wings',
-    partId: 'wings_green_spaceParts_015',
+    partId: 'wings_blue_spaceParts_016',
     rarity: 'common',
     tier: 0,
     price: 80,
@@ -420,7 +420,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     id: 'mod_wings_hawk',
     name: '«Ястреб»',
     category: 'wings',
-    partId: 'wings_blue_spaceParts_016',
+    partId: 'wings_blue_spaceParts_018',
     rarity: 'common',
     tier: 0,
     price: 90,
@@ -434,7 +434,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     id: 'mod_wings_turn',
     name: '«Вираж»',
     category: 'wings',
-    partId: 'wings_green_spaceParts_017',
+    partId: 'wings_blue_spaceParts_020',
     rarity: 'common',
     tier: 0,
     price: 90,
@@ -444,7 +444,35 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
       maneuverabilityBonus: 10,
     },
   },
-  // --- РЕДКИЕ (4 детали) ---
+  {
+    id: 'mod_wings_glider',
+    name: '«Планер»',
+    category: 'wings',
+    partId: 'wings_blue_spaceParts_022',
+    rarity: 'common',
+    tier: 0,
+    price: 95,
+    statsLines: ['+15% поворота', '+15% маневра'],
+    stats: {
+      turnSpeedMultiplier: 1.15,
+      maneuverabilityBonus: 12,
+    },
+  },
+  {
+    id: 'mod_wings_azure',
+    name: '«Азур»',
+    category: 'wings',
+    partId: 'wings_blue_spaceParts_024',
+    rarity: 'common',
+    tier: 0,
+    price: 100,
+    statsLines: ['+25% поворота', '+10% скорости'],
+    stats: {
+      turnSpeedMultiplier: 1.25,
+      speedMultiplier: 1.1,
+    },
+  },
+  // --- РЕДКИЕ (6 зеленых деталей) ---
   {
     id: 'mod_wings_petrel',
     name: '«Буревестник»',
@@ -463,7 +491,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     id: 'mod_wings_blade',
     name: '«Клинок»',
     category: 'wings',
-    partId: 'wings_blue_spaceParts_018',
+    partId: 'wings_green_spaceParts_011',
     rarity: 'rare',
     tier: 2,
     price: 230,
@@ -491,7 +519,7 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     id: 'mod_wings_phantom',
     name: '«Фантом»',
     category: 'wings',
-    partId: 'wings_blue_spaceParts_012',
+    partId: 'wings_green_spaceParts_015',
     rarity: 'rare',
     tier: 2,
     price: 250,
@@ -501,7 +529,35 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
       maneuverabilityBonus: 25,
     },
   },
-  // --- ЛЕГЕНДАРНЫЕ (2 детали) ---
+  {
+    id: 'mod_wings_emerald',
+    name: '«Изумруд»',
+    category: 'wings',
+    partId: 'wings_green_spaceParts_017',
+    rarity: 'rare',
+    tier: 2,
+    price: 260,
+    statsLines: ['+55% поворота', '+25% маневра'],
+    stats: {
+      turnSpeedMultiplier: 1.55,
+      maneuverabilityBonus: 22,
+    },
+  },
+  {
+    id: 'mod_wings_cyclone',
+    name: '«Циклон»',
+    category: 'wings',
+    partId: 'wings_green_spaceParts_021',
+    rarity: 'rare',
+    tier: 2,
+    price: 270,
+    statsLines: ['+65% поворота', '+20% скорости'],
+    stats: {
+      turnSpeedMultiplier: 1.65,
+      speedMultiplier: 1.2,
+    },
+  },
+  // --- ЛЕГЕНДАРНЫЕ (4 красные детали) ---
   {
     id: 'mod_wings_valkyrie',
     name: '«Валькирия»',
@@ -528,6 +584,34 @@ export const SHIP_MODULES_CATALOG: ShipModule[] = [
     stats: {
       turnSpeedMultiplier: 2.0,
       maneuverabilityBonus: 40,
+    },
+  },
+  {
+    id: 'mod_wings_crimson',
+    name: '«Багрянец»',
+    category: 'wings',
+    partId: 'wings_red_spaceParts_003',
+    rarity: 'legendary',
+    tier: 3,
+    price: 620,
+    statsLines: ['+95% поворота', '+45% скорости'],
+    stats: {
+      turnSpeedMultiplier: 1.95,
+      speedMultiplier: 1.45,
+    },
+  },
+  {
+    id: 'mod_wings_phoenix',
+    name: '«Феникс»',
+    category: 'wings',
+    partId: 'wings_red_spaceParts_004',
+    rarity: 'legendary',
+    tier: 3,
+    price: 650,
+    statsLines: ['+110% поворота', '+55% маневра'],
+    stats: {
+      turnSpeedMultiplier: 2.1,
+      maneuverabilityBonus: 45,
     },
   },
 

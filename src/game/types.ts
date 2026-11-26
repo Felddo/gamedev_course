@@ -210,6 +210,7 @@ export interface ScrapPickup {
 export interface FlyingShop {
   sprite: Phaser.GameObjects.Sprite;
   sphereGraphics: Phaser.GameObjects.Graphics;
+  shopLabel: Phaser.GameObjects.Text;
   x: number;
   y: number;
   speed: number;

@@ -559,28 +559,6 @@ export class ParticleManager {
         decay: 3.5,
       });
     }
-
-    // 3. Всплывающий золотой текст начисления металлолома
-    const scrapText = this.scene.add.text(x, y - 8, `+${scrapValue} МЕТАЛЛОЛОМ`, {
-      fontFamily: "'Orbitron', 'Rajdhani', monospace",
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#fef08a',
-      stroke: '#78350f',
-      strokeThickness: 3,
-    });
-    scrapText.setOrigin(0.5, 0.5);
-    scrapText.setDepth(17);
-
-    this.scene.tweens.add({
-      targets: scrapText,
-      y: y - 36,
-      alpha: 0,
-      scale: 1.15,
-      duration: 650,
-      ease: 'Sine.easeOut',
-      onComplete: () => scrapText.destroy(),
-    });
   }
 
   /**

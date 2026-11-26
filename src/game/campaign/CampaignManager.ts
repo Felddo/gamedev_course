@@ -35,6 +35,50 @@ export class CampaignManager {
     return `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  private rollShopMissionForSector(sector: number, minMission = 1): string {
+    if (sector === 1) {
+      return '1-2';
+    }
+    const maxMission = sector === 3 ? 4 : 5;
+    const clampedMin = Math.max(1, Math.min(maxMission, minMission));
+    const missionNum =
+      clampedMin + Math.floor(Math.random() * (maxMission - clampedMin + 1));
+    return `${sector}-${missionNum}`;
+  }
+
+  private createInitialShopMissions(): Record<number, string> {
+    return {
+      1: this.rollShopMissionForSector(1),
+      2: this.rollShopMissionForSector(2),
+      3: this.rollShopMissionForSector(3),
+    };
+  }
+
+  private normalizeShopMissionBySector(
+    raw: unknown,
+    currentSector: number,
+    currentMission: number,
+  ): Record<number, string> {
+    const parsed = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const result: Record<number, string> = { 1: '1-2' };
+
+    for (const sector of [2, 3] as const) {
+      const val = parsed[String(sector)] ?? parsed[sector];
+      const maxMission = sector === 3 ? 4 : 5;
+      const validPattern = new RegExp(`^${sector}-[1-${maxMission}]$`);
+      if (typeof val === 'string' && validPattern.test(val)) {
+        result[sector] = val;
+      } else {
+        const minMission = currentSector === sector && currentMission <= maxMission
+          ? currentMission
+          : 1;
+        result[sector] = this.rollShopMissionForSector(sector, minMission);
+      }
+    }
+
+    return result;
+  }
+
   public static getInstance(): CampaignManager {
     if (!CampaignManager.instance) {
       CampaignManager.instance = new CampaignManager();
@@ -60,6 +104,7 @@ export class CampaignManager {
       appliedUpgradeIds: [],
       rewardedTacticalMissions: [],
       equippedMissileId: undefined,
+      shopMissionBySector: this.createInitialShopMissions(),
       runId: undefined,
       totalShipBuilderTime: 0,
       trackedFirstModification: false,
@@ -97,6 +142,11 @@ export class CampaignManager {
         typeof parsed.equippedMissileId === 'string' && parsed.equippedMissileId.length > 0
           ? parsed.equippedMissileId
           : undefined;
+      const shopMissionBySector = this.normalizeShopMissionBySector(
+        parsed.shopMissionBySector,
+        sector,
+        mission,
+      );
       const runId = typeof parsed.runId === 'string' && parsed.runId.length > 0 ? parsed.runId : undefined;
       const totalShipBuilderTime =
         typeof parsed.totalShipBuilderTime === 'number' && parsed.totalShipBuilderTime >= 0
@@ -118,6 +168,7 @@ export class CampaignManager {
         rewardedTacticalMissions,
         savedShipAssembly,
         equippedMissileId,
+        shopMissionBySector,
         runId,
         totalShipBuilderTime,
         trackedFirstModification: Boolean(parsed.trackedFirstModification),
@@ -158,6 +209,9 @@ export class CampaignManager {
       appliedUpgradeIds: [...this.saveData.appliedUpgradeIds],
       rewardedTacticalMissions: [...this.saveData.rewardedTacticalMissions],
       savedShipAssembly: this.saveData.savedShipAssembly ? [...this.saveData.savedShipAssembly] : undefined,
+      shopMissionBySector: this.saveData.shopMissionBySector
+        ? { ...this.saveData.shopMissionBySector }
+        : undefined,
     };
   }
 
@@ -365,6 +419,32 @@ export class CampaignManager {
     this.saveToStorage();
   }
 
+  public getShopMissionForSector(sector: number): string {
+    if (sector === 1) return '1-2';
+    if (!this.saveData.shopMissionBySector) {
+      this.saveData.shopMissionBySector = this.normalizeShopMissionBySector(
+        undefined,
+        this.saveData.currentSector,
+        this.saveData.currentMission,
+      );
+      this.saveToStorage();
+    }
+    const existing = this.saveData.shopMissionBySector[sector];
+    if (existing) return existing;
+
+    const rolled = this.rollShopMissionForSector(
+      sector,
+      this.saveData.currentSector === sector ? this.saveData.currentMission : 1,
+    );
+    this.saveData.shopMissionBySector[sector] = rolled;
+    this.saveToStorage();
+    return rolled;
+  }
+
+  public shouldSpawnShopInMission(mission: CampaignMission): boolean {
+    return mission.id === this.getShopMissionForSector(mission.sector);
+  }
+
   /**
    * Получить максимальный лимит деталей для верфи по категории на основе прогресса кампании:
    * - pilot: 1
@@ -566,6 +646,7 @@ export class CampaignManager {
       rewardedTacticalMissions: [],
       savedShipAssembly: undefined,
       equippedMissileId: undefined,
+      shopMissionBySector: this.createInitialShopMissions(),
       runId: this.generateRunId(),
       totalShipBuilderTime: 0,
       trackedFirstModification: false,

@@ -191,9 +191,7 @@ export class ShopModal {
           const ok = this.options.onBuy(offer);
           if (ok) {
             soundFx.playUpgradeSelect();
-            this.setNotice(`Экипировано: ${offer.name} (${rarityInfo.label})`, false);
-            this.updateScrapDisplay();
-            this.renderCards();
+            this.close();
           }
         });
       }

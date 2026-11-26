@@ -281,8 +281,7 @@ export class MeteorManager {
 
   /**
    * Столкновение с метеоритом:
-   * по умолчанию корабль погибает сразу (100% урона),
-   * а с модификацией «Противометеоритная броня» получает 50% урона от максимального HP.
+   * всегда наносит 50% урона от максимального HP корабля, а сам метеорит отскакивает и не исчезает.
    * Защита: во время щита неуязвимости при спавне или форсаже урон блокируется.
    */
   public checkPlayerCollision(
@@ -303,37 +302,78 @@ export class MeteorManager {
     for (let i = this.meteors.length - 1; i >= 0; i--) {
       const m = this.meteors[i];
       const dist = Phaser.Math.Distance.Between(player.x, player.y, m.sprite.x, m.sprite.y);
+      const minDist = playerRadius + m.radius;
 
       // Проверка перекрытия круговых коллайдеров
-      if (dist < playerRadius + m.radius) {
-        if (player.meteorDamageMultiplier < 1) {
-          const meteorDamage = Math.max(1, Math.ceil(player.maxHp * player.meteorDamageMultiplier));
-          player.hp = Math.max(0, player.hp - meteorDamage);
+      if (dist < minDist) {
+        const { nx, ny } = this.computeCollisionNormal(
+          m.sprite.x,
+          m.sprite.y,
+          player.x,
+          player.y,
+          dist,
+        );
+        const overlap = minDist - dist + 4;
+        m.sprite.x -= nx * overlap;
+        m.sprite.y -= ny * overlap;
+        this.reflectMeteor(m, nx, ny);
+        m.sprite.setTint(0xffffff);
+        m.isHitFlash = 0.12;
 
-          if (player.hp <= 0) {
-            onFatalCrash();
-            return true;
-          }
+        if (particleManager) {
+          this.emitImpactSparks(
+            m.sprite.x + nx * m.radius,
+            m.sprite.y + ny * m.radius,
+            particleManager,
+          );
+        }
 
-          player.invulnTimer = Math.max(player.invulnTimer, 1.0);
-          soundFx.playHit();
-          this.scene.cameras.main.shake(240, 0.014);
-          if (particleManager) {
-            this.emitMeteorExplosion(m.sprite.x, m.sprite.y, m.scale, particleManager);
-          }
-          m.sprite.destroy();
-          this.meteors.splice(i, 1);
+        const meteorDamage = Math.max(1, Math.ceil(player.maxHp * 0.5));
+        player.hp = Math.max(0, player.hp - meteorDamage);
+
+        if (player.hp <= 0) {
+          onFatalCrash();
           return true;
         }
 
-        // МГНОВЕННАЯ СМЕРТЬ: сбрасываем HP до 0 и вызываем триггер фатального взрыва
-        player.hp = 0;
-        onFatalCrash();
+        player.invulnTimer = Math.max(player.invulnTimer, 1.0);
+        soundFx.playHit();
+        this.scene.cameras.main.shake(240, 0.014);
         return true;
       }
     }
 
     return false;
+  }
+
+  private computeCollisionNormal(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    dist: number,
+  ): { nx: number; ny: number } {
+    if (dist > 0.001) {
+      return {
+        nx: (toX - fromX) / dist,
+        ny: (toY - fromY) / dist,
+      };
+    }
+    const angle = Math.random() * Math.PI * 2;
+    return { nx: Math.cos(angle), ny: Math.sin(angle) };
+  }
+
+  private reflectMeteor(meteor: Meteor, nx: number, ny: number): void {
+    const dot = meteor.vx * nx + meteor.vy * ny;
+    if (dot > 0) {
+      meteor.vx -= 1.8 * dot * nx;
+      meteor.vy -= 1.8 * dot * ny;
+    } else {
+      const speed = Math.max(150, Math.hypot(meteor.vx, meteor.vy));
+      meteor.vx = -nx * speed;
+      meteor.vy = -ny * speed;
+    }
+    meteor.angularVelocity = Phaser.Math.FloatBetween(-3.2, 3.2);
   }
 
   /**
@@ -440,18 +480,13 @@ export class MeteorManager {
         const minDist = meteor.radius + enemy.radius;
 
         if (dist <= minDist) {
-          const dx = enemy.sprite.x - meteor.sprite.x;
-          const dy = enemy.sprite.y - meteor.sprite.y;
-          let nx = 1;
-          let ny = 0;
-          if (dist > 0.001) {
-            nx = dx / dist;
-            ny = dy / dist;
-          } else {
-            const a = Math.random() * Math.PI * 2;
-            nx = Math.cos(a);
-            ny = Math.sin(a);
-          }
+          const { nx, ny } = this.computeCollisionNormal(
+            meteor.sprite.x,
+            meteor.sprite.y,
+            enemy.sprite.x,
+            enemy.sprite.y,
+            dist,
+          );
 
           const overlap = minDist - dist + 3;
 
@@ -462,16 +497,7 @@ export class MeteorManager {
           enemy.sprite.y += ny * overlap * 0.4;
 
           // Физический отскок астероида
-          const dot = meteor.vx * nx + meteor.vy * ny;
-          if (dot > 0) {
-            meteor.vx -= 1.8 * dot * nx;
-            meteor.vy -= 1.8 * dot * ny;
-          } else {
-            const speed = Math.max(150, Math.hypot(meteor.vx, meteor.vy));
-            meteor.vx = -nx * speed;
-            meteor.vy = -ny * speed;
-          }
-          meteor.angularVelocity = Phaser.Math.FloatBetween(-3.2, 3.2);
+          this.reflectMeteor(meteor, nx, ny);
 
           soundFx.playHit();
           this.emitImpactSparks(enemy.sprite.x, enemy.sprite.y, particleManager);

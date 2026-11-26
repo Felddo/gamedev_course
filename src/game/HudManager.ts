@@ -852,8 +852,8 @@ export class HudManager {
     playerY: number,
     playerAngle: number,
     cam: Phaser.Cameras.Scene2D.Camera,
-    enemies: EnemyShip[],
-    meteors: Meteor[] = [],
+    _enemies: EnemyShip[],
+    _meteors: Meteor[] = [],
     stations: SpaceStation[] = [],
     targetedStation: SpaceStation | null = null,
     scrapItems: ScrapPickup[] = [],
@@ -928,7 +928,7 @@ export class HudManager {
 
     // Метки вражеских кораблей (красные)
     this.radarGraphics.fillStyle(0xef4444, 0.95);
-    for (const enemy of enemies) {
+    for (const enemy of _enemies) {
       const dx = enemy.sprite.x - playerX;
       const dy = enemy.sprite.y - playerY;
       const dist = Math.hypot(dx, dy);
@@ -936,20 +936,6 @@ export class HudManager {
         const ex = (dx / scanRadius) * radarRadius;
         const ey = (dy / scanRadius) * radarRadius;
         this.radarGraphics.fillCircle(ex, ey, 2.5);
-      }
-    }
-
-    // Метеориты на тактическом радаре (оранжевые метки)
-    this.radarGraphics.fillStyle(0xf97316, 0.95);
-    for (const meteor of meteors) {
-      const dx = meteor.sprite.x - playerX;
-      const dy = meteor.sprite.y - playerY;
-      const dist = Math.hypot(dx, dy);
-      if (dist <= scanRadius) {
-        const mx = (dx / scanRadius) * radarRadius;
-        const my = (dy / scanRadius) * radarRadius;
-        const dotR = meteor.scale > 0.8 ? 2.5 : 1.5;
-        this.radarGraphics.fillCircle(mx, my, dotR);
       }
     }
 
@@ -966,14 +952,17 @@ export class HudManager {
       }
     }
 
-    // Летающий магазин на радаре (желтый значок лома)
+    // Летающий магазин на радаре (желтый значок лома со стрелками, указывающими на магазин)
     if (flyingShop && flyingShop.sprite?.active) {
       const dx = flyingShop.x - playerX;
       const dy = flyingShop.y - playerY;
       const dist = Math.hypot(dx, dy);
-      const clampedScale = dist > scanRadius && dist > 0.001
-        ? (radarRadius - 5) / dist
-        : radarRadius / scanRadius;
+      const maxShopOffset = Math.max(8, radarRadius - 20);
+      const rawScale = radarRadius / scanRadius;
+      const scaledDist = dist * rawScale;
+      const clampedScale = scaledDist > maxShopOffset && dist > 0.001
+        ? maxShopOffset / dist
+        : rawScale;
       const mx = dx * clampedScale;
       const my = dy * clampedScale;
       this.drawRadarScrapShopIcon(mx, my);
@@ -1030,6 +1019,50 @@ export class HudManager {
     // Внутренний яркий желтый центр значка лома
     g.fillStyle(0xfef9c3, 1.0);
     g.fillCircle(x, y, 2.1);
+
+    // Стрелочки вокруг значка магазина на миникарте, указывающие на магазин (дальше отходят от иконки)
+    const pulse = (Math.sin((this.scene?.time.now ?? 0) * 0.006) * 0.5 + 0.5) * 4.5;
+    const tipR = 9.0 + pulse;
+    const shoulderR = tipR + 3.4;
+    const tailR = tipR + 7.2;
+    const headHalfW = 3.0;
+    const shaftHalfW = 1.25;
+    g.fillStyle(0xfde047, 0.98);
+    g.lineStyle(0.9, 0xfef9c3, 0.95);
+    for (let i = 0; i < 4; i++) {
+      const angle = Math.PI / 4 + (i * Math.PI) / 2;
+      const ux = Math.cos(angle);
+      const uy = Math.sin(angle);
+      const tx = -uy;
+      const ty = ux;
+
+      const tipX = x + ux * tipR;
+      const tipY = y + uy * tipR;
+      const headLeftX = x + ux * shoulderR - tx * headHalfW;
+      const headLeftY = y + uy * shoulderR - ty * headHalfW;
+      const shoulderLeftX = x + ux * shoulderR - tx * shaftHalfW;
+      const shoulderLeftY = y + uy * shoulderR - ty * shaftHalfW;
+      const tailLeftX = x + ux * tailR - tx * shaftHalfW;
+      const tailLeftY = y + uy * tailR - ty * shaftHalfW;
+      const tailRightX = x + ux * tailR + tx * shaftHalfW;
+      const tailRightY = y + uy * tailR + ty * shaftHalfW;
+      const shoulderRightX = x + ux * shoulderR + tx * shaftHalfW;
+      const shoulderRightY = y + uy * shoulderR + ty * shaftHalfW;
+      const headRightX = x + ux * shoulderR + tx * headHalfW;
+      const headRightY = y + uy * shoulderR + ty * headHalfW;
+
+      g.beginPath();
+      g.moveTo(tipX, tipY);
+      g.lineTo(headLeftX, headLeftY);
+      g.lineTo(shoulderLeftX, shoulderLeftY);
+      g.lineTo(tailLeftX, tailLeftY);
+      g.lineTo(tailRightX, tailRightY);
+      g.lineTo(shoulderRightX, shoulderRightY);
+      g.lineTo(headRightX, headRightY);
+      g.closePath();
+      g.fillPath();
+      g.strokePath();
+    }
   }
 
   public formatTime(totalSeconds: number): string {

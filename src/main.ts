@@ -976,7 +976,7 @@ function showGameOver(time: string, kills: number, score: number, reason?: strin
   const descEl = document.getElementById('go-desc');
   if (descEl) {
     if (reason === 'meteor') {
-      descEl.textContent = 'КРУШЕНИЕ: Космический корабль мгновенно уничтожен в результате столкновения с метеоритом!';
+      descEl.textContent = 'КРУШЕНИЕ: Космический корабль уничтожен в результате столкновения с метеоритом!';
     } else {
       descEl.textContent = 'Космический корабль уничтожен в секторе боя. Протокол прерван.';
     }
