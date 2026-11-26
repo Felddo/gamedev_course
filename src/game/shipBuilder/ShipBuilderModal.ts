@@ -1953,13 +1953,16 @@ export class ShipBuilderModal {
   private getGridMetrics(): { cellW: number; cellH: number; maxW: number; maxH: number } {
     const surface = this.modalEl.querySelector('#hangar-drop-surface') as HTMLElement | null;
     const gridEl = this.centerBayEl?.querySelector('.hangar-grid-lines') as HTMLElement | null;
+    const isCompactBay =
+      isMobilePhone() ||
+      (typeof window !== 'undefined' && (window.innerWidth <= 960 || window.innerHeight <= 500));
 
     const maxW =
       surface && surface.clientWidth > 0
         ? surface.clientWidth
         : this.centerBayEl && this.centerBayEl.clientWidth > 0
           ? this.centerBayEl.clientWidth
-          : isMobilePhone()
+          : isCompactBay
             ? 195.6
             : 346.4;
     const maxH =
@@ -1967,25 +1970,45 @@ export class ShipBuilderModal {
         ? surface.clientHeight
         : this.centerBayEl && this.centerBayEl.clientHeight > 0
           ? this.centerBayEl.clientHeight
-          : isMobilePhone()
+          : isCompactBay
             ? 195.6
             : 346.4;
 
-    let cellW = isMobilePhone() ? maxW / 9 : 22;
-    let cellH = isMobilePhone() ? maxH / 9 : 22;
+    const fallbackW = isCompactBay ? maxW / 9 : 22;
+    const fallbackH = isCompactBay ? maxH / 9 : 22;
+    let cellW = fallbackW;
+    let cellH = fallbackH;
 
     if (gridEl && typeof window !== 'undefined' && window.getComputedStyle) {
       const bgSize = window.getComputedStyle(gridEl).backgroundSize;
       if (bgSize) {
-        const parts = bgSize.split(/\s+/);
-        const parsedW = parseFloat(parts[0]);
-        const parsedH = parseFloat(parts[1] ?? parts[0]);
-        if (Number.isFinite(parsedW) && parsedW > 4) cellW = parsedW;
-        if (Number.isFinite(parsedH) && parsedH > 4) cellH = parsedH;
+        const firstLayer = bgSize.split(',')[0].trim();
+        const parts = firstLayer.split(/\s+/);
+        cellW = this.parseGridCellDimension(parts[0], maxW, fallbackW);
+        cellH = this.parseGridCellDimension(parts[1] ?? parts[0], maxH, fallbackH);
       }
     }
 
     return { cellW, cellH, maxW, maxH };
+  }
+
+  private parseGridCellDimension(
+    rawToken: string | undefined,
+    axisSize: number,
+    fallback: number,
+  ): number {
+    if (!rawToken) return fallback;
+    const token = rawToken.trim().toLowerCase();
+    if (token.endsWith('px')) {
+      const px = parseFloat(token);
+      return Number.isFinite(px) && px > 4 ? px : fallback;
+    }
+    if (token.endsWith('%')) {
+      const pct = parseFloat(token);
+      const px = (pct / 100) * axisSize;
+      return Number.isFinite(px) && px > 4 ? px : fallback;
+    }
+    return fallback;
   }
 
   private snapToSquareCenter(value: number, cellSize: number): number {
