@@ -612,31 +612,48 @@ export class PlayerShip {
     this.emitSuperState();
   }
 
-  public emitDashState(): void {
+  // Кэш состояния способностей для предотвращения лишних DOM-обновлений каждый кадр
+  private lastEmittedDashKey = '';
+  private lastEmittedSuperKey = '';
+
+  public emitDashState(force = false): void {
     const dashCdMod = this.installedStats?.dashCooldownMultiplier || 1.0;
+    const maxCooldown = DASH_COOLDOWN * this.dashCooldownMultiplier * dashCdMod;
+    const isReady = this.dashCooldownTimer <= 0;
+    const key = `${this.isDashing ? 1 : 0}_${isReady ? 1 : 0}_${Math.round(this.dashCooldownTimer * 10)}_${Math.round(maxCooldown * 10)}`;
+    if (!force && key === this.lastEmittedDashKey) return;
+    this.lastEmittedDashKey = key;
+
     window.dispatchEvent(
       new CustomEvent('tank-dash-state', {
         detail: {
           cooldown: this.dashCooldownTimer,
-          maxCooldown: DASH_COOLDOWN * this.dashCooldownMultiplier * dashCdMod,
-          isReady: this.dashCooldownTimer <= 0,
+          maxCooldown,
+          isReady,
           isDashing: this.isDashing,
         },
       }),
     );
   }
 
-  public emitSuperState(): void {
+  public emitSuperState(force = false): void {
     const superCdMod = this.installedStats?.superCooldownMultiplier || 1.0;
     const superDurBonus = this.installedStats?.superDurationBonus || 0;
+    const maxCooldown = SUPER_COOLDOWN * superCdMod;
+    const maxDuration = SUPER_DURATION + superDurBonus;
+    const isReady = !this.isSuperMode && this.superCooldownTimer <= 0;
+    const key = `${this.isSuperMode ? 1 : 0}_${isReady ? 1 : 0}_${Math.round(this.superCooldownTimer * 10)}_${Math.round(this.superDurationTimer * 10)}_${Math.round(maxCooldown * 10)}_${Math.round(maxDuration * 10)}`;
+    if (!force && key === this.lastEmittedSuperKey) return;
+    this.lastEmittedSuperKey = key;
+
     window.dispatchEvent(
       new CustomEvent('tank-super-state', {
         detail: {
           cooldown: this.superCooldownTimer,
-          maxCooldown: SUPER_COOLDOWN * superCdMod,
+          maxCooldown,
           duration: this.superDurationTimer,
-          maxDuration: SUPER_DURATION + superDurBonus,
-          isReady: !this.isSuperMode && this.superCooldownTimer <= 0,
+          maxDuration,
+          isReady,
           isActive: this.isSuperMode,
         },
       }),

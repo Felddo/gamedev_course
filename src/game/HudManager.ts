@@ -7,8 +7,8 @@ import { isMobilePhone, getGameDpr } from './deviceUtils';
 const RADAR_SIZE = 170;
 const RADAR_SCAN_RADIUS = 1500;
 
-// Высокое разрешение для рендеринга текста в текстуры WebGL
-const HUD_TEXT_RESOLUTION = Math.max(3, Math.min(6, Math.ceil((window.devicePixelRatio || 1) * 2)));
+// Разрешение для рендеринга текста в текстуры WebGL (ограничено 2x для снижения нагрузки на GPU)
+const HUD_TEXT_RESOLUTION = Math.max(1, Math.min(2, Math.ceil(window.devicePixelRatio || 1)));
 
 /**
  * Менеджер пользовательского интерфейса (HUD):
@@ -64,6 +64,7 @@ export class HudManager {
   private lastHpFillColor = -1;
   private lastHpFillWidth = -1;
   private lastKillsColor = '';
+  private radarUpdateTimer = 0;
 
   constructor(width: number, height: number) {
     this.lastWidth = width;
@@ -806,8 +807,12 @@ export class HudManager {
     // 3. Металлолом
     this.setTextCached(this.scrapText, `${scrapCount}`);
 
-    // 4. Тактический радар
-    this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, scrapItems, flyingShop);
+    // 4. Тактический радар (~20 Гц для экономии CPU/GPU без потери плавности)
+    const now = this.scene?.time.now ?? 0;
+    if (now - this.radarUpdateTimer >= 50 || this.radarUpdateTimer === 0) {
+      this.radarUpdateTimer = now || 1;
+      this.updateRadar(playerX, playerY, playerAngle, cam, enemies, meteors, stations, targetedStation, scrapItems, flyingShop);
+    }
   }
 
   private renderBossBar(boss: EnemyShip): void {

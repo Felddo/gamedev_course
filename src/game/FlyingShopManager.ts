@@ -32,6 +32,7 @@ export class FlyingShopManager {
   private shop: FlyingShop | null = null;
   private currentOffers: ShopMissileOffer[] = [];
   private purchasedIds = new Set<string>();
+  private redrawTimer = 0;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -83,12 +84,8 @@ export class FlyingShopManager {
 
     const cx = MAP_WIDTH / 2;
     const cy = MAP_HEIGHT / 2;
-    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-    const dist = Phaser.Math.FloatBetween(520, 920);
-    const x = Phaser.Math.Clamp(cx + Math.cos(angle) * dist, 420, MAP_WIDTH - 420);
-    const y = Phaser.Math.Clamp(cy + Math.sin(angle) * dist, 420, MAP_HEIGHT - 420);
 
-    const sprite = this.scene.add.sprite(x, y, FLYING_SHOP_SPRITE_ASSET.key);
+    const sprite = this.scene.add.sprite(cx, cy, FLYING_SHOP_SPRITE_ASSET.key);
     const texW = sprite.width > 0 ? sprite.width : 124;
     const texH = sprite.height > 0 ? sprite.height : 347;
     const maxTexDim = Math.max(texW, texH);
@@ -100,6 +97,13 @@ export class FlyingShopManager {
     const boundingRadius = Math.hypot(halfWidth, halfHeight);
     const sphereRadius = Math.round(boundingRadius + 46);
 
+    // Спавн близко к игроку снизу справа (в координатах Phaser: +X вправо, +Y вниз -> угол ~45°)
+    const angle = Phaser.Math.FloatBetween(Math.PI * 0.18, Math.PI * 0.32);
+    const dist = Phaser.Math.FloatBetween(sphereRadius + 40, sphereRadius + 75);
+    const x = Phaser.Math.Clamp(cx + Math.cos(angle) * dist, 420, MAP_WIDTH - 420);
+    const y = Phaser.Math.Clamp(cy + Math.sin(angle) * dist, 420, MAP_HEIGHT - 420);
+
+    sprite.setPosition(x, y);
     sprite.setOrigin(0.5, 0.5);
     sprite.setScale(scale);
     sprite.setDepth(6.6);
@@ -121,11 +125,11 @@ export class FlyingShopManager {
           offsetX: 0,
           offsetY: 0,
           color: '#facc15',
-          blur: 18,
+          blur: 14,
           fill: true,
           stroke: true,
         },
-        resolution: 3,
+        resolution: 2,
       })
       .setOrigin(0.5, 0.5)
       .setDepth(15.2);
@@ -217,7 +221,25 @@ export class FlyingShopManager {
       shop.dwellTimer = Math.max(0, shop.dwellTimer - seconds * 3.0);
     }
 
-    this.drawSphere(isInside);
+    const view = this.scene.cameras.main?.worldView;
+    const margin = shop.sphereRadius + 140;
+    const isOnScreen = !view || (
+      shop.x >= view.x - margin &&
+      shop.x <= view.right + margin &&
+      shop.y >= view.y - margin &&
+      shop.y <= view.bottom + margin
+    );
+    if (shop.sphereGraphics.visible !== isOnScreen) {
+      shop.sphereGraphics.setVisible(isOnScreen);
+      shop.shopLabel.setVisible(isOnScreen);
+    }
+    if (!isOnScreen) return;
+
+    this.redrawTimer += seconds;
+    if (shop.dwellTimer > 0 || this.redrawTimer >= 0.065) {
+      this.redrawTimer = 0;
+      this.drawSphere(isInside);
+    }
   }
 
   private drawSphere(isInside: boolean): void {

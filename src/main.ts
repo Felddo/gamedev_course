@@ -338,6 +338,9 @@ function launchGame(): void {
   hidePhaseAnnouncement();
 
   if (phaserGame) {
+    if (phaserGame.loop?.started && !phaserGame.loop.running) {
+      phaserGame.loop.wake();
+    }
     try {
       phaserGame.scale.refresh();
       const scene = phaserGame.scene.getScene('GameScene') as GameScene;
@@ -410,6 +413,9 @@ function launchDirectCombat(nextMission: CampaignMission): void {
   checkOrientation();
 
   if (phaserGame) {
+    if (phaserGame.loop?.started && !phaserGame.loop.running) {
+      phaserGame.loop.wake();
+    }
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
     if (scene) {
       if (scene.scene.isPaused()) {
@@ -447,6 +453,9 @@ function startCombatFromBuilder(assembly?: CustomShipAssembly): void {
   checkOrientation();
 
   if (phaserGame) {
+    if (phaserGame.loop?.started && !phaserGame.loop.running) {
+      phaserGame.loop.wake();
+    }
     const scene = phaserGame.scene.getScene('GameScene') as GameScene;
     if (scene) {
       scene.resumeCombatSessionFromBuilder(assembly);
@@ -716,10 +725,7 @@ function isStandaloneMode(): boolean {
   const nav = window.navigator as StandaloneNavigator;
   if (nav.standalone === true) return true;
   if (window.matchMedia) {
-    return (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.matchMedia('(display-mode: fullscreen)').matches
-    );
+    return window.matchMedia('(display-mode: standalone)').matches;
   }
   return false;
 }
@@ -764,7 +770,7 @@ modalIosFullscreen?.addEventListener('click', (e) => {
 // Переключатель полного экрана (синхронизируется для настроек и главного меню)
 function syncFullscreenUI(): void {
   const isNativeFs = !!getFullscreenElement();
-  const isStandalone = isStandaloneMode();
+  const isStandalone = !isNativeFs && isStandaloneMode();
   const isFs = isNativeFs || isStandalone;
   const needsIosGuide = !isFs && !isFullscreenApiSupported() && isIosDevice();
 
@@ -858,13 +864,14 @@ async function exitAnyFullscreen(): Promise<void> {
 async function handleToggleFullscreen(): Promise<void> {
   soundFx.playUiClick();
 
-  if (isStandaloneMode()) {
+  if (getFullscreenElement()) {
+    await exitAnyFullscreen();
     syncFullscreenUI();
+    window.requestAnimationFrame(() => phaserGame?.scale.refresh());
     return;
   }
 
-  if (getFullscreenElement()) {
-    await exitAnyFullscreen();
+  if (isStandaloneMode()) {
     syncFullscreenUI();
     return;
   }
@@ -1008,6 +1015,9 @@ function restartFromGameOver(): void {
   updateJoystickVisibility();
 
   if (phaserGame) {
+    if (phaserGame.loop?.started && !phaserGame.loop.running) {
+      phaserGame.loop.wake();
+    }
     try {
       phaserGame.scale.refresh();
       const scene = phaserGame.scene.getScene('GameScene') as GameScene;

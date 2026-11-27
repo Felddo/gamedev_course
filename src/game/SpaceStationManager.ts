@@ -48,6 +48,7 @@ export class SpaceStationManager {
   // Выбранная база для фокусированного огня корабля (Target Lock)
   private targetedStation: SpaceStation | null = null;
   private hoveredStation: SpaceStation | null = null;
+  private hologramRedrawTimer = 0;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -167,6 +168,16 @@ export class SpaceStationManager {
 
     const camCenterX = cam.worldView ? cam.worldView.centerX : 0;
     const camCenterY = cam.worldView ? cam.worldView.centerY : 0;
+    const viewLeft = cam.worldView ? cam.worldView.x : 0;
+    const viewRight = cam.worldView ? cam.worldView.right : MAP_WIDTH;
+    const viewTop = cam.worldView ? cam.worldView.y : 0;
+    const viewBottom = cam.worldView ? cam.worldView.bottom : MAP_HEIGHT;
+
+    this.hologramRedrawTimer += seconds;
+    const shouldRedrawIdleHolo = this.hologramRedrawTimer >= 0.05;
+    if (shouldRedrawIdleHolo) {
+      this.hologramRedrawTimer = 0;
+    }
 
     for (let i = this.stations.length - 1; i >= 0; i--) {
       const station = this.stations[i];
@@ -218,14 +229,27 @@ export class SpaceStationManager {
       station.hpBarFill.setSize(currentFillW, barHeight);
       station.hpBarFill.setVisible(currentFillW > 0);
 
-      // Отрисовка тактической голограммы вокруг станции (обычная, при наведении, при активном захвате)
+      // Отрисовка тактической голограммы вокруг станции (только для видимых на экране)
       if (station.hologramRing) {
-        station.hologramPhase = (station.hologramPhase || 0) + seconds * 2.2;
-        const g = station.hologramRing;
-        g.clear();
+        const holoMargin = station.boundingRadius + 60;
+        const isVisibleOnScreen =
+          station.sprite.x >= viewLeft - holoMargin &&
+          station.sprite.x <= viewRight + holoMargin &&
+          station.sprite.y >= viewTop - holoMargin &&
+          station.sprite.y <= viewBottom + holoMargin;
+        if (station.hologramRing.visible !== isVisibleOnScreen) {
+          station.hologramRing.setVisible(isVisibleOnScreen);
+        }
 
         const isTargeted = this.targetedStation === station;
         const isHovered = this.hoveredStation === station;
+        if (!isVisibleOnScreen || (!isTargeted && !isHovered && !shouldRedrawIdleHolo)) {
+          // Пропускаем перерисовку, если станция за экраном или это нецелевой кадр
+        } else {
+        station.hologramPhase = (station.hologramPhase || 0) + (isTargeted || isHovered ? seconds * 2.2 : 0.05 * 2.2);
+        const g = station.hologramRing;
+        g.clear();
+
         const baseR = station.boundingRadius + 18;
         const pulse = Math.sin(station.hologramPhase) * (isTargeted ? 10 : 6);
         const holoR = baseR + pulse;
@@ -317,6 +341,7 @@ export class SpaceStationManager {
           g.lineStyle(1, 0x0ea5e9, alpha * 0.45);
           g.strokeCircle(station.sprite.x, station.sprite.y, holoR - 14);
           station.hpBarBg.setStrokeStyle(1.5, 0x475569, 0.95);
+        }
         }
       }
 

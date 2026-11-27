@@ -31,6 +31,11 @@ export interface LaserProjectile {
   missileRarity?: MissileRarityRef;
   bouncesLeft?: number;
   trailSpawnTimer?: number;
+  visualTrailTimer?: number;
+  trailPhase?: number;
+  prevTrailX?: number;
+  prevTrailY?: number;
+  missileUid?: number;
   isSubProjectile?: boolean;
 }
 

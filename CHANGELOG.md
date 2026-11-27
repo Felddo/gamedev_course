@@ -2,6 +2,21 @@
 
 Короткий журнал работы над проектом. Не нужно писать длинный отчёт.
 
+## Уникальные шлейфы ракет, редкость по фазам, общий счётчик лома, правки магазина, полного экрана и оптимизация
+
+**Что сделано:**
+- **Уникальные шлейфы для всех 10 типов ракет (`001`–`010`):**
+  - Добавлен [MissileTrailRenderer.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/MissileTrailRenderer.ts) и подключён к [WeaponSystem.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/WeaponSystem.ts), [types.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/types.ts) и [EnemyManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/EnemyManager.ts): у каждого типа ракет свой визуальный шлейф (плазменный луч с искрами, ледяные кристаллы, веерные шевроны, зигзаг-рикошет, огненный выхлоп с дымом и углями, ударные кольца, гравитационная спираль, вращающиеся треугольники, двойные лазерные рельсы и ионный реактивный след).
+- **Градация редкости ракет по фазам и общий счётчик металлолома:**
+  - В [missilesCatalog.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/shop/missilesCatalog.ts) добавлена строгая привязка редкости к фазе (`getRarityForSector`): в фазе 1 — только обычные ракеты, в фазе 2 — только редкие, в фазе 3 — только легендарные.
+  - В [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts) в верхний HUD передаётся общий счётчик металлолома (`getAvailableShopScrap()`) вместо счётчика только за текущую миссию.
+- **Летающий магазин и полноэкранный режим:**
+  - В [FlyingShopManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/FlyingShopManager.ts) магазин появляется близко к игроку снизу справа (`sphereRadius + 40..75` px).
+  - В [main.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/main.ts) исправлена логика `isStandaloneMode()` и `handleToggleFullscreen()` — повторное нажатие кнопки полного экрана теперь корректно выходит из полноэкранного режима.
+- **Оптимизация нагрузки на ПК/смартфоны и сохранение нормальной скорости игры:**
+  - В [deviceUtils.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/deviceUtils.ts) и [config.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/config.ts) `getGameDpr()` ограничен `1.5`, отключён MSAA на мобильных устройствах и убран `fps.limit` (вызывавший удвоение `delta` в `TimeStep`), а в [GameScene.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/GameScene.ts) добавлено ограничение `seconds` и перевод цикла в `sleep()` в главном меню.
+  - В [NeonBarrierManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/NeonBarrierManager.ts), [AtmosphereManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/AtmosphereManager.ts), [FlyingShopManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/FlyingShopManager.ts), [SpaceStationManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/SpaceStationManager.ts), [HudManager.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/HudManager.ts), [PlayerShip.ts](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/game/PlayerShip.ts) и [style.css](file:///c:/Users/andrm/OneDrive/Desktop/Space/gamedev_course/src/style.css) убран лишний overdraw и ~189 постоянных твинов, добавлено отсечение объектов вне камеры и троттлинг перерисовки графики/радара, кэшируются DOM-события способностей и убран `backdrop-filter: blur` с боевых кнопок.
+
 ## Обновление летающего магазина, метеоритов, звука и крыльев в конструкторе корабля
 
 **Что сделано:**

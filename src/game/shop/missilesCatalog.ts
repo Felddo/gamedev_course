@@ -213,18 +213,11 @@ export function parseMissileId(missileId?: string | null): ShopMissileOffer | nu
   return buildMissileSpec(rarity, code, 1);
 }
 
-function rollWeightedRarity(): MissileRarity {
-  const rarities: MissileRarity[] = ['common', 'rare', 'legendary'];
-  const totalWeight = rarities.reduce(
-    (sum, r) => sum + MISSILE_RARITY_CONFIG[r].spawnWeight,
-    0,
-  );
-  let roll = Math.random() * totalWeight;
-  for (const r of rarities) {
-    roll -= MISSILE_RARITY_CONFIG[r].spawnWeight;
-    if (roll <= 0) return r;
-  }
-  return 'common';
+export function getRarityForSector(sector = 1): MissileRarity {
+  const clamped = resolveSectorNumber(sector);
+  if (clamped === 1) return 'common';
+  if (clamped === 2) return 'rare';
+  return 'legendary';
 }
 
 function resolveSectorNumber(sectorOrMissionId?: number | string | null): number {
@@ -241,28 +234,25 @@ function resolveSectorNumber(sectorOrMissionId?: number | string | null): number
 }
 
 /**
- * Случайная генерация 3 уникальных ракет для магазина:
- * - Чем выше редкость, тем ниже шанс появления и выше цена
- * - Чем дальше фаза (сектор 1 -> 2 -> 3), тем дороже товары
+ * Случайная генерация 3 уникальных ракет для магазина с градацией редкости по фазам:
+ * - Фаза (сектор) 1 — только обычные ракеты
+ * - Фаза (сектор) 2 — только редкие ракеты
+ * - Фаза (сектор) 3 — только легендарные ракеты
  */
 export function rollShopMissileOffers(
   sectorOrMissionId?: number | string | null,
   count = 3,
 ): ShopMissileOffer[] {
   const sector = resolveSectorNumber(sectorOrMissionId);
-  const offers: ShopMissileOffer[] = [];
-  const usedIds = new Set<string>();
-  let guard = 0;
+  const rarity = getRarityForSector(sector);
+  const shuffledCodes = [...ALL_MISSILE_CODES];
 
-  while (offers.length < count && guard < 120) {
-    guard++;
-    const rarity = rollWeightedRarity();
-    const code = ALL_MISSILE_CODES[Math.floor(Math.random() * ALL_MISSILE_CODES.length)];
-    const candidateId = `${rarity}_${code}`;
-    if (usedIds.has(candidateId)) continue;
-    usedIds.add(candidateId);
-    offers.push(buildMissileSpec(rarity, code, sector));
+  for (let i = shuffledCodes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledCodes[i], shuffledCodes[j]] = [shuffledCodes[j], shuffledCodes[i]];
   }
 
-  return offers;
+  return shuffledCodes
+    .slice(0, Math.min(count, shuffledCodes.length))
+    .map((code) => buildMissileSpec(rarity, code, sector));
 }

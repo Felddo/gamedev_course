@@ -834,6 +834,8 @@ export class EnemyManager {
               laser.vx = Math.cos(bounceAngle) * speed;
               laser.vy = Math.sin(bounceAngle) * speed;
               laser.sprite.setRotation(bounceAngle + Math.PI / 2);
+              laser.prevTrailX = hitX;
+              laser.prevTrailY = hitY;
               laser.lifetime = Math.max(laser.lifetime, 0.5);
               bouncedToTarget = true;
             }

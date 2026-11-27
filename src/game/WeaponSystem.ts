@@ -12,6 +12,7 @@ import {
 import { LaserProjectile, EnemyShip, MissileTypeCodeRef, MissileRarityRef } from './types';
 import { PlayerShip } from './PlayerShip';
 import { ParticleManager } from './ParticleManager';
+import { MissileTrailRenderer } from './MissileTrailRenderer';
 import { CalculatedShipStats } from './shipBuilder/modulesCatalog';
 import {
   DEFAULT_MISSILE_ID,
@@ -20,8 +21,11 @@ import {
 } from './shop/missilesCatalog';
 
 export interface EnergyTrailSegment {
+  missileUid: number;
   x: number;
   y: number;
+  prevX?: number;
+  prevY?: number;
   life: number;
   maxLife: number;
   radius: number;
@@ -39,6 +43,8 @@ export class WeaponSystem {
   private lasers: LaserProjectile[] = [];
   private energyTrails: EnergyTrailSegment[] = [];
   private trailGraphics: Phaser.GameObjects.Graphics | null = null;
+  private missileTrailRenderer: MissileTrailRenderer;
+  private nextMissileUid = 1;
   private blasterTimer = 0;
   private superMuzzleAlternate = 0;
   private equippedMissileId: string | null = null;
@@ -70,6 +76,7 @@ export class WeaponSystem {
     this.scene = scene;
     this.trailGraphics = this.scene.add.graphics();
     this.trailGraphics.setDepth(5.2);
+    this.missileTrailRenderer = new MissileTrailRenderer(scene);
   }
 
   public setEquippedMissile(missileId?: string | null): void {
@@ -130,6 +137,7 @@ export class WeaponSystem {
     this.lasers = [];
     this.energyTrails = [];
     this.trailGraphics?.clear();
+    this.missileTrailRenderer.reset();
     this.blasterTimer = 0;
     this.superMuzzleAlternate = 0;
     this.resetUpgrades();
@@ -314,6 +322,11 @@ export class WeaponSystem {
       missileRarity: spec.rarity,
       bouncesLeft: spec.typeCode === '004' ? 1 : 0,
       trailSpawnTimer: spec.typeCode === '001' ? 0.01 : undefined,
+      visualTrailTimer: 0,
+      trailPhase: 0,
+      prevTrailX: x,
+      prevTrailY: y,
+      missileUid: this.nextMissileUid++,
       isSubProjectile: false,
     });
   }
@@ -356,6 +369,11 @@ export class WeaponSystem {
       missileTypeCode: typeCode,
       missileRarity: rarity,
       bouncesLeft: 0,
+      visualTrailTimer: 0,
+      trailPhase: 0,
+      prevTrailX: x,
+      prevTrailY: y,
+      missileUid: this.nextMissileUid++,
       isSubProjectile: true,
     });
   }
@@ -407,6 +425,11 @@ export class WeaponSystem {
       missileRarity: spec.rarity,
       bouncesLeft: spec.typeCode === '004' ? 1 : 0,
       trailSpawnTimer: spec.typeCode === '001' ? 0.01 : undefined,
+      visualTrailTimer: 0,
+      trailPhase: 0,
+      prevTrailX: muzzleX,
+      prevTrailY: muzzleY,
+      missileUid: this.nextMissileUid++,
       isSubProjectile: false,
     });
 
@@ -434,9 +457,22 @@ export class WeaponSystem {
               : laser.missileRarity === 'rare'
                 ? 0x34d399
                 : 0x38bdf8;
+          const uid = laser.missileUid ?? 0;
+          let prevX: number | undefined;
+          let prevY: number | undefined;
+          for (let j = this.energyTrails.length - 1; j >= 0; j--) {
+            if (this.energyTrails[j].missileUid === uid) {
+              prevX = this.energyTrails[j].x;
+              prevY = this.energyTrails[j].y;
+              break;
+            }
+          }
           this.energyTrails.push({
+            missileUid: uid,
             x: laser.sprite.x,
             y: laser.sprite.y,
+            prevX,
+            prevY,
             life: 0.5,
             maxLife: 0.5,
             radius: 15,
@@ -447,11 +483,16 @@ export class WeaponSystem {
         }
       }
 
+      this.missileTrailRenderer.emitForProjectile(laser, seconds);
+
       if (laser.lifetime <= 0) {
         laser.sprite.destroy();
         this.lasers.splice(i, 1);
       }
     }
+
+    // Обновление и отрисовка уникальных визуальных шлейфов для каждой ракеты
+    this.missileTrailRenderer.update(seconds);
 
     // Обновление и отрисовка энергетического следа (ракета 001)
     if (this.trailGraphics) {
@@ -469,6 +510,12 @@ export class WeaponSystem {
           else seg.hitTickMap.set(enemy, next);
         });
         const ratio = seg.life / seg.maxLife;
+        if (seg.prevX !== undefined && seg.prevY !== undefined) {
+          this.trailGraphics.lineStyle(8 * ratio, seg.color, 0.28 * ratio);
+          this.trailGraphics.lineBetween(seg.prevX, seg.prevY, seg.x, seg.y);
+          this.trailGraphics.lineStyle(2.5 * ratio, 0xffffff, 0.45 * ratio);
+          this.trailGraphics.lineBetween(seg.prevX, seg.prevY, seg.x, seg.y);
+        }
         this.trailGraphics.fillStyle(seg.color, 0.22 * ratio);
         this.trailGraphics.fillCircle(seg.x, seg.y, seg.radius * (0.65 + ratio * 0.35));
         this.trailGraphics.fillStyle(0xffffff, 0.38 * ratio);
@@ -479,6 +526,7 @@ export class WeaponSystem {
 
   public destroy(): void {
     this.reset();
+    this.missileTrailRenderer.destroy();
     if (this.trailGraphics) {
       this.trailGraphics.destroy();
       this.trailGraphics = null;

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GameScene } from './GameScene';
 import { HudScene } from './HudScene';
-import { getGameDpr } from './deviceUtils';
+import { getGameDpr, isMobileOrTabletDevice } from './deviceUtils';
 
 export function createGame(parent: string): Phaser.Game {
   const parentEl = typeof document !== 'undefined' ? document.getElementById(parent) : null;
@@ -9,19 +9,21 @@ export function createGame(parent: string): Phaser.Game {
   const initialCssW = Math.max(1, Math.round(rect?.width || (typeof window !== 'undefined' ? window.innerWidth : 1280)));
   const initialCssH = Math.max(1, Math.round(rect?.height || (typeof window !== 'undefined' ? window.innerHeight : 720)));
   const initialDpr = getGameDpr();
+  const useAntialias = !isMobileOrTabletDevice();
 
   const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
     parent,
     backgroundColor: '#02040a',
-    antialias: true,
-    antialiasGL: true,
+    antialias: useAntialias,
+    antialiasGL: useAntialias,
     roundPixels: false,
     render: {
-      antialias: true,
-      antialiasGL: true,
+      antialias: useAntialias,
+      antialiasGL: useAntialias,
       roundPixels: false,
-      mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
+      powerPreference: 'default',
+      mipmapFilter: 'LINEAR',
     },
     scale: {
       mode: Phaser.Scale.NONE,

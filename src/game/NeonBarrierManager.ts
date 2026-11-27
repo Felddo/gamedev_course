@@ -117,60 +117,44 @@ export class NeonBarrierManager {
       'nebula_border_cloud_dark',
     ];
 
-    const step = 200; // Шаг размещения клубящихся облаков
+    const step = 460; // Оптимальный шаг размещения облаков туманности (меньше overdraw)
 
     // Вспомогательная функция спавна облака туманности
     const spawnCloud = (x: number, y: number, baseScale = 2.4, baseAlpha = 0.55) => {
       const tex = Phaser.Utils.Array.GetRandom(textures);
       const cloud = this.scene.add.image(x, y, tex);
-      const scale = baseScale * Phaser.Math.FloatBetween(0.85, 1.25);
-      const alpha = baseAlpha * Phaser.Math.FloatBetween(0.8, 1.2);
+      const scale = baseScale * Phaser.Math.FloatBetween(0.9, 1.2);
+      const alpha = baseAlpha * Phaser.Math.FloatBetween(0.85, 1.15);
       cloud.setScale(scale);
       cloud.setAlpha(alpha);
       cloud.setDepth(6);
       cloud.setBlendMode(Phaser.BlendModes.ADD);
-
-      // Плавное дыхание и волнение космического газа
-      this.scene.tweens.add({
-        targets: cloud,
-        scaleX: scale * 1.12,
-        scaleY: scale * 1.12,
-        alpha: alpha * 0.75,
-        rotation: cloud.rotation + Phaser.Math.FloatBetween(-0.15, 0.15),
-        duration: Phaser.Math.Between(5500, 9500),
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      });
+      cloud.setVisible(false);
 
       this.nebulaSprites.push(cloud);
     };
 
     // 1. Верхний пояс туманности
     for (let x = -100; x <= MAP_WIDTH + 100; x += step) {
-      spawnCloud(x, minY - 45, 2.6, 0.65);
-      spawnCloud(x + step * 0.5, minY - 90, 2.8, 0.75);
+      spawnCloud(x, minY - 65, 2.7, 0.72);
     }
 
     // 2. Нижний пояс туманности
     for (let x = -100; x <= MAP_WIDTH + 100; x += step) {
-      spawnCloud(x, maxY + 45, 2.6, 0.65);
-      spawnCloud(x + step * 0.5, maxY + 90, 2.8, 0.75);
+      spawnCloud(x, maxY + 65, 2.7, 0.72);
     }
 
     // 3. Левый пояс туманности
     for (let y = -100; y <= MAP_HEIGHT + 100; y += step) {
-      spawnCloud(minX - 45, y, 2.6, 0.65);
-      spawnCloud(minX - 90, y + step * 0.5, 2.8, 0.75);
+      spawnCloud(minX - 65, y, 2.7, 0.72);
     }
 
     // 4. Правый пояс туманности
     for (let y = -100; y <= MAP_HEIGHT + 100; y += step) {
-      spawnCloud(maxX + 45, y, 2.6, 0.65);
-      spawnCloud(maxX + 90, y + step * 0.5, 2.8, 0.75);
+      spawnCloud(maxX + 65, y, 2.7, 0.72);
     }
 
-    // 5. Особо плотные скопления в 4 углах карты
+    // 5. Плотные скопления в 4 углах карты
     const corners = [
       { x: minX - 60, y: minY - 60 },
       { x: maxX + 60, y: minY - 60 },
@@ -178,14 +162,23 @@ export class NeonBarrierManager {
       { x: minX - 60, y: maxY + 60 },
     ];
     for (const c of corners) {
-      spawnCloud(c.x, c.y, 3.4, 0.85);
-      spawnCloud(c.x + 30, c.y - 30, 3.0, 0.75);
-      spawnCloud(c.x - 30, c.y + 30, 3.0, 0.75);
+      spawnCloud(c.x, c.y, 3.2, 0.85);
     }
+
+    // Статическая геометрия кромки туманностей — в update() меняется только alpha
+    const w = maxX - minX;
+    const h = maxY - minY;
+    this.graphics.clear();
+    this.graphics.lineStyle(24, 0xa855f7, 0.35);
+    this.graphics.strokeRect(minX, minY, w, h);
+    this.graphics.lineStyle(10, 0x06b6d4, 0.55);
+    this.graphics.strokeRect(minX, minY, w, h);
+    this.graphics.lineStyle(2, 0xe0e7ff, 0.7);
+    this.graphics.strokeRect(minX, minY, w, h);
 
     // 6. Парящие мерцающие микрочастицы туманности вдоль периметра
     const mistColors = [0xc084fc, 0x38bdf8, 0xa855f7, 0x67e8f9];
-    const mistCount = 60;
+    const mistCount = 30;
     for (let i = 0; i < mistCount; i++) {
       let mx = 0;
       let my = 0;
@@ -226,7 +219,7 @@ export class NeonBarrierManager {
   }
 
   /**
-   * Обновление свечения туманности и дрейфа микрочастиц газа
+   * Обновление свечения туманности, отсечения вне камеры и дрейфа видимых микрочастиц газа
    */
   public update(seconds: number): void {
     this.animTimer += seconds;
@@ -234,36 +227,57 @@ export class NeonBarrierManager {
       this.contactCooldown -= seconds;
     }
 
-    // Пульсация мягкого свечения внутренней кромки туманностей
-    const pulse = Math.sin(this.animTimer * 1.8);
-    const glowAlpha = 0.22 + pulse * 0.08;
+    const cam = this.scene.cameras.main;
+    const view = cam?.worldView;
+    const viewLeft = view ? view.x : 0;
+    const viewRight = view ? view.right : MAP_WIDTH;
+    const viewTop = view ? view.y : 0;
+    const viewBottom = view ? view.bottom : MAP_HEIGHT;
 
-    this.graphics.clear();
+    const nearBorder =
+      viewLeft <= this.minX + 120 ||
+      viewRight >= this.maxX - 120 ||
+      viewTop <= this.minY + 120 ||
+      viewBottom >= this.maxY - 120;
 
-    const minX = this.minX;
-    const maxX = this.maxX;
-    const minY = this.minY;
-    const maxY = this.maxY;
-    const w = maxX - minX;
-    const h = maxY - minY;
+    // Пульсация мягкого свечения внутренней кромки туманностей (без перерисовки геометрии)
+    if (nearBorder) {
+      const pulse = Math.sin(this.animTimer * 1.8);
+      this.graphics.setVisible(true);
+      this.graphics.setAlpha(0.22 + pulse * 0.08);
+    } else {
+      this.graphics.setVisible(false);
+    }
 
-    // Внутренний мягкий диффузный фиолетовый ореол границы
-    this.graphics.lineStyle(24, 0xa855f7, glowAlpha * 0.35);
-    this.graphics.strokeRect(minX, minY, w, h);
+    // Отсечение облаков туманности вне области камеры (устраняет лишний overdraw)
+    const cloudMargin = 820;
+    for (const cloud of this.nebulaSprites) {
+      const isVisible =
+        cloud.x >= viewLeft - cloudMargin &&
+        cloud.x <= viewRight + cloudMargin &&
+        cloud.y >= viewTop - cloudMargin &&
+        cloud.y <= viewBottom + cloudMargin;
+      if (cloud.visible !== isVisible) {
+        cloud.setVisible(isVisible);
+      }
+    }
 
-    // Лазурно-бирюзовый подслой ионизации
-    this.graphics.lineStyle(10, 0x06b6d4, glowAlpha * 0.55);
-    this.graphics.strokeRect(minX, minY, w, h);
-
-    // Тонкая эфирная нить границы
-    this.graphics.lineStyle(2, 0xe0e7ff, glowAlpha * 0.7);
-    this.graphics.strokeRect(minX, minY, w, h);
-
-    // Движение парящих микрочастиц газа
+    // Движение парящих микрочастиц газа (обновляем и рисуем только видимые в камере)
+    const mistMargin = 80;
     for (const m of this.gasMists) {
-      m.pulseTimer += seconds * m.pulseSpeed;
       m.x += m.vx * seconds;
       m.y += m.vy * seconds;
+      const isVisible =
+        m.x >= viewLeft - mistMargin &&
+        m.x <= viewRight + mistMargin &&
+        m.y >= viewTop - mistMargin &&
+        m.y <= viewBottom + mistMargin;
+      if (m.sprite.visible !== isVisible) {
+        m.sprite.setVisible(isVisible);
+      }
+      if (!isVisible) continue;
+
+      m.pulseTimer += seconds * m.pulseSpeed;
       m.sprite.setPosition(m.x, m.y);
 
       const alpha = m.baseAlpha + Math.sin(m.pulseTimer) * 0.15;

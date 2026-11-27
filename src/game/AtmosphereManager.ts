@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { CosmicDustParticle, CosmicStar } from './types';
 import { MAP_WIDTH, MAP_HEIGHT } from './constants';
+import { isMobileOrTabletDevice } from './deviceUtils';
 
 const STAR_TEXTURE_KEY = 'cosmic_star_tiny';
-const STAR_COUNT = 240;
+const STAR_COUNT_DESKTOP = 130;
+const STAR_COUNT_MOBILE = 90;
 const STAR_SPAN_X = MAP_WIDTH;
 const STAR_SPAN_Y = MAP_HEIGHT;
 const STAR_DEPTH = -4;
@@ -160,17 +162,6 @@ export class AtmosphereManager {
       cloud.setAlpha(spot.alpha);
       cloud.setDepth(-8);
       cloud.setBlendMode(Phaser.BlendModes.ADD);
-
-      this.scene.tweens.add({
-        targets: cloud,
-        scaleX: spot.scale * 1.08,
-        scaleY: spot.scale * 1.08,
-        alpha: spot.alpha * 1.25,
-        duration: Phaser.Math.Between(7000, 12000),
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      });
       this.nebulas.push(cloud);
     }
   }
@@ -183,8 +174,9 @@ export class AtmosphereManager {
     const cam = this.scene.cameras.main;
     const cx = cam.worldView ? cam.worldView.centerX : MAP_WIDTH / 2;
     const cy = cam.worldView ? cam.worldView.centerY : MAP_HEIGHT / 2;
+    const starCount = isMobileOrTabletDevice() ? STAR_COUNT_MOBILE : STAR_COUNT_DESKTOP;
 
-    for (let i = 0; i < STAR_COUNT; i++) {
+    for (let i = 0; i < starCount; i++) {
       const x = cx + Phaser.Math.Between(-STAR_SPAN_X / 2, STAR_SPAN_X / 2);
       const y = cy + Phaser.Math.Between(-STAR_SPAN_Y / 2, STAR_SPAN_Y / 2);
       const sprite = this.scene.add.sprite(x, y, STAR_TEXTURE_KEY);
@@ -207,11 +199,19 @@ export class AtmosphereManager {
     }
   }
 
+  private starTwinkleTimer = 0;
+
   /**
    * Непрерывное перемещение и мерцание звезд с тороидальным переносом вокруг камеры
    */
   public updateStars(seconds: number, cam?: Phaser.Cameras.Scene2D.Camera): void {
     this.starAnimTimer += seconds;
+    this.starTwinkleTimer += seconds;
+    const updateTwinkle = this.starTwinkleTimer >= 0.06;
+    if (updateTwinkle) {
+      this.starTwinkleTimer = 0;
+    }
+
     const c = cam || this.scene.cameras.main;
     const pad = 120;
     const viewW = c.worldView && c.worldView.width > 0 ? c.worldView.width : 1600;
@@ -242,8 +242,10 @@ export class AtmosphereManager {
 
       star.sprite.setPosition(star.x, star.y);
 
-      const pulse = Math.sin(this.starAnimTimer * star.twinkleSpeed + star.twinkleOffset) * 0.22;
-      star.sprite.setAlpha(Phaser.Math.Clamp(star.baseAlpha + pulse, 0.1, 1.0));
+      if (updateTwinkle) {
+        const pulse = Math.sin(this.starAnimTimer * star.twinkleSpeed + star.twinkleOffset) * 0.22;
+        star.sprite.setAlpha(Phaser.Math.Clamp(star.baseAlpha + pulse, 0.1, 1.0));
+      }
     }
 
     // Периодический полет кометы
@@ -290,7 +292,7 @@ export class AtmosphereManager {
    * Атмосфера космоса: парящие светящиеся частицы звездной пыли
    */
   public createCosmicAtmosphere(): void {
-    const stardustCount = 65;
+    const stardustCount = isMobileOrTabletDevice() ? 24 : 36;
     const cam = this.scene.cameras.main;
     const cx = cam.worldView ? cam.worldView.centerX : MAP_WIDTH / 2;
     const cy = cam.worldView ? cam.worldView.centerY : MAP_HEIGHT / 2;
@@ -349,22 +351,38 @@ export class AtmosphereManager {
     const viewRight = cam.worldView.right + 40;
     const viewBottom = cam.worldView.bottom + 40;
 
+    for (const cloud of this.nebulas) {
+      const cloudMargin = 850;
+      const isVisible =
+        cloud.x >= viewLeft - cloudMargin &&
+        cloud.x <= viewRight + cloudMargin &&
+        cloud.y >= viewTop - cloudMargin &&
+        cloud.y <= viewBottom + cloudMargin;
+      if (cloud.visible !== isVisible) {
+        cloud.setVisible(isVisible);
+      }
+    }
+
     for (const dust of this.stardust) {
       dust.sprite.x += dust.vx * seconds;
       dust.sprite.y += dust.vy * seconds;
       dust.pulsePhase += seconds * 2.2;
 
-      const alphaPulse = dust.baseAlpha + Math.sin(dust.pulsePhase) * 0.18;
-      dust.sprite.setAlpha(Phaser.Math.Clamp(alphaPulse, 0.12, 0.8));
-
       if (dust.sprite.x < viewLeft) {
         dust.sprite.x = viewRight;
         dust.sprite.y = Phaser.Math.Between(viewTop, viewBottom);
+      } else if (dust.sprite.x > viewRight) {
+        dust.sprite.x = viewLeft;
       }
       if (dust.sprite.y > viewBottom) {
         dust.sprite.y = viewTop;
         dust.sprite.x = Phaser.Math.Between(viewLeft, viewRight);
+      } else if (dust.sprite.y < viewTop) {
+        dust.sprite.y = viewBottom;
       }
+
+      const alphaPulse = dust.baseAlpha + Math.sin(dust.pulsePhase) * 0.18;
+      dust.sprite.setAlpha(Phaser.Math.Clamp(alphaPulse, 0.12, 0.8));
     }
   }
 

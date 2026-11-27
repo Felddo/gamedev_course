@@ -356,6 +356,9 @@ export class GameScene extends Phaser.Scene {
     this.wasBossKilled = false;
     this.cameras.main.setZoom(getGameDpr());
     this.cameras.main.setFollowOffset(0, 0);
+    if (this.game?.loop?.running) {
+      this.game.loop.sleep();
+    }
   }
 
   public enterMenuMode(): void {
@@ -378,6 +381,9 @@ export class GameScene extends Phaser.Scene {
     this.scrapManager?.reset();
     this.inMissionScrapCollected = 0;
     this.wasBossKilled = false;
+    if (this.game?.loop?.running) {
+      this.game.loop.sleep();
+    }
   }
 
   /**
@@ -407,6 +413,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   public startCombatSession(customMission?: CampaignMission): void {
+    if (this.game?.loop?.started && !this.game.loop.running) {
+      this.game.loop.wake();
+    }
     this.isMenuMode = false;
     this.isGameOver = false;
     this.isMissionWon = false;
@@ -580,7 +589,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    const seconds = delta / 1000;
+    const seconds = Math.min(delta / 1000, 0.05);
 
     if (this.isMenuMode) {
       return;
@@ -883,7 +892,7 @@ export class GameScene extends Phaser.Scene {
       this.spaceStationManager.getStations(),
       this.spaceStationManager.getTargetedStation(),
       this.enemyManager.getActiveBoss(),
-      this.inMissionScrapCollected,
+      this.getAvailableShopScrap(),
       this.scrapManager.getItems(),
       this.flyingShopManager.getShop(),
     );
